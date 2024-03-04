@@ -22,6 +22,7 @@ out = np.zeros(((num_models * num_questions), 4), dtype="object")
 for ind, dir in enumerate(dirs[:1]):
 
     # Get relevant parts of string 
+    print(f"Model {ind+1} / {num_models}")
     _, org, model, _ = dir.split("/")
 
     # Get result for GSM8K and make into pandas dataframe
