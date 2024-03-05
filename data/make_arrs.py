@@ -23,7 +23,7 @@ for ind, dir in enumerate(dirs):
 
     # Get relevant parts of string 
     _, org, model, _ = dir.split("/")
-    print(f"{org}__{model}: {ind+1} / {num_models}", flush=True)
+    print(f"{ind+1} / {num_models}: {org}__{model}", flush=True)
 
     # Get result for GSM8K and make into pandas dataframe
     try:
