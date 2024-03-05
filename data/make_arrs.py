@@ -23,7 +23,7 @@ for ind, dir in enumerate(dirs):
 
     # Get relevant parts of string 
     _, org, model, _ = dir.split("/")
-    print(f"{org}__{model}: {ind+1} / {num_models}")
+    print(f"{org}__{model}: {ind+1} / {num_models}", flush=True)
 
     # Get result for GSM8K and make into pandas dataframe
     try:
@@ -43,7 +43,7 @@ for ind, dir in enumerate(dirs):
     
     # For some, the GSM8K does not exist
     except:
-        print(f"GSM8K not available for {org}__{model}")
+        print(f"GSM8K not available for {org}__{model}", flush=True)
         pass
 
 # Save final file
