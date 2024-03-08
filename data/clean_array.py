@@ -37,8 +37,7 @@ parser.add_argument('--DSET_NAME', type=str,
 args = parser.parse_args()
 
 # Load array
-name = "gsm8k"
-arr = np.load(f"{name}.npy", allow_pickle=True) 
+arr = np.load(f"{args.DSET_NAME}.npy", allow_pickle=True) 
 print(f"First shape: {arr.shape}")
 
 # Remove all zero rows
@@ -50,11 +49,11 @@ arr = np.delete(arr, 2, 1)
 print(f"Shape after removing promp column {arr.shape}")
 
 # Add benchmark name to all rows
-arr = np.insert(arr, 0, name, axis=1)
+arr = np.insert(arr, 0, args.DSET_NAME, axis=1)
 print(f"Shape after adding benchmark name row: {arr.shape}")
 
 # Save cleaned array
-np.save(f"{name}_clean.npy", arr)
+np.save(f"{args.DSET_NAME}_clean.npy", arr)
 
 
 # Pre-allocate correlation input array (shape is num items, num models)
