@@ -36,6 +36,8 @@ parser.add_argument('--DSET_NAME', type=str,
                              'harness_hendrycksTest_world_religions_5', 'harness_truthfulqa_mc_0', 'harness_winogrande_5'])
 args = parser.parse_args()
 
+
+### Clean array
 # Load array
 arr = np.load(f"{args.DSET_NAME}.npy", allow_pickle=True) 
 print(f"First shape: {arr.shape}")
@@ -46,7 +48,7 @@ print(f"Shape after removing zeros: {arr.shape}")
 
 # Remove prompt column
 arr = np.delete(arr, 2, 1)
-print(f"Shape after removing promp column {arr.shape}")
+print(f"Shape after removing prompt column {arr.shape}")
 
 # Add benchmark name to all rows
 arr = np.insert(arr, 0, args.DSET_NAME, axis=1)
@@ -56,7 +58,9 @@ print(f"Shape after adding benchmark name row: {arr.shape}")
 np.save(f"{args.DSET_NAME}_clean.npy", arr)
 
 
+### Correlation analysis
 # Pre-allocate correlation input array (shape is num items, num models)
+print(f"Number of items: {max(arr[:,2])}, Number of models: {len(np.unique(arr[:,1]))}")
 m = np.zeros((max(arr[:,2]), len(np.unique(arr[:,1]))))
 
 # Make rows in correlation array
