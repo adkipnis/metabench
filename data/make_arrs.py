@@ -60,12 +60,14 @@ for ind, dir in tqdm(enumerate(dirs)):
 
     # Get relevant parts of string 
     _, org, model, _ = dir.split("/")
-    print(f"{ind+1} / {num_models}: {org}__{model}", flush=True)
 
     # Get result for GSM8K and make into pandas dataframe
     try:
         dataset = load_dataset(f"open-llm-leaderboard/details_{org}__{model}", args.DSET_NAME, split="latest")
         df = pd.DataFrame(dataset)
+
+        # Print info
+        print(f"{ind+1} / {num_models}: {org}__{model}, {len(df.index.values)} entries", flush=True)
 
         # Enter data into output array
         out[num_questions*ind:num_questions*(ind+1), 0] = f"{org}__{model}"
