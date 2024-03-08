@@ -54,6 +54,7 @@ _, org, model, _ = dirs[0].split("/")
 dataset = load_dataset(f"open-llm-leaderboard/details_{org}__{model}", args.DSET_NAME, split="latest")
 num_questions = dataset.shape[0]
 out = np.zeros(((num_models * num_questions), 4), dtype="object")
+out[:] = np.nan
 
 # Loop through names
 for ind, dir in tqdm(enumerate(dirs)):
