@@ -1,5 +1,4 @@
-library(dplyr)
-library(tidyr)
+library(tidyverse)
 library(clue)
 library(plot.matrix)
 
@@ -19,11 +18,12 @@ simulate_wide <- function(seed=1, n=100, d=10, l=1, rho=0.0){
   theta <- MASS::mvrnorm(n, mu=rep(0,l), Sigma=R)
   
   # item parameters
-  A <- matrix(runif(d * l), d, l)
-  difficulty <- rnorm(d, sd=1+log(l))
-  
+  A <- matrix(exp(rnorm(d*l)), d, l)
+  difficulty <- rnorm(d)
+  difficulty_matrix <- t(replicate(n, difficulty))
+
   # manifest data
-  linear_term <- theta %*% t(A) - difficulty
+  linear_term <- theta %*% t(A) - difficulty_matrix
   probabilities <- plogis(linear_term)
   p <- function(x) rbinom(1,1,x)
   responses <- data.frame(apply(probabilities, c(1,2), p))
