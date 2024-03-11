@@ -1,5 +1,6 @@
 library(dplyr)
 library(tidyr)
+library(clue)
 library(plot.matrix)
 
 simulate_wide <- function(seed=1, n=100, d=10, l=1, rho=0.0){
@@ -61,5 +62,26 @@ plot_simulated <- function(example){
   plot(t(example$theta), main="abilities", xlab="subject", ylab="ability")
 }
 
-plot_simulated(simulate_wide(l=2))
+hungarian <- function(corr_mat) {
+  # wrapper for Hungarian algorithm for matrix matching
+  # find cols (order of column indices of corr_mat),
+  # such that the sum of [1:nrow, cols] is maximized  
+  nonneg_mat <- corr_mat + 1
+  cols <- solve_LSAP(nonneg_mat, maximum=T)
+  selected_entries <- corr_mat[cbind(1:nrow(corr_mat), cols)]
+  max_sum <- sum(selected_entries)
+  
+  # output
+  out <- list(columns=cols, selected_entries=selected_entries)
+  return(out)
+}
+
+reorder_cols <- function(mat1, mat2){
+  # reorder columns of mat1, such that after vectorizing,
+  # mat1_reordered and mat2 are maximally correlated 
+  cor <- cor(mat1, mat2)
+  result <- hungarian(cor)
+  mat1_reordered <- mat1[, result$columns]
+  return(mat1_reordered)
+}
 
