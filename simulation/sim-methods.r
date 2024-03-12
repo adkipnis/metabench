@@ -37,13 +37,14 @@ simulate_long <- function(seed=1, n=100, d=10, l=1, rho=0.0){
   # long version of the above
   out <- simulate_wide(seed=seed, n=n, d=d, l=l, rho=rho)
   long <- out$responses %>%
-    mutate(subject = row_number()) %>%
+    mutate(subject = as.factor(row_number())) %>%
     pivot_longer(
       cols = starts_with("X"),
       names_to = "item",
       names_prefix = "X",
       values_to = "correct",
-    )
+    ) %>%
+    mutate(item = as.factor(item))
   out$responses <- long
   return(out)  
 }
