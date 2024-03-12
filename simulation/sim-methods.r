@@ -79,9 +79,10 @@ hungarian <- function(corr_mat) {
 reorder_cols <- function(mat1, mat2){
   # reorder columns of mat1, such that after vectorizing,
   # mat1_reordered and mat2 are maximally correlated 
-  cor <- cor(mat1, mat2)
+  cor <- cor(mat2, mat1)
   result <- hungarian(cor)
   mat1_reordered <- mat1[, result$columns]
   return(mat1_reordered)
 }
+
 
