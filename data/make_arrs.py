@@ -81,10 +81,13 @@ for ind, dir in tqdm(enumerate(dirs)):
         elif "metrics" in df.columns:
             out[num_questions*ind:num_questions*(ind+1), 3] = np.array([item['acc'] for item in df["metrics"].values])
     
-    # For some, the GSM8K does not exist
+    # For some, the dataset does not exist
     except:
         print(f"{args.DSET_NAME} not available for {org}__{model}", flush=True)
         pass
+
+# Remove all rows where any entry is nan
+# out = out[~np.any(np.isnan(out), 1)]
 
 # Save final file
 np.save(f"{args.DSET_NAME}.npy", out)

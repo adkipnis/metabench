@@ -42,9 +42,11 @@ args = parser.parse_args()
 arr = np.load(f"{args.DSET_NAME}.npy", allow_pickle=True) 
 print(f"First shape: {arr.shape}")
 
-# Remove all zero rows
-arr = arr[~np.all(arr == 0, axis=1)]
-print(f"Shape after removing zeros: {arr.shape}")
+# Remove all zero rows 
+# -- NOT NECESSARY WITH NEW NP.NAN BASE
+# -- NAN ROWS ARE REMOVED AUTOMATICALLY WHEN SAVING AND LOADING
+# arr = arr[~np.all(arr == 0, axis=1)]
+# print(f"Shape after removing zeros: {arr.shape}")
 
 # Remove prompt column
 arr = np.delete(arr, 2, 1)
