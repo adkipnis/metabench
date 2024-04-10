@@ -1,6 +1,5 @@
 library(tidyverse)
 library(clue)
-library(plot.matrix)
 
 simulate_wide <- function(seed=1, n=100, d=10, l=1, rho=0.0){
   # simulates a dataframe (n by d) of M2PL responses
@@ -49,6 +48,7 @@ simulate_long <- function(seed=1, n=100, d=10, l=1, rho=0.0){
 }
 
 plot_simulated <- function(example){
+  library(plot.matrix)
   # plots parameters and responses of example simulation dataset as matrix heatmaps
   
   # item parameters
