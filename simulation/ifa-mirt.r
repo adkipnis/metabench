@@ -5,9 +5,9 @@ source("sim-methods.r")
 library(mirt)
 
 #===============================================================================
-n <- 500
-d <- 10
-l <- 3 
+n <- 4000
+d <- 800
+l <- 2 
 data <- simulate_wide(seed=12, n=n, d=d, l=l, rho=0.3)
 
 # starting guesses and constraints
@@ -19,8 +19,12 @@ pars_mod <- pars %>%
   mutate(value = ifelse(name == "d", rnorm(d), value)) # difficulty is called d in pars
 
 # fit
-res <- mirt(data$responses, l, itemtype = '2PL', method = 'SEM',
+mirtCluster()
+mirtCluster(remove = T)
+res <- mirt(data$responses, l, itemtype = '2PL', method = 'EM',
             pars = pars_mod,
+            verbose = T,
+            
             )
 estimates <-coef(res, simplify=T, rotate="none")$items
 d_hat <- estimates[,"d"]
