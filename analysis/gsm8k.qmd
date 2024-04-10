@@ -1,0 +1,398 @@
+---
+title: "metabench - gsm8k"
+author: "Alex Kipnis"
+# date-modified: April, 2024
+format:
+  html:
+    code-link: true
+    code-fold: false
+editor: source
+toc: true
+---
+
+## Preliminaries
+
+```{r}
+#| label: packages and preprocessing
+#| include: false
+#| warning: false
+packages <- c("tidyverse", "readr", "mirt",
+              "ggridges", "ggthemes", "ggpubr", "corrplot")
+install.packages(setdiff(packages, rownames(installed.packages())))  
+lapply(packages, require, character.only=T)
+```
+
+```{r}
+#| label: presets
+#| warning: false
+set.seed(1)
+mirtCluster()
+mirtCluster(remove=T)
+LOAD <- T # load previous results
+TOL <- 1e-4 # tolerance for convergence
+here::i_am("analysis/gsm8k-mirt.r")
+```
+
+Load gsm8k data, make it wide and remove LLMs with less than 50 correct responses
+
+```{r}
+#| label: data
+#| column: body-outset 
+#| fig-subcap: Histogram of scores after removing tail outliers. 
+df <- read_csv(here::here("data/gsm8k_clean.csv"), show_col_types=F)
+data <- df %>% select(!name) %>%
+  mutate(output = as.integer(output), item = item+1) %>%
+  pivot_wider(names_from = item, values_from = output) %>%
+  column_to_rownames(var = "model")
+data <- data[!(rowSums(data) < 50),] # remove tail outliers
+scores <- rowSums(data)
+hist(scores, breaks=50, xlab="Total Score")
+```
+
+Remove items without variance
+
+```{r}
+# drop items without variance
+std <- apply(data, 2, sd)
+data <- data[, std > 0]
+n <- nrow(data)
+d <- ncol(data)
+```
+
+This leaves us with `r d` items and `r n` LLMs.
+
+## IRT Modeling
+
+```{r}
+#| label: prepare mirt
+internaldat <- mirt(data, 1, large='return')
+```
+
+### 2PL
+
+Assuming the score is well captured by the latent trait, we fit a 2PL model with 1 factor and Davidian density approximation (as the scores do not follow a normal distribution).
+
+```{r}
+#| label: 2PL
+modpath <- here::here("analysis/models/gsm8k-2pl.rds") 
+if (!LOAD) {
+  mod.2pl <- mirt(data, 1, itemtype='2PL',
+                  method='EM',
+                  density='Davidian-4',
+                  large=intenaldat,
+                  TOL=TOL,
+                  technical=list(NCYC=2000)) 
+  saveRDS(mod.2pl, file=modpath) 
+} else {
+  mod.2pl <- readRDS(modpath)
+}
+mod.2pl
+```
+
+### 3PL
+
+Perhaps the above model is too simplistic and we need to account for guessing.
+
+```{r}
+#| label: 3PL
+modpath <- here::here("analysis/models/gsm8k-3pl.rds")
+if (!LOAD) {
+  mod.3pl <- mirt(data, 1, itemtype='3PL',
+                  method='EM',
+                  density='Davidian-4',
+                  large=internaldat,
+                  TOL=TOL,
+                  technical=list(NCYC=2000)) 
+  saveRDS(mod.3pl, file=modpath) 
+} else {
+  mod.3pl <- readRDS(modpath)
+}
+mod.3pl
+anova(mod.2pl, mod.3pl)
+```
+
+Following all indicators of fit, the 3PL model is superior to the 2PL model.
+
+### 3PLu
+
+Can we simplify the model by only estimating the upper asymptote for guessing?
+
+```{r}
+#| label: 3PLu
+modpath <- here::here("analysis/models/gsm8k-3plu.rds")
+if (!LOAD) {
+  mod.3plu <- mirt(data, 1, itemtype='3PLu',
+                   method='EM',
+                   density='Davidian-4',
+                   large=internaldat,
+                   TOL=TOL,
+                   technical=list(NCYC=2000)) 
+  saveRDS(mod.3plu, file=modpath) 
+} else {
+  mod.3plu <- readRDS(modpath)
+}
+mod.3plu
+anova(mod.3pl, mod.3plu)
+```
+
+Again, following all indicators of fit, the 3PLu model is superior to the 3PL model.
+
+### 4PL
+
+For the sake of completeness, we also fit a 4PL model.
+
+```{r}
+#| label: 4PL
+modpath <- here::here("analysis/models/gsm8k-4pl.rds")
+if (!LOAD) {
+  mod.4pl <- mirt(data, 1, itemtype='4PL',
+                  method='EM',
+                  density='Davidian-4',
+                  large=internaldat,
+                  TOL=TOL,
+                  technical=list(NCYC=3000))
+  saveRDS(mod.4pl, file=modpath)
+} else {
+  mod.4pl <- readRDS(modpath)
+}
+mod.4pl
+anova(mod.3plu, mod.4pl)
+```
+
+Again, the 4PL model seems to bring an improvement to the fit.
+
+```{r}
+models <- c("mod.2pl", "mod.3pl", "mod.3plu", "mod.4pl")
+```
+
+## Further fit analyses
+
+Apart from likelihood-based fit indices we should also have a look at the distributions of estimated parameters as well as item fits.
+
+```{r}
+#| label: extract functions 
+extract.theta <- function(mod.name){
+  mod <- get(mod.name)
+  theta.vec <- fscores(mod, method='MAP', use_dentype_estimate=F)
+  colnames(theta.vec) <- 'theta'
+  df.theta <- data.frame(theta.vec)
+  df.theta$model <- toupper(mod@Call[['itemtype']])
+  df.theta$index <- 1:nrow(data)
+  return(df.theta)
+}
+
+extract.estimates <- function(mod.name){
+  mod <- get(mod.name)
+  estimates <- data.frame(coef(mod, simplify=T, rotate="none")$items) %>%
+    rownames_to_column(var='item') %>%
+    mutate(item = as.numeric(item))
+  estimates$model <- mod@Call[['itemtype']]
+  return(estimates)
+}
+
+```
+
+```{r}
+#| label: extract parameters
+modpath <- here::here("analysis/models/gsm8k-theta.rds")
+if (!LOAD) {
+  df.theta <- bind_rows(lapply(models, extract.theta))
+  saveRDS(df.theta, modpath)
+} else {
+  df.theta <- readRDS(modpath)
+}
+df.estimates <- bind_rows(lapply(models, extract.estimates))
+
+```
+
+### Parameter distributions
+
+```{r}
+#| label: plot functions
+#| code-fold: true
+#| code-summary: "Show the code"
+mytheme <- theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(colour = "gray", fill=NA, size=1),
+    axis.text = element_text(size = 10),
+    axis.title.x = element_text(margin = margin(t = 5)),
+    axis.title.y = element_text(margin = margin(r = 8)),
+    axis.title = element_text(size = 14, face = "bold"),
+    strip.text.x = element_text(size = 14, face = "bold",
+                                vjust = 4, margin = margin(t = 20)),
+    # plot.margin = margin(1, 1, 0.5, 0.5, "cm"),
+    )
+
+denplot <- function(df, x, xlab='', ylab='', show_hist=F){
+  p <- ggplot(df, aes(x=get(x), y=0, fill=factor(model))) +
+          geom_density_ridges(scale=1.0, alpha=.4, color='white',
+                              rel_min_height=1e-05) +
+    geom_vline(xintercept = 0, linetype="dashed", color = "grey", linewidth=1)
+  if (show_hist){
+    p <- p + geom_histogram(aes(y=..density..), alpha=.2, position='identity')
+  }
+  p <- p +
+    labs(fill="IRT model") +
+    xlab(xlab) +
+    ylab(ylab) +
+    scale_x_continuous(expand=c(0,0)) +
+    scale_fill_colorblind() +
+    mytheme
+  return(p)
+}
+```
+
+```{r}
+#| label: density plots
+p1 <- denplot(df.theta, "theta", expression(theta), expression(f(theta)))
+p2 <- denplot(df.estimates, "d", expression(d), expression(f(d)))
+p3 <- denplot(df.estimates, "a1", expression(a), expression(f(a)))
+ggarrange(p1, p2, p3,
+          ncol = 1,
+          nrow = 3,
+          common.legend = T,
+          legend = "right")
+
+```
+
+```{r}
+#| label: theta correlations
+df.ability <- df.theta %>%
+  pivot_wider(names_from = model, values_from = theta) %>%
+  column_to_rownames(var="index")
+df.ability$score <- scores
+df.ability %>% cor(method="spearman") %>%
+  corrplot(method="number", type="upper")
+```
+
+```{r}
+#| label: correlation tests
+cor.test.df <- function (df) {
+  res <- cor.test(~ d + a1, data=df)
+  out <- data.frame(
+    model = df$model[1],
+    r = res[["estimate"]][["cor"]],
+    ci.l = res[["conf.int"]][1],
+    ci.u = res[["conf.int"]][2],
+    t = res[["statistic"]][["t"]],
+    free = res[["parameter"]][["df"]],
+    p = res[["p.value"]]
+  )
+  return(out)
+}
+
+df.par.cor <- bind_rows(
+  df.estimates %>% filter(model=='2PL') %>% cor.test.df(),
+  df.estimates %>% filter(model=='3PL') %>% cor.test.df(),
+  df.estimates %>% filter(model=='3PLu') %>% cor.test.df(),
+  df.estimates %>% filter(model=='4PL') %>% cor.test.df(),
+) %>% column_to_rownames(var="model")
+df.par.cor
+
+```
+``` {r fig.width=16, fig.height=16}
+#| label: scatter plots
+ggplot(df.estimates, aes(x=d, y=a1)) +
+  geom_point(shape = 21,  alpha=0.9) +
+  facet_wrap(~model) + 
+  mytheme +
+  coord_fixed(ratio = 1)
+```
+The 3PLu model has strongly correlated loadings and difficulties (r = `r df.par.cor["3PLu",]$r`), but its estimated distribution of theta is less bimodal. The 3PLu and 4PL models also have some extreme/outlier estimates for difficulties and loadings.
+
+### Item fits
+
+```{r}
+#| label: extract item fits
+#| warning: false 
+#| code-fold: true
+#| code-summary: "Show the code"
+modname2itemtype <- function(mod.name){
+  mod <- get(mod.name)
+  return(mod@Call[['itemtype']])
+}
+
+extract.itemfits <- function(mod.name){
+  itemtype <- modname2itemtype(mod.name)
+  theta <- df.theta %>%
+    filter(model == itemtype) %>%
+    select(theta)
+  item.fit <- itemfit(get(mod.name), fit_stats='infit', Theta = theta$theta)
+  item.fit$model <- itemtype
+  return(item.fit)
+}
+
+df.itemfit <- bind_rows(lapply(models, extract.itemfits))
+```
+
+```{r fig.width=10, fig.height=16}
+#| label: item fits
+#| layout-ncol: 2
+#| layout-nrow: 2 
+plot.itemfits <- function(mod.name, fittype){
+  itemtype <- modname2itemtype(mod.name)
+  data <- df.itemfit %>% filter(model == itemtype)
+  plot(item ~ get(fittype), data=data, pch=20, col="black",
+       xlab=fittype, ylab="Item", main=itemtype)
+  abline(v=1, col="gray")
+  abline(v=0.5, col="gray", lty=2)
+  abline(v=1.5, col="gray", lty=2)
+}
+
+invisible(sapply(models, function(m) plot.itemfits(m, "infit")))
+invisible(sapply(models, function(m) plot.itemfits(m, "outfit")))
+
+
+df.itemfit <- df.itemfit %>% mutate(
+  bad = ifelse(infit <= 0.5 | infit >= 1.5 | outfit <= 0.5 | outfit >= 1.5, T, F))
+df.itemfit %>% group_by(model) %>% filter(bad==T) %>% count(bad)
+```
+
+The 2PL model has worse item fits than the other models, which do not differ much in this regard.
+
+## Score prediction
+
+From the correlogram above, we know that for each model the latent ability seems to capture almost the entire information of the test score.
+
+```{r fig.width=16, fig.height=16}
+#| label: percentiles
+colnames(df.ability)[1:4] <- paste0('theta.', colnames(df.ability)[1:4])
+df.ability <- df.ability %>%
+  arrange(by=score) %>%
+  mutate(rank.score = rank(score), perc.score = rank.score/max(rank.score),
+         rank.2PL = rank(theta.2PL), perc.2PL = rank.2PL/max(rank.2PL),
+         rank.3PL = rank(theta.3PL), perc.3PL = rank.3PL/max(rank.3PL),
+         rank.3PLu = rank(theta.3PLu), perc.3PLu = rank.3PLu/max(rank.3PLu),
+         rank.4PL = rank(theta.4PL), perc.4PL = rank.4PL/max(rank.4PL),
+  )
+
+df.ability %>%
+  rownames_to_column(var="index") %>%
+  select(index | starts_with("perc")) %>%
+  pivot_longer(!index, values_to="percentile",
+               names_prefix="perc.", names_to="type") %>%
+  mutate(score = ifelse(type=="score", percentile, NA)) %>%
+  fill(score, .direction = 'down') %>%
+  filter(type != 'score') %>%
+  ggplot(aes(percentile, score)) +
+    geom_point() +
+    facet_wrap(~type) +
+    mytheme +
+    coord_fixed(ratio = 1) +
+    xlab(expression(theta)) +
+    ggtitle('Percentiles')
+
+```
+
+It seems to be easier to predict score percentiles from thetas in simpler models (2PL/3PLu).
+
+```{r fig.width=16, fig.height=16}
+#| label: GAM prediction
+# GAM of test score
+mod.score = mgcv::gam(score ~ s(theta.2PL), data = df.ability)
+df.ability$p.2PL <- predict(mod.score)
+plot(score ~ theta.2PL, data=df.ability)
+lines(p.2PL ~ theta.2PL, data=df.ability, col="red")
+df.ability %>% summarize(mae = mean(abs(score-p.2PL)))
+```
