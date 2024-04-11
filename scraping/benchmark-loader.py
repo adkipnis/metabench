@@ -52,3 +52,10 @@ class BenchmarkLoader:
         user, model = name.split('/')
         return f'open-llm-leaderboard/details_{user}__{model}'
 
+
+    def printBenchmarks(self):
+        out = 'Benchmarks:\n'
+        for b in self.benchmarks + self.mmlu:
+            out += f'  {self._parseBenchName(b)}\n'
+        print(out)
+
