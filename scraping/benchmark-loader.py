@@ -222,3 +222,20 @@ class BenchmarkLoader:
                 print(f'Failed to fetch {benchmark} data for {source}.')
 
 
+    def fetchBenchmark(self, benchmark: str):
+        assert benchmark in self.benchmarks + \
+            self.mmlu, f'Benchmark {benchmark} not found.'
+        prompt_path = os.path.join(self.csv_dir, f'{benchmark}_prompts.csv')
+        save_prompts = not os.path.exists(prompt_path)
+        sources = self._removeRedundant(benchmark)
+
+        # init self.num_core processes
+        pool = mp.Pool(self.num_cores)
+        for source in sources:
+            pool.apply_async(self.fetchDatasetWrapper, args=(
+                source, benchmark, save_prompts))
+        pool.close()
+        pool.join()
+
+        print(f'Finished fetching {benchmark} data.')
+
