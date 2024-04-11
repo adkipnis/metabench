@@ -59,3 +59,18 @@ class BenchmarkLoader:
             out += f'  {self._parseBenchName(b)}\n'
         print(out)
 
+
+    def filterSources(self, bool_dict: dict):
+        for k in bool_dict.keys():
+            assert k in self.df.columns, f'Column {k} not found in the dataframe.'
+        n_before = len(self.df)
+
+        # remove rows for which the condition is not met
+        for k, v in bool_dict.items():
+            self.df = self.df[self.df[k] == v]
+
+        n_after = len(self.df)
+        if self.verbose > 0:
+            print(f'Removed {n_before - n_after} sources.')
+
+
