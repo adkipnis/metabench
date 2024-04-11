@@ -28,6 +28,14 @@ class BenchmarkLoader:
             'professional_accounting', 'professional_law', 'professional_medicine', 'professional_philosophy',
             'professional_psychology', 'public_relations', 'security_studies', 'sociology', 'us_foreign_policy',
             'virology', 'world_religions',]
+        self.metrics = {
+            'arc': 'acc_norm',
+            'hellaswag': 'acc_norm',
+            'truthfulqa': 'mc2',
+            'winogrande': 'acc',
+            'gsm8k': 'acc',
+            'mmlu': 'acc', }
+        self.prompts = {b: [] for b in self.benchmarks + self.mmlu}
         self.num_cores = os.cpu_count() if num_cores == 0 else num_cores
         self.verbose = verbose
     def _parseBenchName(self, name: str) -> str:
