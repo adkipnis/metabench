@@ -239,3 +239,13 @@ class BenchmarkLoader:
 
         print(f'Finished fetching {benchmark} data.')
 
+
+def main():
+    cachedir = '/home/alex/Datasets/open-llm-leaderboard/'
+    csvdir = '/home/alex/Dropbox/Code/my-repos/metabench/scraping/'
+    bl = BenchmarkLoader(cachedir, csvdir, verbose=1)
+    bl.fetchBenchmark('gsm8k')
+
+
+if __name__ == '__main__':
+    main()
