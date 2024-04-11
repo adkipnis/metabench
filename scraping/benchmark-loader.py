@@ -202,3 +202,23 @@ class BenchmarkLoader:
                 f'Skipping {len(self.finished[benchmark])} finished and {len(self.failed[benchmark])} failed sources.')
         out = [s for s in sources if s not in filter_set]
         return out
+
+
+    def fetchDatasetWrapper(self, source: str, benchmark: str, save_prompts: bool = False):
+        try:
+            mini_df = self.fetchDataset(source, benchmark, save_prompts)
+            assert mini_df is not None, f'Failed to fetch {benchmark} data for {source}.'
+            self._dumpDataset(mini_df, benchmark)
+            self._dumpText(benchmark, source, 'finished')
+            if save_prompts:
+                self._dumpPrompts(benchmark)
+        except KeyboardInterrupt:
+            return
+        except Exception as e:
+            print(f'Error: {e}')
+
+            self._dumpText(benchmark, source, 'failed')
+            if self.verbose > 0:
+                print(f'Failed to fetch {benchmark} data for {source}.')
+
+
