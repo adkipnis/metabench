@@ -156,3 +156,17 @@ class BenchmarkLoader:
         df.to_csv(path, index=False)
         if self.verbose > 0:
             print(f'Saved {benchmark} prompts csv.')
+
+
+    def _dumpDataset(self, df: pd.DataFrame, benchmark: str):
+        path = os.path.join(self.csv_dir, f'{benchmark}.csv')
+        if not os.path.exists(path):
+            df.to_csv(path, index=False)
+            if self.verbose > 0:
+                print(f'Initialized {benchmark} csv.')
+        else:
+            df.to_csv(path, mode='a', index=False, header=False)
+            if self.verbose > 1:
+                print(f'Appended {benchmark} csv.')
+
+
