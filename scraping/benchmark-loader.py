@@ -36,8 +36,13 @@ class BenchmarkLoader:
             'gsm8k': 'acc',
             'mmlu': 'acc', }
         self.prompts = {b: [] for b in self.benchmarks + self.mmlu}
+        self.finished = {b: [] for b in self.benchmarks + self.mmlu}
+        self.failed = {b: [] for b in self.benchmarks + self.mmlu}
         self.num_cores = os.cpu_count() if num_cores == 0 else num_cores
         self.verbose = verbose
+        self._loadFinishedAndFailed()
+
+
     def _parseBenchName(self, name: str) -> str:
         # prefix
         prefix = 'harness_'
@@ -169,4 +174,21 @@ class BenchmarkLoader:
             if self.verbose > 1:
                 print(f'Appended {benchmark} csv.')
 
+
+    def _dumpText(self, benchmark: str, name: str, suffix: str):
+        path = os.path.join(self.csv_dir, f'{benchmark}_{suffix}.txt')
+        with open(path, 'a') as f:
+            f.write(name + '\n')
+
+
+    def _loadFinishedAndFailed(self):
+        for b in self.benchmarks + self.mmlu:
+            path = os.path.join(self.csv_dir, f'{b}_finished.txt')
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    self.finished[b] = f.read().splitlines()
+            path = os.path.join(self.csv_dir, f'{b}_failed.txt')
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    self.failed[b] = f.read().splitlines()
 
