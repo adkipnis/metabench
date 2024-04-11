@@ -30,3 +30,25 @@ class BenchmarkLoader:
             'virology', 'world_religions',]
         self.num_cores = os.cpu_count() if num_cores == 0 else num_cores
         self.verbose = verbose
+    def _parseBenchName(self, name: str) -> str:
+        # prefix
+        prefix = 'harness_'
+        if name in self.mmlu:
+            prefix += 'hendrycksTest_'
+
+        # suffix
+        suffix = '_5'
+        if 'arc' in name:
+            suffix = '_challenge_25'
+        elif 'hellaswag' in name:
+            suffix = '_10'
+        elif 'truthfulqa' in name:
+            suffix = '_mc_0'
+
+        return prefix + name + suffix
+
+
+    def _parseSourceName(self, name: str) -> str:
+        user, model = name.split('/')
+        return f'open-llm-leaderboard/details_{user}__{model}'
+
