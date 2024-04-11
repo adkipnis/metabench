@@ -192,3 +192,13 @@ class BenchmarkLoader:
                 with open(path, 'r') as f:
                     self.failed[b] = f.read().splitlines()
 
+
+    def _removeRedundant(self, benchmark: str) -> List[str]:
+        # remove finished sources from the dataframe
+        sources = self.df['name'].values
+        filter_set = set(self.finished[benchmark] + self.failed[benchmark])
+        if self.verbose > 0 and len(filter_set) > 0:
+            print(
+                f'Skipping {len(self.finished[benchmark])} finished and {len(self.failed[benchmark])} failed sources.')
+        out = [s for s in sources if s not in filter_set]
+        return out
