@@ -138,3 +138,21 @@ class BenchmarkLoader:
         })
         return mini_df
 
+
+    def _dumpPrompts(self, benchmark: str):
+        assert benchmark in self.benchmarks + \
+            self.mmlu, f'Benchmark {benchmark} not found.'
+        assert self.prompts[benchmark] != [
+        ], f'No prompts found for benchmark {benchmark}.'
+
+        dim = len(self.prompts[benchmark])
+        df = pd.DataFrame({
+            'item': list(range(1, dim + 1)),  # 1-indexed
+            'prompt': self.prompts[benchmark],
+        })
+        path = os.path.join(self.csv_dir, f'{benchmark}_prompts.csv')
+        if os.path.exists(path):
+            return
+        df.to_csv(path, index=False)
+        if self.verbose > 0:
+            print(f'Saved {benchmark} prompts csv.')
