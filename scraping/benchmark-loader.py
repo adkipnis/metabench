@@ -74,3 +74,26 @@ class BenchmarkLoader:
             print(f'Removed {n_before - n_after} sources.')
 
 
+    def _fetchData(self, source: str, benchmark: str):
+        # check if the benchmark is valid
+        assert benchmark in self.benchmarks + \
+            self.mmlu, f'Benchmark {benchmark} not found.'
+
+        # check if the source model has run the benchmark
+        bm = benchmark if benchmark in self.benchmarks else 'mmlu'
+        score = self.df[self.df['name'] == source][bm].values[0]
+        if not isinstance(score, float):
+            if self.verbose > 0:
+                print(
+                    f'Model {source} has no score for benchmark {benchmark}, skipping...')
+            return
+
+        # parse names and load the dataset
+        m = self._parseSourceName(source)
+        b = self._parseBenchName(benchmark)
+        data_raw = load_dataset(m, b, cache_dir=self.cache_dir,)
+        if self.verbose > 0:
+            print(f'Loaded {benchmark} data for {source}.')
+        return data_raw
+
+
