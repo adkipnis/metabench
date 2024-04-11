@@ -97,3 +97,36 @@ class BenchmarkLoader:
         return data_raw
 
 
+    def _processData(self, data_raw: DatasetDict, metric: str) -> List[int]:
+        responses = [int(r[metric]) for r in data_raw['latest']['metrics']]
+        return responses
+
+
+    def _getPrompts(self, data_raw: DatasetDict) -> List[str]:
+        return data_raw['latest']['full_prompt']
+
+
+    def fetchDataset(self, source: str, benchmark: str, save_prompts: bool = False):
+        # download the data
+        data_raw = self._fetchData(source, benchmark)
+        if data_raw is None:
+            return
+
+        # process the data
+        metric = self.metrics[benchmark] if benchmark in self.benchmarks else self.metrics['mmlu']
+        responses = self._processData(data_raw, metric)  # type: ignore
+
+        # optionally save the prompts
+        if save_prompts:
+            self.prompts[benchmark] = self._getPrompts(
+                data_raw)  # type: ignore
+
+        # create a dataframe
+        dim = len(responses)
+        mini_df = pd.DataFrame({
+            'source': [source] * dim,
+            'item': list(range(1, dim + 1)),  # 1-indexed
+            'correct': responses,
+        })
+        return mini_df
+
