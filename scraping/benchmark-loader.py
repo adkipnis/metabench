@@ -64,6 +64,11 @@ class BenchmarkLoader:
         user, model = name.split('/')
         return f'open-llm-leaderboard/details_{user}__{model}'
 
+    
+    def _parsePromptPath(self, benchmark: str) -> str:
+        prefix = '' if benchmark in self.benchmarks else 'mmlu_'
+        return os.path.join(self.csv_dir, f'{prefix}{benchmark}_prompts.csv')         
+    
 
     def printBenchmarks(self):
         out = 'Benchmarks:\n'
@@ -154,7 +159,7 @@ class BenchmarkLoader:
             'item': list(range(1, dim + 1)),  # 1-indexed
             'prompt': self.prompts[benchmark],
         })
-        path = os.path.join(self.csv_dir, f'{benchmark}_prompts.csv')
+        path = self._parsePromptPath(benchmark)
         if os.path.exists(path):
             return
         df.to_csv(path, index=False)
@@ -163,7 +168,8 @@ class BenchmarkLoader:
 
 
     def _dumpDataset(self, df: pd.DataFrame, benchmark: str):
-        path = os.path.join(self.csv_dir, f'{benchmark}.csv')
+        prefix = '' if benchmark in self.benchmarks else 'mmlu_'
+        path = os.path.join(self.csv_dir, f'{prefix}{benchmark}.csv')
         if not os.path.exists(path):
             df.to_csv(path, index=False)
             if self.verbose > 0:
@@ -175,18 +181,20 @@ class BenchmarkLoader:
 
 
     def _dumpText(self, benchmark: str, name: str, suffix: str):
-        path = os.path.join(self.csv_dir, f'{benchmark}_{suffix}.txt')
+        prefix = '' if benchmark in self.benchmarks else 'mmlu_'
+        path = os.path.join(self.csv_dir, f'{prefix}{benchmark}_{suffix}.txt')
         with open(path, 'a') as f:
             f.write(name + '\n')
 
 
     def _loadFinishedAndFailed(self):
         for b in self.benchmarks + self.mmlu:
-            path = os.path.join(self.csv_dir, f'{b}_finished.txt')
+            prefix = '' if b in self.benchmarks else 'mmlu_'
+            path = os.path.join(self.csv_dir, f'{prefix}{b}_finished.txt')
             if os.path.exists(path):
                 with open(path, 'r') as f:
                     self.finished[b] = f.read().splitlines()
-            path = os.path.join(self.csv_dir, f'{b}_failed.txt')
+            path = os.path.join(self.csv_dir, f'{prefix}{b}_failed.txt')
             if os.path.exists(path):
                 with open(path, 'r') as f:
                     self.failed[b] = f.read().splitlines()
@@ -224,7 +232,7 @@ class BenchmarkLoader:
     def fetchBenchmark(self, benchmark: str):
         assert benchmark in self.benchmarks + \
             self.mmlu, f'Benchmark {benchmark} not found.'
-        prompt_path = os.path.join(self.csv_dir, f'{benchmark}_prompts.csv')
+        prompt_path = self._parsePromptPath(benchmark)
         save_prompts = not os.path.exists(prompt_path)
         sources = self._removeRedundant(benchmark)
 
