@@ -242,7 +242,7 @@ class BenchmarkLoader:
 
         # init self.num_core processes
         pool = mp.Pool(self.num_cores)
-        for source in sources[:2]:
+        for source in sources:
             pool.apply_async(self.fetchDatasetWrapper, args=(
                 source, benchmark, save_prompts))
         pool.close()
