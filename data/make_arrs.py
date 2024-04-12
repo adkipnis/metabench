@@ -87,7 +87,7 @@ for ind, dir in tqdm(enumerate(dirs)):
         pass
 
 # Remove all rows where any entry is nan
-# out = out[~np.any(np.isnan(out), 1)]
+out = out[~np.any(pd.isna(out), 1)]
 
 # Save final file
 np.save(f"{args.DSET_NAME}.npy", out)
