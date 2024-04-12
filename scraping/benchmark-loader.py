@@ -116,7 +116,7 @@ class BenchmarkLoader:
 
 
     def _processData(self, data_raw: DatasetDict, metric: str) -> List[int]:
-        if 'metrics' not in data_raw['latest']:
+        if 'metrics' not in data_raw['latest'].features:
             responses = [int(r) for r in data_raw['latest'][metric]]
         else:
             responses = [int(r[metric]) for r in data_raw['latest']['metrics']]
@@ -246,7 +246,7 @@ class BenchmarkLoader:
 
         # init self.num_core processes
         pool = mp.Pool(self.num_cores)
-        for source in sources:
+        for source in sources[1:]:
             pool.apply_async(self.fetchDatasetWrapper, args=(
                 source, benchmark, save_prompts))
         pool.close()
