@@ -97,7 +97,7 @@ class BenchmarkLoader:
             self.mmlu, f'Benchmark {benchmark} not found.'
 
         # check if the source model has run the benchmark
-        bm = benchmark if benchmark in self.benchmarks else 'mmlu'
+        bm = 'mmlu' if benchmark in self.mmlu else benchmark
         score = self.df[self.df['name'] == source][bm].values[0]
         if not isinstance(score, float):
             if self.verbose > 0:
@@ -230,6 +230,8 @@ class BenchmarkLoader:
 
 
     def fetchBenchmark(self, benchmark: str):
+        if benchmark == 'mmlu':
+            return self.fetchMMLU()
         assert benchmark in self.benchmarks + \
             self.mmlu, f'Benchmark {benchmark} not found.'
         prompt_path = self._parsePromptPath(benchmark)
@@ -238,7 +240,7 @@ class BenchmarkLoader:
 
         # init self.num_core processes
         pool = mp.Pool(self.num_cores)
-        for source in sources:
+        for source in sources[:2]:
             pool.apply_async(self.fetchDatasetWrapper, args=(
                 source, benchmark, save_prompts))
         pool.close()
@@ -246,7 +248,10 @@ class BenchmarkLoader:
 
         print(f'Finished fetching {benchmark} data.')
 
-
+    def fetchMMLU(self):
+        for m in self.mmlu:
+            self.fetchBenchmark(m)
+    
 def main():
     cachedir = '/home/alex/Datasets/open-llm-leaderboard/'
     csvdir = '/home/alex/Dropbox/Code/my-repos/metabench/scraping/'
