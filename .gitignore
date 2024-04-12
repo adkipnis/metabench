@@ -5,3 +5,4 @@ simulation/.RData
 simulation/.Rhistory
 simulation/*-tutorial.r
 data/gsm8k_clean.csv
+scraping/results/*
