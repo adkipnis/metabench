@@ -12,7 +12,7 @@ class BenchmarkLoader:
         self.csv_dir = csv_dir
         self.df = pd.read_csv(os.path.join(
             csv_dir, 'open-llm-leaderboard.csv'))
-        self.benchmarks = ['arc', 'hellaswag', 'truthfulqa', 'winogrande', 'gsm8k',]
+        self.benchmarks = ['arc', 'gsm8k', 'hellaswag', 'truthfulqa', 'winogrande',]
         self.mmlu = [
             'abstract_algebra', 'anatomy', 'astronomy', 'business_ethics', 'clinical_knowledge',
             'college_biology', 'college_chemistry', 'college_computer_science', 'college_mathematics',
@@ -25,9 +25,8 @@ class BenchmarkLoader:
             'high_school_world_history', 'human_aging', 'human_sexuality', 'international_law', 'jurisprudence',
             'logical_fallacies', 'machine_learning', 'management', 'marketing', 'medical_genetics',
             'miscellaneous', 'moral_disputes', 'moral_scenarios', 'nutrition', 'philosophy', 'prehistory',
-            'professional_accounting', 'professional_law', 'professional_medicine', 'professional_philosophy',
-            'professional_psychology', 'public_relations', 'security_studies', 'sociology', 'us_foreign_policy',
-            'virology', 'world_religions',]
+            'professional_accounting', 'professional_law', 'professional_medicine', 'professional_psychology',
+            'public_relations', 'security_studies', 'sociology', 'us_foreign_policy', 'virology', 'world_religions',]
         self.metrics = {
             'arc': 'acc_norm',
             'hellaswag': 'acc_norm',
