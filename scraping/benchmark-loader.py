@@ -116,7 +116,10 @@ class BenchmarkLoader:
 
 
     def _processData(self, data_raw: DatasetDict, metric: str) -> List[int]:
-        responses = [int(r[metric]) for r in data_raw['latest']['metrics']]
+        if 'metrics' not in data_raw['latest']:
+            responses = [int(r) for r in data_raw['latest'][metric]]
+        else:
+            responses = [int(r[metric]) for r in data_raw['latest']['metrics']]
         return responses
 
 
