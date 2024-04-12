@@ -5,6 +5,7 @@ from datasets import load_dataset
 from datasets.dataset_dict import DatasetDict
 import pandas as pd
 import multiprocessing as mp
+os.environ['CURL_CA_BUNDLE'] = ''
 
 class BenchmarkLoader:
     def __init__(self, cache_dir: str, csv_dir: str, verbose: int = 1, num_cores: int = 0):
