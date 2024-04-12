@@ -1,10 +1,10 @@
 import os
 from typing import List
+import argparse
 from datasets import load_dataset
 from datasets.dataset_dict import DatasetDict
 import pandas as pd
 import multiprocessing as mp
-
 
 class BenchmarkLoader:
     def __init__(self, cache_dir: str, csv_dir: str, verbose: int = 1, num_cores: int = 0):
@@ -253,10 +253,15 @@ class BenchmarkLoader:
             self.fetchBenchmark(m)
     
 def main():
-    cachedir = '/home/alex/Datasets/open-llm-leaderboard/'
-    csvdir = '/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/'
-    bl = BenchmarkLoader(cachedir, csvdir, verbose=1)
-    bl.fetchBenchmark('gsm8k')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cachedir', type=str, default='/home/alex/Datasets/open-llm-leaderboard/')
+    parser.add_argument('--csvdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/')
+    parser.add_argument('-v', '--verbose', type=int, default=1)
+    parser.add_argument('-c', '--num_cores', type=int, default=0)
+    parser.add_argument('-b', '--benchmark', type=str, default='gsm8k')
+    args = parser.parse_args()
+    bl = BenchmarkLoader(args.cachedir, args.csvdir, args.verbose, args.num_cores)
+    bl.fetchBenchmark(args.benchmark)
 
 
 if __name__ == '__main__':
