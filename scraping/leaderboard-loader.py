@@ -1,5 +1,6 @@
 import os
 from typing import List
+import argparse
 import pandas as pd
 from utils import EvalResult
 
@@ -127,9 +128,12 @@ class LeaderBoard:
             print('Format not supported. Use csv or pkl.')
 
 def main():
-    datadir = '/home/alex/Downloads/open-llm-leaderboard/'
-    outputdir = '/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/'
-    lb = LeaderBoard(datadir, outputdir)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--datadir', type=str, default='/home/alex/Downloads/open-llm-leaderboard/')
+    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/')
+    args = parser.parse_args()
+    
+    lb = LeaderBoard(args.datadir, args.outputdir)
     lb.toDataFrame()
     lb.dump('csv')
 
