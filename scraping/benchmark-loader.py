@@ -108,7 +108,7 @@ class BenchmarkLoader:
         # parse names and load the dataset
         m = self._parseSourceName(source)
         b = self._parseBenchName(benchmark)
-        data_raw = load_dataset(m, b, cache_dir=self.cache_dir,)
+        data_raw = load_dataset(m, b, cache_dir=self.cache_dir)
         if self.verbose > 0:
             print(f'Loaded {benchmark} data for {source}.')
         return data_raw
@@ -206,7 +206,7 @@ class BenchmarkLoader:
         filter_set = set(self.finished[benchmark] + self.failed[benchmark])
         if self.verbose > 0 and len(filter_set) > 0:
             print(
-                f'Skipping {len(self.finished[benchmark])} finished and {len(self.failed[benchmark])} failed sources.')
+                f'Skipping {len(self.finished[benchmark])} finished and {len(self.failed[benchmark])} failed sources...')
         out = [s for s in sources if s not in filter_set]
         return out
 
@@ -230,6 +230,8 @@ class BenchmarkLoader:
 
 
     def fetchBenchmark(self, benchmark: str):
+        if self.verbose > 0:
+            print(f'Attempting to fetch {benchmark} data...')
         if benchmark == 'mmlu':
             return self.fetchMMLU()
         assert benchmark in self.benchmarks + \
