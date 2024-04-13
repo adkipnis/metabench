@@ -160,12 +160,12 @@ class BenchmarkLoader:
     def processDataset(self, source: str, benchmark: str) -> None:
         try:
             filenames = self._getFileNames(source, benchmark)
-            if source not in self.snapshots:
-                print(f'⚠️ Warning:  No snapshot found for {source}. Fallback to downloading.')
-                snapshotdir = self._downloadSnapshot(source, filenames)
-                self._dumpText(f'{source}:{snapshotdir}', benchmark, 'snapshots')
-            else:
-                snapshotdir = self.snapshots[source]
+            # if source not in self.snapshots:
+            #     print(f'⚠️ Warning:  No snapshot found for {source}. Fallback to downloading.')
+            #     snapshotdir = self._downloadSnapshot(source, filenames)
+            #     self._dumpText(f'{source}:{snapshotdir}', benchmark, 'snapshots')
+            assert source in self.snapshots, f'❌ No snapshot found for {source}.'
+            snapshotdir = self.snapshots[source]
             paths = self._pathsToParquet(snapshotdir, filenames)
             if len(paths) != 1:
                 print(f'⚠️ Warning: Found {len(paths)} parquet files, expected 1.')
@@ -217,7 +217,8 @@ class BenchmarkLoader:
 
     
     def getBenchmark(self, benchmark: str, separate: bool = False) -> None:
-        print(f'🚀 Starting {benchmark} scraping using {self.num_cores} cores...')
+        mode = 'downloading' if separate else 'processing'
+        print(f'\n🚀 Starting {benchmark} {mode} using {self.num_cores} cores...')
         if benchmark == 'mmlu':
             return self._getMMLU()
         assert benchmark in self.benchmarks + self.mmlu, f'❌ Benchmark {benchmark} not found.'
