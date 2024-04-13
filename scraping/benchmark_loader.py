@@ -31,6 +31,7 @@ class BenchmarkLoader:
             'arc': 'acc_norm',
             'hellaswag': 'acc_norm',
             'truthfulqa': 'mc1',}
+        self.snapshots = {}
         self.df = pd.read_csv(os.path.join(output_dir, 'open-llm-leaderboard.csv'))
     
     
@@ -148,6 +149,7 @@ class BenchmarkLoader:
             filenames = self._getFileNames(source, benchmark)
             snapshotdir = self._downloadSnapshot(source, filenames)
             assert snapshotdir, f'❌ No Snapshotdir for {source}.'
+            self._dumpText(f'{source}:{snapshotdir}', benchmark, 'snapshots')
             if self.verbose > 0:
                 print(f'⬇️  Downloaded {source} snapshot.')
         except Exception as e:
@@ -158,8 +160,12 @@ class BenchmarkLoader:
     def processDataset(self, source: str, benchmark: str) -> None:
         try:
             filenames = self._getFileNames(source, benchmark)
-            snapshotdir = self._downloadSnapshot(source, filenames)
-            assert snapshotdir, '❌ Snapshot not downloaded.'
+            if source not in self.snapshots:
+                print(f'⚠️ Warning:  No snapshot found for {source}. Fallback to downloading.')
+                snapshotdir = self._downloadSnapshot(source, filenames)
+                self._dumpText(f'{source}:{snapshotdir}', benchmark, 'snapshots')
+            else:
+                snapshotdir = self.snapshots[source]
             paths = self._pathsToParquet(snapshotdir, filenames)
             if len(paths) != 1:
                 print(f'⚠️ Warning: Found {len(paths)} parquet files, expected 1.')
@@ -200,6 +206,16 @@ class BenchmarkLoader:
         return whitelist
     
     
+    def _getSnapshorDirs(self, benchmark: str) -> None:
+        path = os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')
+        assert os.path.exists(path), f'❌ No snapshot tracker exists. You need to download the datasets first.'
+        with open(path, 'r') as f:
+            lines = f.read().splitlines()
+        for line in lines:
+            key, value = line.split(':')
+            self.snapshots[key] = value
+
+    
     def getBenchmark(self, benchmark: str, separate: bool = False) -> None:
         print(f'🚀 Starting {benchmark} scraping using {self.num_cores} cores...')
         if benchmark == 'mmlu':
@@ -211,10 +227,10 @@ class BenchmarkLoader:
             self.df = self.df.dropna(subset=[benchmark])
         else:
             self.df = self.df.dropna(subset=['mmlu'])
-        sources = sorted(self._removeRedundant(benchmark))
+        sources = sorted(self._removeRedundant(benchmark))[:10]
         
         # download 
-        if separate:
+        if separate or not os.path.exists(os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')):
             with mp.Pool(self.num_cores) as pool:
                 pool.starmap(self.downloadDataset, [(s, benchmark) for s in sources])
             sources = self._removeRedundant(benchmark, sources, verbose=0)
@@ -222,6 +238,7 @@ class BenchmarkLoader:
             return
         
         # process
+        self._getSnapshorDirs(benchmark)
         with mp.Pool(self.num_cores) as pool:
             for s in sources:
                 pool.apply_async(self.processDataset, args=(s, benchmark))
