@@ -218,7 +218,7 @@ class BenchmarkLoader:
     
     def getBenchmark(self, benchmark: str, separate: bool = False) -> None:
         mode = 'downloading' if separate else 'processing'
-        print(f'\n🚀 Starting {benchmark} {mode} using {self.num_cores} cores...')
+        print(f'🚀 Starting {benchmark} {mode} using {self.num_cores} cores...')
         if benchmark == 'mmlu':
             return self._getMMLU()
         assert benchmark in self.benchmarks + self.mmlu, f'❌ Benchmark {benchmark} not found.'
@@ -250,7 +250,7 @@ class BenchmarkLoader:
             pool.join()
         
         if self.verbose > 0:
-            print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.')
+            print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.\n')
     
     
     def _getMMLU(self) -> None:
