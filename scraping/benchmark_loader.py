@@ -11,7 +11,7 @@ class BenchmarkLoader:
         self.cache_dir = cache_dir
         self.output_dir = output_dir
         self.verbose = verbose
-        self.num_cores = mp.cpu_count() if num_cores == 0 else num_cores
+        self.num_cores = mp.cpu_count() if num_cores == 0 else min(num_cores, mp.cpu_count())
         self.benchmarks = ['arc', 'gsm8k', 'hellaswag', 'truthfulqa', 'winogrande',]
         self.mmlu = [
             'abstract_algebra', 'anatomy', 'astronomy', 'business_ethics', 'clinical_knowledge',
