@@ -1,6 +1,7 @@
 import os
 from typing import List
 import argparse
+from huggingface_hub import snapshot_download
 from datasets import load_dataset
 from datasets.dataset_dict import DatasetDict
 import pandas as pd
@@ -92,7 +93,7 @@ class BenchmarkLoader:
             print(f'Removed {n_before - n_after} sources.')
 
 
-    def _fetchData(self, source: str, benchmark: str):
+    def _fetchData(self, source: str, benchmark: str, only_download: bool = False):
         # check if the benchmark is valid
         assert benchmark in self.benchmarks + \
             self.mmlu, f'Benchmark {benchmark} not found.'
@@ -109,10 +110,22 @@ class BenchmarkLoader:
         # parse names and load the dataset
         m = self._parseSourceName(source)
         b = self._parseBenchName(benchmark)
-        data_raw = load_dataset(m, b, cache_dir=self.cache_dir)
-        if self.verbose > 0:
-            print(f'Loaded {benchmark} data for {source}.')
-        return data_raw
+        # if only_download:
+        #     snapshot_download(
+        #         repo_id=m,
+        #         repo_type='dataset',
+        #         cache_dir=self.cache_dir,
+        #         allow_patterns= f'*{benchmark}*',
+        #         )
+        #     return
+        # # else:
+        
+        # increase max retries to avoid timeouts
+        data_raw = load_dataset(m, b, cache_dir=self.cache_dir,)
+                                
+        # if self.verbose > 0:
+        #     print(f'Loaded {benchmark} data for {source}.')
+        # return data_raw
 
 
     def _processData(self, data_raw: DatasetDict, metric: str) -> List[int]:
@@ -127,12 +140,12 @@ class BenchmarkLoader:
         return data_raw['latest']['full_prompt']
 
 
-    def fetchDataset(self, source: str, benchmark: str, save_prompts: bool = False):
+    def fetchDataset(self, source: str, benchmark: str, save_prompts: bool = False, only_download: bool = False):
         # download the data
-        data_raw = self._fetchData(source, benchmark)
-        if data_raw is None:
+        data_raw = self._fetchData(source, benchmark, only_download)
+        if data_raw is None or only_download:
             return
-
+        
         # process the data
         metric = self.metrics[benchmark] if benchmark in self.benchmarks else self.metrics['mmlu']
         responses = self._processData(data_raw, metric)  # type: ignore
@@ -204,9 +217,10 @@ class BenchmarkLoader:
                     self.failed[b] = f.read().splitlines()
 
 
-    def _removeRedundant(self, benchmark: str) -> List[str]:
+    def _removeRedundant(self, benchmark: str, sources: list = []) -> List[str]:
         # remove finished sources from the dataframe
-        sources = self.df['name'].values
+        if len(sources) == 0:
+            sources = self.df['name'].values
         filter_set = set(self.finished[benchmark] + self.failed[benchmark])
         if self.verbose > 0 and len(filter_set) > 0:
             print(
@@ -214,6 +228,19 @@ class BenchmarkLoader:
         out = [s for s in sources if s not in filter_set]
         return out
 
+
+    def downloadDatasetWrapper(self, source: str, benchmark: str):
+        try:
+            self.fetchDataset(source, benchmark, only_download=True)
+        except KeyboardInterrupt:
+            return
+        except Exception as e:
+            self.failed[benchmark].append(source)
+            print(f'Error: {e}')
+            self._dumpText(benchmark, source, 'failed')
+            if self.verbose > 0:
+                print(f'Failed to download {benchmark} data for {source}.')
+            
 
     def fetchDatasetWrapper(self, source: str, benchmark: str, save_prompts: bool = False):
         try:
@@ -227,36 +254,61 @@ class BenchmarkLoader:
             return
         except Exception as e:
             print(f'Error: {e}')
-
             self._dumpText(benchmark, source, 'failed')
             if self.verbose > 0:
                 print(f'Failed to fetch {benchmark} data for {source}.')
 
 
-    def fetchBenchmark(self, benchmark: str):
-        if self.verbose > 0:
-            print(f'Attempting to fetch {benchmark} data...')
+    def fetchBenchmark(self, benchmark: str, multi: bool = True, download: bool = True):
         if benchmark == 'mmlu':
-            return self.fetchMMLU()
+            return self.fetchMMLU(multi, download)
         assert benchmark in self.benchmarks + \
             self.mmlu, f'Benchmark {benchmark} not found.'
-        prompt_path = self._parsePromptPath(benchmark)
-        save_prompts = not os.path.exists(prompt_path)
         sources = self._removeRedundant(benchmark)
+        queue = sources[:9]
 
-        # init self.num_core processes
-        pool = mp.Pool(self.num_cores)
-        for source in sources[1:]:
-            pool.apply_async(self.fetchDatasetWrapper, args=(
-                source, benchmark, save_prompts))
-        pool.close()
-        pool.join()
+        # sequential downloads with inbuilt multiprocessing
+        if download:
+            if self.verbose > 0:
+                print(f'\nAttempting to download {benchmark} data...')
+            
+            # download with at max 3 parallel cores to avoid overloading the server
+            pool = mp.Pool(min(self.num_cores, 3))
+            for source in queue:
+                pool.apply_async(self.downloadDatasetWrapper, args=(source, benchmark))
+            pool.close()
+            pool.join()
 
-        print(f'Finished fetching {benchmark} data.')
+            # update failed
+            # self._loadFinishedAndFailed()
+            # queue = self._removeRedundant(benchmark, queue)
+        
+        # # prepare prompt path 
+        # prompt_path = self._parsePromptPath(benchmark)
+        # save_prompts = not os.path.exists(prompt_path)
 
-    def fetchMMLU(self):
+        # # post-process the data
+        # log = f'\nAttempting to process {benchmark} data'
+        # if multi:
+        #     log += f' using {self.num_cores} parallel cores...'
+        #     if self.verbose > 0: print(log) 
+        #     pool = mp.Pool(self.num_cores)
+        #     for source in queue:
+        #         pool.apply_async(
+        #             self.fetchDatasetWrapper,
+        #             args=(source, benchmark, save_prompts))
+        #     pool.close()
+        #     pool.join()
+        # else:
+        #     log += ' sequentially...'
+        #     if self.verbose > 0: print(log)
+        #     for source in queue:
+        #         self.fetchDatasetWrapper(source, benchmark, save_prompts)
+        # print(f'Finished fetching {benchmark} data.')
+
+    def fetchMMLU(self, multi: bool = True, download: bool = True):
         for m in self.mmlu:
-            self.fetchBenchmark(m)
+            self.fetchBenchmark(m, multi, download)
     
 def main():
     parser = argparse.ArgumentParser()
@@ -264,11 +316,17 @@ def main():
     parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/')
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
+    parser.add_argument('-m', '--multi', action='store_true', default=True)
+    parser.add_argument('--download', action='store_true', default=True)
     parser.add_argument('-b', '--benchmark', type=str, default='gsm8k')
     args = parser.parse_args()
     bl = BenchmarkLoader(args.cachedir, args.outputdir, args.verbose, args.num_cores)
-    bl.fetchBenchmark(args.benchmark)
-
+    
+    import time
+    start = time.time()
+    bl.fetchBenchmark(args.benchmark, args.multi, download=args.download)
+    end = time.time()
+    print(f'Finished in {end - start} seconds.')
 
 if __name__ == '__main__':
     main()
