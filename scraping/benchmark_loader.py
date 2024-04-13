@@ -58,7 +58,7 @@ class BenchmarkLoader:
         return f'open-llm-leaderboard/details_{user}__{model}'
     
     
-    def _getFileNames(self, source: str, benchmark: str) -> List[str]:
+    def _queryFileName(self, source: str, benchmark: str) -> str:
         # we only want the latest parquet files for the benchmark
         dataset_name = self._parseSourceName(source)
         config_name = self._parseBenchName(benchmark)
@@ -70,17 +70,19 @@ class BenchmarkLoader:
         config = configs[config_names.index(config_name)]
         splits = [c['split'] for c in config['data_files']]
         split = config['data_files'][splits.index('latest')]
-        return split['path']
+        if len(split['path']) != 1:
+            print(f'🚨 Warning: Found {len(split["path"])} files, expected 1.')
+        return split['path'][0]
         
     
-    def _downloadSnapshot(self, source: str, filenames: List[str]) -> str:
+    def _downloadSnapshot(self, source: str, filename: str) -> str:
         # if it's already downloaded, we just quickly get the path
         dataset_name = self._parseSourceName(source)
         try:
             return snapshot_download(
                 repo_id=dataset_name,
                 repo_type='dataset',
-                allow_patterns=filenames,
+                allow_patterns=filename,
                 resume_download=True,
                 # max_workers=self.num_cores,
                 cache_dir=self.cache_dir)
@@ -89,15 +91,15 @@ class BenchmarkLoader:
             return ''
     
     
-    def _pathsToParquet(self, snapshotdir: str, filenames: List[str]) -> List[str]:
-        fnames = [f.split('/')[-1] for f in filenames]
+    def _pathToParquet(self, snapshotdir: str, filename: str) -> str:
+        fname = filename.split('/')[-1]
         real_root = ''
         for root, _, files in os.walk(snapshotdir):
-            if set(fnames).issubset(files):
+            if fname in files:
                 real_root = root
                 break
         assert real_root, f'🔎 Parquet files not found in {snapshotdir}.'
-        return [os.path.join(real_root, f) for f in fnames]
+        return os.path.join(real_root, fname)
     
     
     def _dumpDataset(self, df: pd.DataFrame, benchmark: str) -> None:
@@ -146,10 +148,11 @@ class BenchmarkLoader:
 
     def downloadDataset(self, source: str, benchmark: str) -> None:
         try:
-            filenames = self._getFileNames(source, benchmark)
-            snapshotdir = self._downloadSnapshot(source, filenames)
+            filename = self._queryFileName(source, benchmark)
+            snapshotdir = self._downloadSnapshot(source, filename)
             assert snapshotdir, f'❌ No Snapshotdir for {source}.'
-            self._dumpText(f'{source}:{snapshotdir}', benchmark, 'snapshots')
+            path = self._pathToParquet(snapshotdir, filename)
+            self._dumpText(f'{source}:{path}', benchmark, 'snapshots')
             if self.verbose > 0:
                 print(f'⬇️  Downloaded {source} snapshot.')
         except Exception as e:
@@ -159,19 +162,10 @@ class BenchmarkLoader:
     
     def processDataset(self, source: str, benchmark: str) -> None:
         try:
-            filenames = self._getFileNames(source, benchmark)
-            # if source not in self.snapshots:
-            #     print(f'⚠️ Warning:  No snapshot found for {source}. Fallback to downloading.')
-            #     snapshotdir = self._downloadSnapshot(source, filenames)
-            #     self._dumpText(f'{source}:{snapshotdir}', benchmark, 'snapshots')
             assert source in self.snapshots, f'❌ No snapshot found for {source}.'
-            snapshotdir = self.snapshots[source]
-            paths = self._pathsToParquet(snapshotdir, filenames)
-            if len(paths) != 1:
-                print(f'⚠️ Warning: Found {len(paths)} parquet files, expected 1.')
-            for path in paths:
-                df = self._processParquet(path, source, benchmark)
-                self._dumpDataset(df, benchmark)
+            path = self.snapshots[source]
+            df = self._processParquet(path, source, benchmark)
+            self._dumpDataset(df, benchmark)
             self._dumpText(source, benchmark, 'finished')
             if self.verbose > 0:
                 print(f'⚙️ Processed {source} snapshot.')
