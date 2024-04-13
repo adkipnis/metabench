@@ -218,6 +218,8 @@ class BenchmarkLoader:
             with mp.Pool(self.num_cores) as pool:
                 pool.starmap(self.downloadDataset, [(s, benchmark) for s in sources])
             sources = self._removeRedundant(benchmark, sources, verbose=0)
+            print(f'🏁 Finished downloading {benchmark} dataset for {len(sources)} sources.')
+            return
         
         # process
         with mp.Pool(self.num_cores) as pool:
