@@ -211,7 +211,7 @@ class BenchmarkLoader:
             self.df = self.df.dropna(subset=[benchmark])
         else:
             self.df = self.df.dropna(subset=['mmlu'])
-        sources = self._removeRedundant(benchmark)
+        sources = sorted(self._removeRedundant(benchmark))
         
         # download 
         if separate:
