@@ -232,7 +232,10 @@ class BenchmarkLoader:
         # download 
         if separate or not os.path.exists(os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')):
             with mp.Pool(self.num_cores) as pool:
-                pool.starmap(self.downloadDataset, [(s, benchmark) for s in sources])
+                for s in sources:
+                    pool.apply_async(self.downloadDataset, args=(s, benchmark))
+                pool.close()
+                pool.join()
             sources = self._removeRedundant(benchmark, sources, verbose=0)
             print(f'🏁 Finished downloading {benchmark} dataset for {len(sources)} sources.')
             return
