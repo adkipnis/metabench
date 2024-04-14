@@ -214,7 +214,7 @@ class BenchmarkLoader:
         mode = 'downloading' if separate else 'processing'
         print(f'🚀 Starting {benchmark} {mode} using {self.num_cores} cores...')
         if benchmark == 'mmlu':
-            return self._getMMLU()
+            return self._getMMLU(separate)
         assert benchmark in self.benchmarks + self.mmlu, f'❌ Benchmark {benchmark} not found.'
             
         # preselect sources
@@ -247,9 +247,9 @@ class BenchmarkLoader:
             print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.\n')
     
     
-    def _getMMLU(self) -> None:
+    def _getMMLU(self, separate: bool = False) -> None:
         for m in self.mmlu:
-            self.getBenchmark(m)
+            self.getBenchmark(m, separate)
         
 
 
