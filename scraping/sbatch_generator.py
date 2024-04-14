@@ -26,7 +26,7 @@ conda activate {envname}
 python benchmark_loader.py -d {datadir} -o {outputdir} -b {benchmark} -c 16 --separate
 
 # process benchmark
-python benchmark_processor.py -d {datadir} -o {outputdir} -b {benchmark}
+python benchmark_loader.py -d {datadir} -o {outputdir} -b {benchmark}
     
     '''
     return o
