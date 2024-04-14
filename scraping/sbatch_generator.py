@@ -42,7 +42,8 @@ def main():
     envname = 'metabench'
     datadir = '/home/aih/alexander.kipnis/datasets/open-llm-leaderboard-cache'
     outputdir = '/home/aih/alexander.kipnis/metabench/scraping/results'
-    with open(f'scraping/{args.benchmark}.sh', 'w') as f:
+    path = f'/home/aih/alexander.kipnis/metabench/scraping/{args.benchmark}.sh'
+    with open(path, 'w') as f:
         f.write(sbatchGen(args.benchmark, email, envname, datadir, outputdir))
 
 if __name__ == '__main__':
