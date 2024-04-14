@@ -270,7 +270,23 @@ class BenchmarkLoader:
     def _getMMLU(self, separate: bool = False) -> None:
         for m in self.mmlu:
             self.getBenchmark(m, separate)
-        
+    
+    
+    def _sortkey(self, x):
+        try:
+            return x.str.lower()
+        except:
+            return x
+
+
+    def postProcess(self, benchmark: str) -> None:
+        prefix = '' if benchmark in self.benchmarks else 'mmlu_'
+        path = os.path.join(self.output_dir, f'{prefix}{benchmark}.csv')
+        assert os.path.exists(path), f'❌ No {benchmark} csv found at {path}.'
+        self.dfb = pd.read_csv(path)
+        self.dfb.sort_values(['source', 'item'], key=self._sortkey, inplace=True)
+        self.dfb.to_csv(path, index=False)
+        print(f'🧹 Post-processed {benchmark} dataset.')
 
 
 def main():
@@ -280,10 +296,11 @@ def main():
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
     parser.add_argument('--separate', action='store_true', default=False)
-    parser.add_argument('-b', '--benchmark', type=str, default='arc')
+    parser.add_argument('-b', '--benchmark', type=str, default='gsm8k')
     args = parser.parse_args()
     bl = BenchmarkLoader(args.cachedir, args.outputdir, args.verbose, args.num_cores)
     bl.getBenchmark(args.benchmark, args.separate)
+    bl.postProcess(args.benchmark)
     
 if __name__ == '__main__':
     main()
