@@ -9,11 +9,12 @@ def sbatchGen(benchmark: str, email: str, envname: str, datadir: str, outputdir:
 # SBATCH --mail-type=ALL
 # SBATCH --mail-user={email}
 
+# SBATCH -p cpu_p
+# SBATCH --qos cpu_short
+
 # SBATCH --nodes=1
 # SBATCH --cpus-per-task=8
 # SBATCH --mem=20G
-# SBATCH -p cpu_p
-# SBATCH --qos cpu_short
 # SBATCH --time=01:00:00
 # SBATCH --nice=1000
 
