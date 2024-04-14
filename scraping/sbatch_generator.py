@@ -23,7 +23,7 @@ source $HOME/.bashrc
 conda activate {envname}
 
 # download benchmark
-python benchmark_loader.py -d {datadir} -o {outputdir} -b {benchmark} -c 16 --separate
+python benchmark_loader.py -d {datadir} -o {outputdir} -b {benchmark} -c 8 --separate
 
 # process benchmark
 python benchmark_loader.py -d {datadir} -o {outputdir} -b {benchmark}
