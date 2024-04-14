@@ -17,7 +17,6 @@ class LeaderBoard:
         self._countModels()
         self.n_failed = 0
         self.n_incomplete = 0
-        print(f'Fetched {self.nUsers} users with in total {self.nModels} models.')
             
     def _loadUsers(self):
         users = os.listdir(self.root)
@@ -101,8 +100,7 @@ class LeaderBoard:
             except:
                 # print(f'Could not load {path}')
                 self.n_failed += 1
-                pass
-        print(f'No complete data set for {user}/{model}')
+                continue
         return {}
     
     def toDataFrame(self) -> None:
@@ -113,8 +111,7 @@ class LeaderBoard:
                 if len(summary) > 0:
                     dicts.append(summary)
         self.df = pd.DataFrame(dicts)
-        self.n_incomplete = len(self.df[self.df['complete'] == False])
-        print(f'Created DataFrame with {len(dicts)} entries. {self.n_failed} models could not be loaded. {self.n_incomplete} models are incomplete.')
+        
         
     def dump(self, format: str = 'csv') -> None:
         path = os.path.join(self.outputdir, f'open-llm-leaderboard.{format}')
@@ -130,8 +127,17 @@ class LeaderBoard:
     def postProcess(self) -> None:
         self.df = self.df.drop_duplicates(subset=['name'])
         self.df = self.df.sort_values('name', key=lambda x: x.str.lower())
+        # find out how many models are 
 
-
+    def summary(self) -> None:
+        self.n_incomplete = len(self.df[self.df['complete'] == False])
+        self.n_merged = len(self.df[self.df['merged'] == True])
+        self.n_flagged = len(self.df[self.df['flagged'] == True])
+        self.n_moe = len(self.df[self.df['moe'] == True])
+        self.n_unavailable = len(self.df[self.df['available'] == False])
+        print(f'Fetched {self.nUsers} users with in total {self.nModels} models. Failed to load {self.n_failed} models.')
+        print(f'Found {self.n_incomplete} incomplete models, {self.n_merged} merged models, {self.n_flagged} flagged models, {self.n_moe} moe models and {self.n_unavailable} unavailable models.')
+        
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--datadir', type=str, default='/home/alex/Downloads/open-llm-leaderboard/')
@@ -141,6 +147,7 @@ def main():
     lb = LeaderBoard(args.datadir, args.outputdir)
     lb.toDataFrame()
     lb.postProcess()
+    lb.summary()
     lb.dump('csv')
 
 if __name__ == '__main__':
