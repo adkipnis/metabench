@@ -242,7 +242,7 @@ class BenchmarkLoader:
             self.df = self.df.dropna(subset=[benchmark])
         else:
             self.df = self.df.dropna(subset=['mmlu'])
-        sources = sorted(self._removeRedundant(benchmark), key=str.casefold)
+        sources = self._removeRedundant(benchmark)
         
         # download 
         if separate or not os.path.exists(os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')):
@@ -280,7 +280,7 @@ def main():
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
     parser.add_argument('--separate', action='store_true', default=False)
-    parser.add_argument('-b', '--benchmark', type=str, default='gsm8k')
+    parser.add_argument('-b', '--benchmark', type=str, default='arc')
     args = parser.parse_args()
     bl = BenchmarkLoader(args.cachedir, args.outputdir, args.verbose, args.num_cores)
     bl.getBenchmark(args.benchmark, args.separate)

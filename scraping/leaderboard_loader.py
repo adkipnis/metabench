@@ -126,6 +126,11 @@ class LeaderBoard:
             print(f'Dumped DataFrame to {path}')
         else:
             print('Format not supported. Use csv or pkl.')
+    
+    def postProcess(self) -> None:
+        self.df = self.df.drop_duplicates(subset=['name'])
+        self.df = self.df.sort_values('name', key=lambda x: x.str.lower())
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -135,6 +140,7 @@ def main():
     
     lb = LeaderBoard(args.datadir, args.outputdir)
     lb.toDataFrame()
+    lb.postProcess()
     lb.dump('csv')
 
 if __name__ == '__main__':
