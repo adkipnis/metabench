@@ -3,6 +3,7 @@ import argparse
 import multiprocessing as mp
 from typing import List, Tuple
 from huggingface_hub import snapshot_download, HfApi
+from huggingface_hub.hf_api import DatasetInfo
 import pandas as pd
 
 
@@ -63,6 +64,10 @@ class BenchmarkLoader:
         dataset_name = self._parseSourceName(source)
         config_name = self._parseBenchName(benchmark)
         info = HfApi().repo_info(repo_id=dataset_name, repo_type='dataset')
+        # assert that the config has cardData attribute
+        if not hasattr(info.cardData, 'configs'):
+            print(f'🚨 Warning: No configs found for {source}.')
+            return self._fallbackSibling(info, benchmark)
         configs = info.cardData.configs
         config_names = [c['config_name'] for c in configs]
         assert config_name in config_names, \
@@ -75,6 +80,14 @@ class BenchmarkLoader:
         return split['path'][0]
         
     
+    def _fallbackSibling(self, info: DatasetInfo, benchmark: str) -> str:
+        assert hasattr(info, 'siblings'), f'🔎 No siblings found for {info.id}.'
+        fnames = [s.rfilename for s in info.siblings if benchmark in s.rfilename]
+        assert len(fnames) == 1, f'🔎 {len(fnames)} fitting siblings found for {benchmark}.'
+        print(f'🎉 Fallback sibling found for {info.id}')
+        return fnames[0]
+    
+    
     def _downloadSnapshot(self, source: str, filename: str) -> str:
         # if it's already downloaded, we just quickly get the path
         dataset_name = self._parseSourceName(source)
@@ -84,7 +97,6 @@ class BenchmarkLoader:
                 repo_type='dataset',
                 allow_patterns=filename,
                 resume_download=True,
-                # max_workers=self.num_cores,
                 cache_dir=self.cache_dir)
         except Exception as e:
             print(f'Error: {e}')
