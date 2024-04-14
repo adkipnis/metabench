@@ -265,7 +265,8 @@ class BenchmarkLoader:
         
         if self.verbose > 0:
             print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.\n')
-    
+        self.postProcess(benchmark)
+         
     
     def _getMMLU(self, separate: bool = False) -> None:
         for m in self.mmlu:
@@ -300,7 +301,6 @@ def main():
     args = parser.parse_args()
     bl = BenchmarkLoader(args.cachedir, args.outputdir, args.verbose, args.num_cores)
     bl.getBenchmark(args.benchmark, args.separate)
-    bl.postProcess(args.benchmark)
     
 if __name__ == '__main__':
     main()
