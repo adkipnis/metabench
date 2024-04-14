@@ -55,6 +55,8 @@ class BenchmarkLoader:
 
 
     def _parseSourceName(self, name: str) -> str:
+        if '/' not in name:
+            return f'open-llm-leaderboard/details_{name}'
         user, model = name.split('/')
         return f'open-llm-leaderboard/details_{user}__{model}'
     
