@@ -2,31 +2,31 @@ import argparse
 
 def sbatchGen(benchmark: str, email: str, envname: str, datadir: str, outputdir: str):
     o = f'''
-    #!/bin/bash
-    
-    # SBATCH --job-name=mb-scraping-{benchmark} 
-    # SBATCH --output=mb-scraping-{benchmark}.%j.out
-    # SBATCH --error=mb-scraping-{benchmark}.%j.err
-    # SBATCH --mail-type=ALL
-    # SBATCH --mail-user={email}
-    
-    # SBATCH --nodes=1
-    # SBATCH --cpus-per-task=8
-    # SBATCH --mem=20G
-    # SBATCH -p cpu_p
-    # SBATCH --qos cpu_short
-    # SBATCH --time=01:00:00
-    # SBATCH --nice=1000
-    
-    # activate conda env
-    source $HOME/.bashrc
-    conda activate {envname}
-    
-    # download benchmark
-    python benchmark_loader.py -d {datadir} -o {outputdir} -b {benchmark} -c 16 --separate
-    
-    # process benchmark
-    python benchmark_processor.py -d {datadir} -o {outputdir} -b {benchmark}
+#!/bin/bash
+
+# SBATCH --job-name=mb-scraping-{benchmark} 
+# SBATCH --output=mb-scraping-{benchmark}.%j.out
+# SBATCH --error=mb-scraping-{benchmark}.%j.err
+# SBATCH --mail-type=ALL
+# SBATCH --mail-user={email}
+
+# SBATCH --nodes=1
+# SBATCH --cpus-per-task=8
+# SBATCH --mem=20G
+# SBATCH -p cpu_p
+# SBATCH --qos cpu_short
+# SBATCH --time=01:00:00
+# SBATCH --nice=1000
+
+# activate conda env
+source $HOME/.bashrc
+conda activate {envname}
+
+# download benchmark
+python benchmark_loader.py -d {datadir} -o {outputdir} -b {benchmark} -c 16 --separate
+
+# process benchmark
+python benchmark_processor.py -d {datadir} -o {outputdir} -b {benchmark}
     
     '''
     return o
@@ -42,8 +42,7 @@ def main():
     envname = 'metabench'
     datadir = '/home/aih/alexander.kipnis/datasets/open-llm-leaderboard-cache'
     outputdir = '/home/aih/alexander.kipnis/metabench/scraping/results'
-    path = f'/home/aih/alexander.kipnis/metabench/scraping/{args.benchmark}.sh'
-    with open(path, 'w') as f:
+    with open(f'{args.benchmark}.sh', 'w') as f:
         f.write(sbatchGen(args.benchmark, email, envname, datadir, outputdir))
 
 if __name__ == '__main__':
