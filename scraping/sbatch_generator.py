@@ -1,8 +1,7 @@
 import argparse
 
 def sbatchGen(benchmark: str, email: str, envname: str, datadir: str, outputdir: str):
-    o = f'''
-#!/bin/bash
+    o = f'''#!/bin/bash
 
 # SBATCH --job-name=mb-scraping-{benchmark} 
 # SBATCH --output=mb-scraping-{benchmark}.%j.out
