@@ -152,7 +152,7 @@ class BenchmarkLoader:
             snapshotdir = self._downloadSnapshot(source, filename)
             assert snapshotdir, f'❌ No Snapshotdir for {source}.'
             path = self._pathToParquet(snapshotdir, filename)
-            self._dumpText(f'{source}:{path}', benchmark, 'snapshots')
+            self._dumpText(f'{source}@{path}', benchmark, 'snapshots')
             if self.verbose > 0:
                 print(f'⬇️  Downloaded {source} snapshot.')
         except Exception as e:
@@ -206,7 +206,7 @@ class BenchmarkLoader:
         with open(path, 'r') as f:
             lines = f.read().splitlines()
         for line in lines:
-            key, value = line.split(':')
+            key, value = line.split('@')
             self.snapshots[key] = value
 
     
