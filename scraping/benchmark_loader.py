@@ -131,7 +131,11 @@ class BenchmarkLoader:
     
     
     def _processParquet(self, path: str, source: str, benchmark: str) -> pd.DataFrame:
-        raw = pd.read_parquet(path, engine='fastparquet')
+        try:
+            raw = pd.read_parquet(path, engine='fastparquet')
+        except:
+            print('🚨 Using pyarrow engine instead of fastparquet.')
+            raw = pd.read_parquet(path, engine='pyarrow')
         n = len(raw)
         
         # optionally save prompts
@@ -150,6 +154,8 @@ class BenchmarkLoader:
             responses = raw[metric]
         elif f'metrics.{metric}' in raw.columns:
             responses = raw[f'metrics.{metric}']
+        elif 'metrics' in raw.columns:
+            responses = [r[metric] for r in raw['metrics']]
         else:
             raise ValueError(f'❌ Metric not found in parquet file. Available columns: {raw.columns}')
         df = pd.DataFrame({'source': [source]*n,
