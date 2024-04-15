@@ -269,13 +269,10 @@ class BenchmarkLoader:
         # process
         self._getSnapshotDirs(benchmark)
         with mp.Pool(self.num_cores) as pool:
-            for s in sources:
-                pool.apply_async(self.processDataset, args=(s, benchmark))
-            pool.close()
-            pool.join()
-        
+            pool.starmap(self.processDataset, [(s, benchmark) for s in sources])
+        pool.close()
         if self.verbose > 0:
-            print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.\n')
+            print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.')
         self.postProcess(benchmark)
          
     
