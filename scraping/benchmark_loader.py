@@ -263,7 +263,7 @@ class BenchmarkLoader:
                 pool.close()
                 pool.join()
             sources = self._removeRedundant(benchmark, sources, verbose=0)
-            print(f'🏁 Finished downloading {benchmark} dataset for {len(sources)} sources.')
+            print(f'🏁 Finished downloading {benchmark} dataset for {len(sources)} sources.\n')
             return
         
         # process
@@ -298,7 +298,7 @@ class BenchmarkLoader:
         self.dfb = pd.read_csv(path)
         self.dfb.sort_values(['source', 'item'], key=self._sortkey, inplace=True)
         self.dfb.to_csv(path, index=False)
-        print(f'🧹 Post-processed {benchmark} dataset.')
+        print(f'🧹 Post-processed {benchmark} dataset.\n')
 
 
 def main():
