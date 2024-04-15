@@ -239,11 +239,11 @@ class BenchmarkLoader:
             self.snapshots[key] = value
 
     
-    def getBenchmark(self, benchmark: str, separate: bool = False) -> None:
-        mode = 'downloading' if separate else 'processing'
+    def getBenchmark(self, benchmark: str, download: bool = False) -> None:
+        mode = 'downloading' if download else 'processing'
         print(f'🚀 Starting {benchmark} {mode} using {self.num_cores} cores...')
         if benchmark == 'mmlu':
-            return self._getMMLU(separate)
+            return self._getMMLU(download)
         assert benchmark in self.benchmarks + self.mmlu, f'❌ Benchmark {benchmark} not found.'
             
         # preselect sources
@@ -254,7 +254,7 @@ class BenchmarkLoader:
         sources = self._removeRedundant(benchmark)
         
         # download 
-        if separate or not os.path.exists(os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')):
+        if download or not os.path.exists(os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')):
             with mp.Pool(self.num_cores) as pool:
                 for s in sources:
                     pool.apply_async(self.downloadDataset, args=(s, benchmark))
@@ -305,11 +305,11 @@ def main():
     parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/')
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
-    parser.add_argument('--separate', action='store_true', default=False)
+    parser.add_argument('--download', action='store_true', default=True)
     parser.add_argument('-b', '--benchmark', type=str, default='gsm8k')
     args = parser.parse_args()
     bl = BenchmarkLoader(args.cachedir, args.outputdir, args.verbose, args.num_cores)
-    bl.getBenchmark(args.benchmark, args.separate)
+    bl.getBenchmark(args.benchmark, args.download)
     
 if __name__ == '__main__':
     main()
