@@ -167,6 +167,13 @@ class BenchmarkLoader:
     
 
     def downloadDataset(self, source: str, benchmark: str) -> None:
+        if source in self.snapshots:
+            path = self.snapshots[source]
+            if os.path.exists(path):
+                print(f'✔️  {source} already downloaded.')
+                return
+            else:
+                print(f'😕 {source} snapshot linked {path} but the path does not exist. Resuming download...')
         try:
             filename = self._queryFileName(source, benchmark)
             snapshotdir = self._downloadSnapshot(source, filename)
