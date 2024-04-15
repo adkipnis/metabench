@@ -227,9 +227,11 @@ class BenchmarkLoader:
         return whitelist
     
     
-    def _getSnapshorDirs(self, benchmark: str) -> None:
+    def _getSnapshotDirs(self, benchmark: str) -> None:
         path = os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')
-        assert os.path.exists(path), f'❌ No snapshot tracker exists. You need to download the datasets first.'
+        if not os.path.exists(path):
+            print(f'😕 No snapshot tracker exists. You need to download the datasets first.')
+            return
         with open(path, 'r') as f:
             lines = f.read().splitlines()
         for line in lines:
