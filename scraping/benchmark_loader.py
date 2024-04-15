@@ -255,7 +255,7 @@ class BenchmarkLoader:
         sources = self._removeRedundant(benchmark)
         
         # download 
-        if download or not os.path.exists(os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')):
+        if download:
             self._getSnapshotDirs(benchmark)
             with mp.Pool(self.num_cores) as pool:
                 for s in sources:
