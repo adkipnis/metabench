@@ -255,6 +255,7 @@ class BenchmarkLoader:
         
         # download 
         if download or not os.path.exists(os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')):
+            self._getSnapshotDirs(benchmark)
             with mp.Pool(self.num_cores) as pool:
                 for s in sources:
                     pool.apply_async(self.downloadDataset, args=(s, benchmark))
@@ -265,7 +266,7 @@ class BenchmarkLoader:
             return
         
         # process
-        self._getSnapshorDirs(benchmark)
+        self._getSnapshotDirs(benchmark)
         with mp.Pool(self.num_cores) as pool:
             for s in sources:
                 pool.apply_async(self.processDataset, args=(s, benchmark))
