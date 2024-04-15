@@ -228,7 +228,8 @@ class BenchmarkLoader:
     
     
     def _getSnapshotDirs(self, benchmark: str) -> None:
-        path = os.path.join(self.output_dir, f'{benchmark}_snapshots.txt')
+        prefix = '' if benchmark in self.benchmarks else 'mmlu_'
+        path = os.path.join(self.output_dir, f'{prefix}{benchmark}_snapshots.txt')
         if not os.path.exists(path):
             print(f'😕 No snapshot tracker exists. You need to download the datasets first.')
             return
