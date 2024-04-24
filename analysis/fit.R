@@ -1,6 +1,6 @@
-library(readr)
-library(tidyverse)
-library(mirt)
+packages <- c("tidyverse", "readr", "mirt", "here")
+install.packages(setdiff(packages, rownames(installed.packages())))  
+lapply(packages, require, character.only=T)
 
 # set benchmark (first arg when calling this file with Rscript)
 args <- commandArgs(trailingOnly = TRUE)
