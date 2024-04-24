@@ -41,7 +41,7 @@ def main():
     email = 'alexander.kipnis@helmholtz-munich.de'
     envname = 'metabench'
     datadir = '/home/aih/alexander.kipnis/datasets/open-llm-leaderboard-cache'
-    outputdir = '/home/aih/alexander.kipnis/metabench/scraping/results'
+    outputdir = '/home/aih/alexander.kipnis/metabench/data'
     with open(f'{args.benchmark}.sh', 'w') as f:
         f.write(sbatchGen(args.benchmark, email, envname, datadir, outputdir))
 
