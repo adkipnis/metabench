@@ -141,7 +141,7 @@ class LeaderBoard:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--datadir', type=str, default='/home/alex/Downloads/open-llm-leaderboard/')
-    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/')
+    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/scraping/')
     args = parser.parse_args()
     
     lb = LeaderBoard(args.datadir, args.outputdir)
