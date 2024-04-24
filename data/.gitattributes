@@ -1,2 +1,0 @@
-harness_hellaswag_10_clean.npy filter=lfs diff=lfs merge=lfs -text
-harness_arc_challenge_25_clean.npy filter=lfs diff=lfs merge=lfs -text
