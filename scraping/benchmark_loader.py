@@ -11,6 +11,10 @@ class BenchmarkLoader:
     def __init__(self, cache_dir: str, output_dir: str, verbose: int = 1, num_cores: int = 0) -> None:
         self.cache_dir = cache_dir
         self.output_dir = output_dir
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+        if not os.path.exists(os.path.join(self.output_dir, 'logs')):
+            os.makedirs(os.path.join(self.output_dir, 'logs'))
         self.verbose = verbose
         self.num_cores = mp.cpu_count() if num_cores == 0 else min(num_cores, mp.cpu_count())
         self.benchmarks = ['arc', 'gsm8k', 'hellaswag', 'truthfulqa', 'winogrande',]
@@ -33,7 +37,7 @@ class BenchmarkLoader:
             'hellaswag': 'acc_norm',
             'truthfulqa': 'mc1',}
         self.snapshots = {}
-        self.df = pd.read_csv(os.path.join(output_dir, 'open-llm-leaderboard.csv'))
+        self.df = pd.read_csv('open-llm-leaderboard.csv')
     
     
     def _parseBenchName(self, name: str) -> str:
@@ -131,7 +135,8 @@ class BenchmarkLoader:
         with open(path, 'a') as f:
             f.write(source + '\n')
     
-    
+
+
     def _processParquet(self, path: str, source: str, benchmark: str) -> pd.DataFrame:
         try:
             raw = pd.read_parquet(path, engine='fastparquet')
@@ -275,7 +280,7 @@ class BenchmarkLoader:
             pool.join()
         if self.verbose > 0:
             print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.')
-        self.postProcess(benchmark)
+        # self.postProcess(benchmark)
          
     
     def _getMMLU(self, separate: bool = False) -> None:
@@ -303,7 +308,7 @@ class BenchmarkLoader:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--cachedir', type=str, default='/home/alex/Datasets/open-llm-leaderboard/')
-    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/scraping/results/')
+    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/data/')
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
     parser.add_argument('--download', action='store_true', default=False)
