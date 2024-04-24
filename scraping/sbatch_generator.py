@@ -4,8 +4,8 @@ def sbatchGen(benchmark: str, email: str, envname: str, datadir: str, outputdir:
     o = f'''#!/bin/bash
     
 #SBATCH --job-name=mb-scraping-{benchmark} 
-#SBATCH --output={benchmark}.%j.out
-#SBATCH --error={benchmark}.%j.err
+#SBATCH --output=logs/{benchmark}.%j.out
+#SBATCH --error=logs/{benchmark}.%j.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user={email}
 
