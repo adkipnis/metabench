@@ -127,7 +127,7 @@ class BenchmarkLoader:
     
     def _dumpText(self, source: str, benchmark: str, suffix: str):
         prefix = '' if benchmark in self.benchmarks else 'mmlu_'
-        path = os.path.join(self.output_dir, f'{prefix}{benchmark}_{suffix}.txt')
+        path = os.path.join(self.output_dir, 'logs', f'{prefix}{benchmark}_{suffix}.txt')
         with open(path, 'a') as f:
             f.write(source + '\n')
     
@@ -204,11 +204,11 @@ class BenchmarkLoader:
     def _getBlacklist(self, benchmark: str) -> Tuple[List[str], List[str]]:
         finished, failed = [], []
         prefix = '' if benchmark in self.benchmarks else 'mmlu_'
-        path = os.path.join(self.output_dir, f'{prefix}{benchmark}_finished.txt')
+        path = os.path.join(self.output_dir, 'logs', f'{prefix}{benchmark}_finished.txt')
         if os.path.exists(path):
             with open(path, 'r') as f:
                 finished = f.read().splitlines()
-        path = os.path.join(self.output_dir, f'{prefix}{benchmark}_failed.txt')
+        path = os.path.join(self.output_dir, 'logs', f'{prefix}{benchmark}_failed.txt')
         if os.path.exists(path):
             with open(path, 'r') as f:
                 failed = f.read().splitlines()
@@ -229,7 +229,7 @@ class BenchmarkLoader:
     
     def _getSnapshotDirs(self, benchmark: str) -> None:
         prefix = '' if benchmark in self.benchmarks else 'mmlu_'
-        path = os.path.join(self.output_dir, f'{prefix}{benchmark}_snapshots.txt')
+        path = os.path.join(self.output_dir, 'logs', f'{prefix}{benchmark}_snapshots.txt')
         if not os.path.exists(path):
             print(f'😕 No snapshot tracker exists. You need to download the datasets first.')
             return
@@ -269,8 +269,10 @@ class BenchmarkLoader:
         # process
         self._getSnapshotDirs(benchmark)
         with mp.Pool(self.num_cores) as pool:
-            pool.starmap(self.processDataset, [(s, benchmark) for s in sources])
-        pool.close()
+            for s in sources:
+                pool.apply_async(self.processDataset, args=(s, benchmark))
+            pool.close()
+            pool.join()
         if self.verbose > 0:
             print(f'🏁 Finished processing {benchmark} dataset for {len(sources)} sources.')
         self.postProcess(benchmark)
