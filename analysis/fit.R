@@ -1,4 +1,4 @@
-packages <- c("tidyverse", "readr", "mirt", "here")
+packages <- c("tidyr", "dplyr", "tibble", "readr", "mirt", "here")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, require, character.only=T)
 
@@ -10,18 +10,19 @@ if (is.na(BM)) {
 }
 
 # options
-here::i_am("analysis/fit.r")
+here::i_am("analysis/fit.R")
 set.seed(1)
 TOL <- 1e-4
-LOAD <- T
+LOAD <- F
 
 # prepare data
-df <- read_csv(here::here(paste0("data/", BM, ".csv")))
+df <- read_csv(paste0("~/Documents/data/", BM, ".csv"))
+#df <- read_csv(here::here(paste0("data/", BM, ".csv")))
 data <- df %>% 
    mutate(correct = as.integer(correct)) %>%
    pivot_wider(names_from = item, values_from = correct) %>%
    column_to_rownames(var = "source")
-sum(is.na(data))
+(sum(is.na(data)))
 
 # remove outliers
 data <- data[!(rowSums(data) < 30),] # remove tail outliers
@@ -38,18 +39,22 @@ data <- data[, std > 0]
 mirtCluster()
 mirtCluster(remove=T)
 internaldat <- mirt(data, 1, large='return')
+mirtrun <- function(itemtype){
+  out <- mirt(data, 1, itemtype=itemtype,
+              method='EM',
+              density='Davidian-4',
+              large=internaldat,
+              TOL=TOL,
+              technical=list(NCYCLES=2000))
+  return(out)
+}
 
 #===============================================================================
 # 2PL Model
 # set modpath using 
 modpath <- here::here(paste0("analysis/models/", BM, "-2pl.rds"))
 if (!LOAD) {
-  mod.2pl <- mirt(data, 1, itemtype='2PL',
-                  method='EM',
-                  density='Davidian-4',
-                  large=intenaldat,
-                  TOL=TOL,
-                  technical=list(NCYC=2000)) 
+  mod.2pl <- mirtrun('2PL')
   saveRDS(mod.2pl, file=modpath) 
 } else {
   mod.2pl <- readRDS(modpath)
@@ -60,12 +65,7 @@ mod.2pl
 # Comparison with 3PL
 modpath <- here::here(paste0("analysis/models/", BM, "-3pl.rds"))
 if (!LOAD) {
-  mod.3pl <- mirt(data, 1, itemtype='3PL',
-                  method='EM',
-                  density='Davidian-4',
-                  large=internaldat,
-                  TOL=TOL,
-                  technical=list(NCYC=2000)) 
+  mod.3pl <- mirtrun('3PL')
   saveRDS(mod.3pl, file=modpath) 
 } else {
   mod.3pl <- readRDS(modpath)
@@ -77,12 +77,7 @@ anova(mod.2pl, mod.3pl)
 # Comparison with 3PLu
 modpath <- here::here(paste0("analysis/models/", BM, "-3plu.rds"))
 if (!LOAD) {
-  mod.3plu <- mirt(data, 1, itemtype='3PLu',
-                   method='EM',
-                   density='Davidian-4',
-                   large=internaldat,
-                   TOL=TOL,
-                   technical=list(NCYC=2000)) 
+  mod.3plu <- mirtrun('3PLu')
   saveRDS(mod.3plu, file=modpath) 
 } else {
   mod.3plu <- readRDS(modpath)
@@ -95,12 +90,7 @@ anova(mod.3pl, mod.3plu)
 # Comparison with 4PL
 modpath <- here::here(paste0("analysis/models/", BM, "-4pl.rds"))
 if (!LOAD) {
-  mod.4pl <- mirt(data, 1, itemtype='4PL',
-                  method='EM',
-                  density='Davidian-4',
-                  large=internaldat,
-                  TOL=TOL,
-                  technical=list(NCYC=3000))
+  mod.4pl <- mirtrun('4PL')
   saveRDS(mod.4pl, file=modpath)
 } else {
   mod.4pl <- readRDS(modpath)
