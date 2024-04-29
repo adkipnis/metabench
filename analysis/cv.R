@@ -15,7 +15,7 @@ invisible(sapply(packages, require, character.only = T))
 args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
-   BM <- "gsm8k"
+   BM <- "truthfulqa"
 }
 Method <- args[2]
 if (is.na(Method)) {
@@ -51,11 +51,11 @@ fit.model <- function(train, itemtype) {
 }
 
 
-get.theta <- function(model, resp = NULL, method = 'EAPsum') {
-   use_dentype_estimate <- method %in% c('EAPsum', 'EAP')
+get.theta <- function(model, resp = NULL) {
+   use_dentype_estimate <- Method %in% c('EAPsum', 'EAP')
    theta <- fscores(
       model,
-      method = nethod,
+      method = Method,
       use_dentype_estimate = use_dentype_estimate,
       response.pattern = resp
     )
@@ -73,9 +73,6 @@ subset.score <- function(df.score, indices, theta) {
 
 
 fit.score <- function(df.score) {
-  mod.score = mgcv::gam(score ~ s(theta), data = df.score)
-  df.score$p <- predict(mod.score)
-  df.score <- df.score %>% arrange(by = theta)
   return(df.score)
 }
 
@@ -114,7 +111,8 @@ cv.fold <- function(fold, itemtype) {
   # train performance
   theta.train <- get.theta(model)
   df.train <- subset.score(df.score,-fold, theta.train)
-  df.train <- fit.score(df.train)
+  mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
+  df.train <- df.train %>% arrange(theta) %>% mutate(p = predict(mod.score))
   p.train <- plot.prediction(df.train, 'training')
   r.train <-
     cor(df.train$theta, df.train$score, method = 'spearman')
@@ -123,7 +121,7 @@ cv.fold <- function(fold, itemtype) {
   # test performance
   theta.test <- get.theta(model, resp = test)
   df.test <- subset.score(df.score, fold, theta.test)
-  df.test <- fit.score(df.test)
+  df.test <- df.test %>% arrange(theta) %>% mutate(p = predict(mod.score, newdata = df.test))
   p.test <- plot.prediction(df.test, 'test')
   r.test <- cor(df.test$theta, df.test$score, method = 'spearman')
   eps.test <- get.error(df.test)
@@ -166,6 +164,21 @@ cv.wrapper <- function(folds, itemtype) {
 }
 
 
+cv.collect <- function(results) {
+   train <- lapply(results, function(x) x$train$error)
+   test <- lapply(results, function(x) x$test$error)
+   train <- do.call(rbind, train)
+   test <- do.call(rbind, test)
+   r.train <- lapply(results, function(x) x$train$r)
+   r.test <- lapply(results, function(x) x$test$r)
+   train$r <- do.call(rbind, r.train)[,1]
+   test$r <- do.call(rbind, r.test)[,1]
+   train$set <- 'train'
+   test$set <- 'test'
+   return (rbind(train,test))
+ }
+
+
 # =============================================================================
 # prepare data
 df <- read_csv(here::here(paste0("data/", BM, ".csv")), show_col_types = F)
@@ -183,7 +196,7 @@ print(glue("Nubmer of subjects: {nrow(data)}"))
 print(glue("Number of items: {ncol(data)}"))
 
 # sample 100 items for prototyping
-# data <- data[, sample(1:ncol(data), 100)]
+data <- data[, sample(1:ncol(data), 100)]
 
 # df scores
 scores <- rowSums(data)
@@ -201,3 +214,25 @@ modpath <- here::here(paste0("analysis/models/", BM, "-2PL-cv.rds"))
 results <- cv.wrapper(folds, '2PL')
 saveRDS(results, file = modpath)
 
+# =============================================================================
+# # show results
+# results <- readRDS(modpath)
+# summary <- cv.collect(results)
+# p <- ggplot(summary, aes(x = set, y = mae, fill = set)) +
+#   geom_boxplot() +
+#   labs(x = 'Set', y = 'MAE') +
+#   ggtitle('Mean absolute error (score prediction)') + 
+#   # scale_y_continuous(limits = c(0, 3)) +
+#   scale_x_discrete(limits = c('train', 'test')) +
+#   theme_minimal()
+# p
+# 
+# # same for Spearman correlation
+# p <- ggplot(summary, aes(x = set, y = r, fill = set)) +
+#   geom_boxplot() +
+#   labs(x = 'Set', y = 'Spearman correlation') +
+#   ggtitle('Spearman correlation (theta x score)') +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   scale_x_discrete(limits = c('train', 'test')) +
+#   theme_minimal()
+# p
