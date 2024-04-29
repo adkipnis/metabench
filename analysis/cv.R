@@ -49,21 +49,26 @@ fit.model <- function(train, itemtype) {
   return(out)
 }
 
-get.theta <- function(model, resp = NULL){
-   theta <- tryCatch(
-     fscores(model,
-             method = 'EAPsum',
-             use_dentype_estimate = T,
-             response.pattern = resp),
-     error = function(e){
-       fscores(model,
-               method = 'MAP',
-               use_dentype_estimate = F,
-               response.pattern = resp)
-     }
-   )
-   return(theta)
+
+get.theta <- function(model, resp = NULL, map = F){
+  if (map) {
+    theta <- fscores(
+       model,
+       method = 'MAP',
+       use_dentype_estimate = F,
+       response.pattern = resp
+     )
+  } else {
+     theta <- fscores(
+       model,
+       method = 'EAPsum',
+       use_dentype_estimate = T,
+       response.pattern = resp
+     )
+  }
+  return(theta)
 }
+
 
 subset.score <- function(df.score, indices, theta){
    df <- df.score[indices,]
