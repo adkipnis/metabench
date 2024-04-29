@@ -9,7 +9,7 @@ packages <-
     "glue",
     "caret")
 install.packages(setdiff(packages, rownames(installed.packages())))
-lapply(packages, require, character.only = T)
+invisible(sapply(packages, require, character.only = T))
 
 # set benchmark (first arg when calling this file with Rscript)
 args <- commandArgs(trailingOnly = T)
@@ -101,9 +101,11 @@ cv.fold <- function(fold, itemtype) {
   # prepare data
   train <- data[-fold, ]
   test <- data[fold, ]
+  d <- ncol(train) + ncol(test)
   std.train <- apply(train, 2, sd)
   std.test <- apply(test, 2, sd)
   item.ids <- which(std.train > 0 & std.test > 0)
+  print(glue("Removing {d - length(item.ids)} items with zero variance."))
   train <- train[, item.ids]
   test <- test[, item.ids]
   
@@ -155,7 +157,7 @@ cv.wrapper <- function(folds, itemtype) {
   i <- 0
   for (f in folds) {
     i <- i + 1
-    glue("Fold {i}")
+    print(glue("Fold {i}"))
     modpath <- here::here(paste0("analysis/models/", BM, "-2PL-cv-", i, ".rds"))
     result <- cv.fold(f, itemtype)
     saveRDS(result, file = modpath)
@@ -175,7 +177,10 @@ data <- df %>%
 glue("Number of missing values: {sum(is.na(data))}")
 
 # remove outliers
+n <- nrow(data)
 data <- data[!(rowSums(data) < 30),] # remove tail outliers
+glue("Removed {n - nrow(data)} outliers")
+
 # sample 100 items for prototyping
 # data <- data[, sample(1:ncol(data), 100)]
 
