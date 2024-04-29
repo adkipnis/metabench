@@ -114,8 +114,9 @@ cv.fold <- function(fold, itemtype) {
   test <- data[fold,]
   std.train <- apply(train, 2, sd)
   std.test <- apply(test, 2, sd)
-  train <- train[, std.train > 0]
-  test <- test[, std.test > 0]
+  item.ids <- which(std.train > 0 & std.test > 0)
+  train <- train[, item.ids]
+  test <- test[, item.ids]
 
   # fit model
   model <- fit.model(train, itemtype)
