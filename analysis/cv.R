@@ -179,7 +179,9 @@ glue("Number of missing values: {sum(is.na(data))}")
 # remove outliers
 n <- nrow(data)
 data <- data[!(rowSums(data) < 30),] # remove tail outliers
-glue("Removed {n - nrow(data)} outliers")
+glue("Removed {n - nrow(data)} outlier subjects")
+glue("Nubmer of subjects: {nrow(data)}")
+glue("Number of items: {ncol(data)}")
 
 # sample 100 items for prototyping
 # data <- data[, sample(1:ncol(data), 100)]
