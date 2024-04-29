@@ -109,9 +109,15 @@ get.error <- function(df.score){
 
 
 cv.fold <- function(fold, itemtype) {
-  # fit model
+  # prepare data
   train <- data[-fold,]
   test <- data[fold,]
+  std.train <- apply(train, 2, sd)
+  std.test <- apply(test, 2, sd)
+  train <- train[, std.train > 0]
+  test <- test[, std.test > 0]
+
+  # fit model
   model <- fit.model(train, itemtype)
   
   # train performance 
