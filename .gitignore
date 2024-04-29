@@ -7,3 +7,8 @@ simulation/*-tutorial.r
 data/gsm8k_clean.csv
 scraping/results/*
 data
+.Rproj.user
+analysis/models
+analysis/models_orig
+analysis/.RData
+analysis/.Rhistory
