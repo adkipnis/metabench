@@ -24,7 +24,7 @@ data <- df %>%
 data <- data[!(rowSums(data) < 30), ] # remove tail outliers
 
 # sample 100 items for prototyping
-data <- data[, sample(1:ncol(data), 100)]
+# data <- data[, sample(1:ncol(data), 100)]
 
 # df scores
 scores <- rowSums(data)
@@ -44,7 +44,7 @@ fit.model <- function(train, itemtype) {
     method = 'EM',
     density = 'Davidian-4',
     TOL = TOL,
-    technical = list(NCYCLES = 2000)
+    # technical = list(NCYCLES = 1000)
   )
   return(out)
 }
