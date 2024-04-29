@@ -169,7 +169,7 @@ cv.wrapper <- function(folds, itemtype) {
 
 # =============================================================================
 # prepare data
-df <- read_csv(here::here(paste0("data/", BM, ".csv")))
+df <- read_csv(here::here(paste0("data/", BM, ".csv")), show_col_types = F)
 data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
