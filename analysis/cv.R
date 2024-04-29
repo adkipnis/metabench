@@ -17,7 +17,7 @@ BM <- args[1]
 if (is.na(BM)) {
    BM <- "gsm8k"
 }
-glue("Benchmark: {BM}")
+print(glue("\nBenchmark: {BM}"))
 
 # options
 here::i_am("analysis/fit.R")
@@ -173,14 +173,14 @@ data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
   column_to_rownames(var = "source")
-glue("Number of missing values: {sum(is.na(data))}")
+print(glue("Number of missing values: {sum(is.na(data))}"))
 
 # remove outliers
 n <- nrow(data)
 data <- data[!(rowSums(data) < 30),] # remove tail outliers
-glue("Removed {n - nrow(data)} outlier subjects")
-glue("Nubmer of subjects: {nrow(data)}")
-glue("Number of items: {ncol(data)}")
+print(glue("Removed {n - nrow(data)} outlier subjects"))
+print(glue("Nubmer of subjects: {nrow(data)}"))
+print(glue("Number of items: {ncol(data)}"))
 
 # sample 100 items for prototyping
 # data <- data[, sample(1:ncol(data), 100)]
