@@ -2,15 +2,15 @@ packages <-
   c("tidyr", "dplyr", "tibble", "readr", "ggplot2", "mirt", "here", "caret")
 install.packages(setdiff(packages, rownames(installed.packages())))
 lapply(packages, require, character.only = T)
-if (!dir.exists(here::here("analysis/models"))) {
-  dir.create(here::here("analysis/models"))
-}
 
 # set benchmark (first arg when calling this file with Rscript)
 BM <- 'gsm8k'
 
 # options
 here::i_am("analysis/fit.R")
+if (!dir.exists(here::here("analysis/models"))) {
+   dir.create(here::here("analysis/models"))
+}
 set.seed(1)
 TOL <- 1e-4
 
