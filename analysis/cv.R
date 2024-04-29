@@ -11,7 +11,12 @@ install.packages(setdiff(packages, rownames(installed.packages())))
 lapply(packages, require, character.only = T)
 
 # set benchmark (first arg when calling this file with Rscript)
-BM <- 'gsm8k'
+args <- commandArgs(trailingOnly = T)
+BM <- args[1]
+if (is.na(BM)) {
+   BM <- "gsm8k"
+}
+printf("Starting CV for: %s", BM)
 
 # options
 here::i_am("analysis/fit.R")
@@ -141,6 +146,7 @@ cv.fold <- function(fold, itemtype) {
   )
   return(out)
 }
+
 
 
 cv.wrapper <- function(folds, itemtype) {
