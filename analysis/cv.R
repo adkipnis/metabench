@@ -6,6 +6,7 @@ packages <-
     "ggplot2",
     "mirt",
     "here",
+    "glue",
     "caret")
 install.packages(setdiff(packages, rownames(installed.packages())))
 lapply(packages, require, character.only = T)
@@ -16,7 +17,7 @@ BM <- args[1]
 if (is.na(BM)) {
    BM <- "gsm8k"
 }
-printf("Starting CV for: %s", BM)
+glue("Benchmark: {BM}")
 
 # options
 here::i_am("analysis/fit.R")
@@ -154,7 +155,7 @@ cv.wrapper <- function(folds, itemtype) {
   i <- 0
   for (f in folds) {
     i <- i + 1
-    printf("Fold %d", i)
+    glue("Fold {i}")
     modpath <- here::here(paste0("analysis/models/", BM, "-2PL-cv-", i, ".rds"))
     result <- cv.fold(f, itemtype)
     saveRDS(result, file = modpath)
@@ -171,7 +172,7 @@ data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
   column_to_rownames(var = "source")
-printf("Number of missing values: %d", sum(is.na(data)))
+glue("Number of missing values: {sum(is.na(data))}")
 
 # remove outliers
 data <- data[!(rowSums(data) < 30),] # remove tail outliers
