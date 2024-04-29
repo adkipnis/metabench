@@ -17,7 +17,15 @@ BM <- args[1]
 if (is.na(BM)) {
    BM <- "gsm8k"
 }
-print(glue("\nBenchmark: {BM}"))
+Method <- args[2]
+if (is.na(Method)) {
+  Method <- "MAP"
+}
+# check if method is valid option for fscores
+if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
+  stop("Invalid method option for fscores.")
+}
+print(glue("Benchmark: {BM}"))
 
 # options
 here::i_am("analysis/fit.R")
@@ -43,23 +51,15 @@ fit.model <- function(train, itemtype) {
 }
 
 
-get.theta <- function(model, resp = NULL, map = F) {
-  if (map) {
-    theta <- fscores(
+get.theta <- function(model, resp = NULL, method = 'EAPsum') {
+   use_dentype_estimate <- method %in% c('EAPsum', 'EAP')
+   theta <- fscores(
       model,
-      method = 'MAP',
-      use_dentype_estimate = F,
+      method = nethod,
+      use_dentype_estimate = use_dentype_estimate,
       response.pattern = resp
     )
-  } else {
-    theta <- fscores(
-      model,
-      method = 'EAPsum',
-      use_dentype_estimate = T,
-      response.pattern = resp
-    )
-  }
-  return(theta)
+   return(theta)
 }
 
 
