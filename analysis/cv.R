@@ -160,14 +160,17 @@ cv.fold <- function(fold, itemtype) {
 
 cv.wrapper <- function(folds, itemtype) {
   results <- list()
-  i <- 1
+  i <- 0
   for (f in folds) {
+    i <- i + 1
+    if (i != 10) {
+      continue
+    }
     modpath <- here::here(
       paste0("analysis/models/", BM, "-2PL-cv-", i, ".rds"))
     result <- cv.fold(f, itemtype)
     saveRDS(result, file=modpath)
     results[[i]] <- result
-    i <- i + 1
   }
   return(results)
 }
