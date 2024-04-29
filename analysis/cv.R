@@ -101,11 +101,10 @@ cv.fold <- function(fold, itemtype) {
   # prepare data
   train <- data[-fold, ]
   test <- data[fold, ]
-  d <- ncol(train) + ncol(test)
   std.train <- apply(train, 2, sd)
   std.test <- apply(test, 2, sd)
   item.ids <- which(std.train > 0 & std.test > 0)
-  print(glue("Removing {d - length(item.ids)} items with zero variance."))
+  print(glue("Removing {ncol(train) - length(item.ids)} items with zero variance."))
   train <- train[, item.ids]
   test <- test[, item.ids]
   
