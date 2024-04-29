@@ -78,21 +78,32 @@ subset.score <- function(df.score, indices, theta){
    return(df)
 }
 
-eval.model <- function(df.score, set = 'training') {
+
+fit.score <- function(df.score) {
    mod.score = mgcv::gam(score ~ s(theta), data = df.score)
    df.score$p <- predict(mod.score)
    df.score <- df.score %>% arrange(by=theta)
+   return(df.score)
+}
+
+
+plot.prediction <- function(df.score, set){
    p <- ggplot(df.score, aes(x=theta, y=score)) +
      geom_point() +
      geom_line(aes(y=p), color='red') +
      labs(x=expression(theta), y='Score') +
      ggtitle(paste0('Score recovery (', set, ' set)'))
+}
+
+
+get.error <- function(df.score){
    error <- df.score %>%
      summarize(mae = mean(abs(score-p)),
                sd = sd(abs(score-p))
-               )
-   return(list(error=error, plot=p))
+     )
+   return(error)
 }
+
 
 cv.fold <- function(fold, itemtype) {
   # fit model
@@ -101,22 +112,42 @@ cv.fold <- function(fold, itemtype) {
   model <- fit.model(train, itemtype)
   
   # train performance 
-  theta <- get.theta(model)
-  df.train <- subset.score(df.score, -fold, theta)
-  cor(df.train$theta, df.train$score, method = 'spearman')
-  train.fit <- eval.model(df.train, 'training')
+  theta.train <- get.theta(model)
+  df.train <- subset.score(df.score, -fold, theta.train)
+  df.train <- fit.score(df.train)
+  p.train <- plot.prediction(df.train, 'training')
+  r.train <- cor(df.train$theta, df.train$score, method = 'spearman')
+  eps.train <- get.error(df.train)
   
   # test performance
-  theta.unseen <- get.theta(model, test)
-  df.test <- subset.score(df.score, fold, theta.unseen)
-  cor(df.test$theta, df.test$score, method = 'spearman')
-  test.fit <- eval.model(df.test, 'test')
+  theta.test <- get.theta(model, resp = test)
+  df.test <- subset.score(df.score, fold, theta.test)
+  df.test <- fit.score(df.test)
+  p.test <- plot.prediction(df.test, 'test')
+  r.test <- cor(df.test$theta, df.test$score, method = 'spearman')
+  eps.test <- get.error(df.test)
   
   # summary
-  out = list(model=model, train=df.train, test=df.test,
-             train.fit=train.fit, test.fit=test.fit)
+  out <- list(
+    model = model,
+    train = list(
+      theta = theta.train,
+      df = df.train,
+      plot = p.train,
+      r = r.train,
+      error = eps.train
+    ),
+    test = list(
+      theta = theta.test,
+      df = df.test,
+      plot = p.test,
+      r = r.test,
+      error = eps.test
+    )
+  )
   return(out)
 }
+
 
 cv.wrapper <- function(folds, itemtype) {
   results <- list()
