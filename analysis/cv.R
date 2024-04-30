@@ -230,7 +230,7 @@ folds <- createFolds(scores, k = 10, list = T)
 # =============================================================================
 # Model
 modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv.rds"))
-results <- cv.wrapper(folds Model)
+results <- cv.wrapper(folds, Model)
 results[['Model']] <- Model
 saveRDS(results, file = modpath)
 
