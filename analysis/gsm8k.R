@@ -4,22 +4,20 @@ library(readr)
 library(mirt)
 mirtCluster()
 mirtCluster(remove=T)
-here::i_am("analysis/gsm8k-mirt.r")
+here::i_am("analysis/gsm8k.R")
 set.seed(1)
 TOL <- 1e-4
 LOAD <- T
 
 # prepare data
-df <- read_csv(here::here("data/gsm8k_clean.csv"))
-data <- df %>% select(!name) %>%
-  mutate(output = as.integer(output), item = item+1) %>%
-  pivot_wider(names_from = item, values_from = output) %>%
-  column_to_rownames(var = "model")
-data <- data[!(rowSums(data) < 50),] # remove tail outliers
+df <- read_csv(here::here("data/gsm8k.csv"))
+data <- df %>% 
+  mutate(correct = as.integer(correct)) %>%
+  pivot_wider(names_from = item, values_from = correct) %>%
+  column_to_rownames(var = "source")
+data <- data[!(rowSums(data) < 30),] # remove tail outliers
 scores <- rowSums(data)
 # plot(ecdf(scores))
-
-# LLMs
 
 # drop items without variance
 std <- apply(data, 2, sd)
