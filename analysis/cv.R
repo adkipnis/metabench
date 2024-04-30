@@ -40,9 +40,7 @@ if (is.na(Method)) {
   stop("Invalid theta estimation method.")
 }
 
-print(glue(
-  "Benchmark: {BM}, IRT Model: {Model}, Theta Estimation Method: {Method}"
-))
+print(glue("Benchmark: {BM}, IRT Model: {Model}, Theta Estimation Method: {Method}"))
 
 # options
 here::i_am("analysis/cv.R")
@@ -63,7 +61,7 @@ fit.model <- function(train, itemtype) {
     method = 'EM',
     density = 'Davidian-4',
     TOL = TOL,
-    # technical = list(NCYCLES = 1000)
+    technical = list(NCYCLES = 1000)
   )
   return(out)
 }
@@ -121,9 +119,7 @@ cv.fold <- function(fold, itemtype) {
   std.train <- apply(train, 2, sd)
   std.test <- apply(test, 2, sd)
   item.ids <- which(std.train > 0 & std.test > 0)
-  print(glue(
-    "Removing {ncol(train) - length(item.ids)} items with zero variance."
-  ))
+  print(glue("Removing {ncol(train) - length(item.ids)} items with zero variance."))
   train <- train[, item.ids]
   test <- test[, item.ids]
   
@@ -177,10 +173,10 @@ cv.wrapper <- function(folds, itemtype) {
   for (f in folds) {
     i <- i + 1
     print(glue("Fold {i}"))
-    modpath <-
-      here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
+    # modpath <-
+    #   here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
     result <- cv.fold(f, itemtype)
-    saveRDS(result, file = modpath)
+    # saveRDS(result, file = modpath)
     results[[i]] <- result
   }
   return(results)
@@ -188,16 +184,12 @@ cv.wrapper <- function(folds, itemtype) {
 
 
 cv.collect <- function(results) {
-  train <- lapply(results, function(x)
-    x$train$error)
-  test <- lapply(results, function(x)
-    x$test$error)
+  train <- lapply(results, function(x) x$train$error)
+  test <- lapply(results, function(x) x$test$error)
   train <- do.call(rbind, train)
   test <- do.call(rbind, test)
-  r.train <- lapply(results, function(x)
-    x$train$r)
-  r.test <- lapply(results, function(x)
-    x$test$r)
+  r.train <- lapply(results, function(x) x$train$r)
+  r.test <- lapply(results, function(x) x$test$r)
   train$r <- do.call(rbind, r.train)[, 1]
   test$r <- do.call(rbind, r.test)[, 1]
   train$set <- 'train'
@@ -208,8 +200,7 @@ cv.collect <- function(results) {
 
 # =============================================================================
 # prepare data
-df <-
-  read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
+df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
 data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
@@ -239,28 +230,29 @@ folds <- createFolds(scores, k = 10, list = T)
 # =============================================================================
 # Model
 modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv.rds"))
-#results <- cv.wrapper(folds, Model)
-#saveRDS(results, file = modpath)
+results <- cv.wrapper(folds Model)
+results[['Model']] <- Model
+saveRDS(results, file = modpath)
 
 # =============================================================================
 # show results
-results <- readRDS(modpath)
-summary <- cv.collect(results)
-p <- ggplot(summary, aes(x = set, y = mae, fill = set)) +
-  geom_boxplot() +
-  labs(x = 'Set', y = 'MAE') +
-  ggtitle('Mean absolute error (score prediction)') +
-  # scale_y_continuous(limits = c(0, 3)) +
-  scale_x_discrete(limits = c('train', 'test')) +
-  theme_minimal()
-p
-
-# same for Spearman correlation
-p <- ggplot(summary, aes(x = set, y = r, fill = set)) +
-  geom_boxplot() +
-  labs(x = 'Set', y = 'Spearman correlation') +
-  ggtitle('Spearman correlation (theta x score)') +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_x_discrete(limits = c('train', 'test')) +
-  theme_minimal()
-p
+# results <- readRDS(modpath)
+# summary <- cv.collect(results)
+# p <- ggplot(summary, aes(x = set, y = mae, fill = set)) +
+#   geom_boxplot() +
+#   labs(x = 'Set', y = 'MAE') +
+#   ggtitle('Mean absolute error (score prediction)') +
+#   # scale_y_continuous(limits = c(0, 3)) +
+#   scale_x_discrete(limits = c('train', 'test')) +
+#   theme_minimal()
+# p
+#
+# # same for Spearman correlation
+# p <- ggplot(summary, aes(x = set, y = r, fill = set)) +
+#   geom_boxplot() +
+#   labs(x = 'Set', y = 'Spearman correlation') +
+#   ggtitle('Spearman correlation (theta x score)') +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   scale_x_discrete(limits = c('train', 'test')) +
+#   theme_minimal()
+# p
