@@ -45,6 +45,7 @@ print(glue(
 ))
 
 # options
+here::i_am("analysis/cv.R")
 if (!dir.exists(here::here("analysis/models"))) {
   dir.create(here::here("analysis/models"))
 }
