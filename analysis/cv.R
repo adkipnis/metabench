@@ -18,7 +18,7 @@ invisible(sapply(packages, require, character.only = T))
 args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
-   BM <- "truthfulqa"
+  BM <- "truthfulqa"
 } else if (!BM %in% c('arc', 'gsm8k', 'hellaswag', 'truthfulqa', 'winogrande')) {
   stop("Invalid benchmark option.")
 }
@@ -36,12 +36,13 @@ if (is.na(Model)) {
 Method <- args[3]
 if (is.na(Method)) {
   Method <- "MAP"
-}
-if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
+} else if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
   stop("Invalid theta estimation method.")
 }
 
-print(glue("Benchmark: {BM}, IRT Model: {Model}, Theta Estimation Method: {Method}")
+print(glue(
+  "Benchmark: {BM}, IRT Model: {Model}, Theta Estimation Method: {Method}"
+))
 
 # options
 if (!dir.exists(here::here("analysis/models"))) {
@@ -68,14 +69,14 @@ fit.model <- function(train, itemtype) {
 
 
 get.theta <- function(model, resp = NULL) {
-   use_dentype_estimate <- Method %in% c('EAPsum', 'EAP')
-   theta <- fscores(
-      model,
-      method = Method,
-      use_dentype_estimate = use_dentype_estimate,
-      response.pattern = resp
-    )
-   return(theta)
+  use_dentype_estimate <- Method %in% c('EAPsum', 'EAP')
+  theta <- fscores(
+    model,
+    method = Method,
+    use_dentype_estimate = use_dentype_estimate,
+    response.pattern = resp
+  )
+  return(theta)
 }
 
 
@@ -117,7 +118,9 @@ cv.fold <- function(fold, itemtype) {
   std.train <- apply(train, 2, sd)
   std.test <- apply(test, 2, sd)
   item.ids <- which(std.train > 0 & std.test > 0)
-  print(glue("Removing {ncol(train) - length(item.ids)} items with zero variance."))
+  print(glue(
+    "Removing {ncol(train) - length(item.ids)} items with zero variance."
+  ))
   train <- train[, item.ids]
   test <- test[, item.ids]
   
@@ -128,7 +131,8 @@ cv.fold <- function(fold, itemtype) {
   theta.train <- get.theta(model)
   df.train <- subset.score(df.score,-fold, theta.train)
   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
-  df.train <- df.train %>% arrange(theta) %>% mutate(p = predict(mod.score))
+  df.train <-
+    df.train %>% arrange(theta) %>% mutate(p = predict(mod.score))
   p.train <- plot.prediction(df.train, 'training')
   r.train <-
     cor(df.train$theta, df.train$score, method = 'spearman')
@@ -137,7 +141,8 @@ cv.fold <- function(fold, itemtype) {
   # test performance
   theta.test <- get.theta(model, resp = test)
   df.test <- subset.score(df.score, fold, theta.test)
-  df.test <- df.test %>% arrange(theta) %>% mutate(p = predict(mod.score, newdata = df.test))
+  df.test <-
+    df.test %>% arrange(theta) %>% mutate(p = predict(mod.score, newdata = df.test))
   p.test <- plot.prediction(df.test, 'test')
   r.test <- cor(df.test$theta, df.test$score, method = 'spearman')
   eps.test <- get.error(df.test)
@@ -171,7 +176,8 @@ cv.wrapper <- function(folds, itemtype) {
   for (f in folds) {
     i <- i + 1
     print(glue("Fold {i}"))
-    modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
+    modpath <-
+      here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
     result <- cv.fold(f, itemtype)
     saveRDS(result, file = modpath)
     results[[i]] <- result
@@ -181,23 +187,28 @@ cv.wrapper <- function(folds, itemtype) {
 
 
 cv.collect <- function(results) {
-   train <- lapply(results, function(x) x$train$error)
-   test <- lapply(results, function(x) x$test$error)
-   train <- do.call(rbind, train)
-   test <- do.call(rbind, test)
-   r.train <- lapply(results, function(x) x$train$r)
-   r.test <- lapply(results, function(x) x$test$r)
-   train$r <- do.call(rbind, r.train)[,1]
-   test$r <- do.call(rbind, r.test)[,1]
-   train$set <- 'train'
-   test$set <- 'test'
-   return (rbind(train,test))
- }
+  train <- lapply(results, function(x)
+    x$train$error)
+  test <- lapply(results, function(x)
+    x$test$error)
+  train <- do.call(rbind, train)
+  test <- do.call(rbind, test)
+  r.train <- lapply(results, function(x)
+    x$train$r)
+  r.test <- lapply(results, function(x)
+    x$test$r)
+  train$r <- do.call(rbind, r.train)[, 1]
+  test$r <- do.call(rbind, r.test)[, 1]
+  train$set <- 'train'
+  test$set <- 'test'
+  return (rbind(train, test))
+}
 
 
 # =============================================================================
 # prepare data
-df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
+df <-
+  read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
 data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
@@ -237,12 +248,12 @@ saveRDS(results, file = modpath)
 # p <- ggplot(summary, aes(x = set, y = mae, fill = set)) +
 #   geom_boxplot() +
 #   labs(x = 'Set', y = 'MAE') +
-#   ggtitle('Mean absolute error (score prediction)') + 
+#   ggtitle('Mean absolute error (score prediction)') +
 #   # scale_y_continuous(limits = c(0, 3)) +
 #   scale_x_discrete(limits = c('train', 'test')) +
 #   theme_minimal()
 # p
-# 
+#
 # # same for Spearman correlation
 # p <- ggplot(summary, aes(x = set, y = r, fill = set)) +
 #   geom_boxplot() +
