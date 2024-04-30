@@ -18,7 +18,7 @@ invisible(sapply(packages, require, character.only = T))
 args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
-  BM <- "truthfulqa"
+  BM <- "arc"
 } else if (!BM %in% c('arc', 'gsm8k', 'hellaswag', 'truthfulqa', 'winogrande')) {
   stop("Invalid benchmark option.")
 }
@@ -84,8 +84,10 @@ get.theta <- function(model, resp = NULL) {
 subset.score <- function(df.score, indices, theta) {
   df <- df.score[indices, ]
   df$theta <- theta[, 1]
-  df <- df %>% mutate(rank.theta = rank(theta),
-                      perc.theta = rank.theta / max(rank.theta))
+  df <- df %>% 
+    arange(by=theta) %>%
+    mutate(rank.theta = rank(theta),
+           perc.theta = rank.theta / max(rank.theta))
   return(df)
 }
 
@@ -132,8 +134,7 @@ cv.fold <- function(fold, itemtype) {
   theta.train <- get.theta(model)
   df.train <- subset.score(df.score,-fold, theta.train)
   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
-  df.train <-
-    df.train %>% arrange(theta) %>% mutate(p = predict(mod.score))
+  df.train$p <- predict(mod.score)
   p.train <- plot.prediction(df.train, 'training')
   r.train <-
     cor(df.train$theta, df.train$score, method = 'spearman')
@@ -142,8 +143,7 @@ cv.fold <- function(fold, itemtype) {
   # test performance
   theta.test <- get.theta(model, resp = test)
   df.test <- subset.score(df.score, fold, theta.test)
-  df.test <-
-    df.test %>% arrange(theta) %>% mutate(p = predict(mod.score, newdata = df.test))
+  df.test$p <- predict(mod.score, newdata = df.test)
   p.test <- plot.prediction(df.test, 'test')
   r.test <- cor(df.test$theta, df.test$score, method = 'spearman')
   eps.test <- get.error(df.test)
@@ -239,28 +239,28 @@ folds <- createFolds(scores, k = 10, list = T)
 # =============================================================================
 # Model
 modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv.rds"))
-results <- cv.wrapper(folds, Model)
-saveRDS(results, file = modpath)
+#results <- cv.wrapper(folds, Model)
+#saveRDS(results, file = modpath)
 
 # =============================================================================
-# # show results
-# results <- readRDS(modpath)
-# summary <- cv.collect(results)
-# p <- ggplot(summary, aes(x = set, y = mae, fill = set)) +
-#   geom_boxplot() +
-#   labs(x = 'Set', y = 'MAE') +
-#   ggtitle('Mean absolute error (score prediction)') +
-#   # scale_y_continuous(limits = c(0, 3)) +
-#   scale_x_discrete(limits = c('train', 'test')) +
-#   theme_minimal()
-# p
-#
-# # same for Spearman correlation
-# p <- ggplot(summary, aes(x = set, y = r, fill = set)) +
-#   geom_boxplot() +
-#   labs(x = 'Set', y = 'Spearman correlation') +
-#   ggtitle('Spearman correlation (theta x score)') +
-#   scale_y_continuous(limits = c(0, 1)) +
-#   scale_x_discrete(limits = c('train', 'test')) +
-#   theme_minimal()
-# p
+# show results
+results <- readRDS(modpath)
+summary <- cv.collect(results)
+p <- ggplot(summary, aes(x = set, y = mae, fill = set)) +
+  geom_boxplot() +
+  labs(x = 'Set', y = 'MAE') +
+  ggtitle('Mean absolute error (score prediction)') +
+  # scale_y_continuous(limits = c(0, 3)) +
+  scale_x_discrete(limits = c('train', 'test')) +
+  theme_minimal()
+p
+
+# same for Spearman correlation
+p <- ggplot(summary, aes(x = set, y = r, fill = set)) +
+  geom_boxplot() +
+  labs(x = 'Set', y = 'Spearman correlation') +
+  ggtitle('Spearman correlation (theta x score)') +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_discrete(limits = c('train', 'test')) +
+  theme_minimal()
+p
