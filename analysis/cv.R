@@ -11,21 +11,33 @@ packages <-
 install.packages(setdiff(packages, rownames(installed.packages())))
 invisible(sapply(packages, require, character.only = T))
 
-# set benchmark (first arg when calling this file with Rscript)
+# set benchmark
 args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
    BM <- "truthfulqa"
 }
-Method <- args[2]
-if (is.na(Method)) {
-  Method <- "MAP"
+print(glue("Benchmark: {BM}"))
+
+# set model
+args <- commandArgs(trailingOnly = T)
+Model <- args[2]
+if (is.na(Model)) {
+  Model <- "2PL"
 }
-# check if method is valid option for fscores
 if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
   stop("Invalid method option for fscores.")
 }
-print(glue("Benchmark: {BM}"))
+
+# set theta estimator
+Method <- args[3]
+if (is.na(Method)) {
+  Method <- "MAP"
+}
+if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
+  stop("Invalid method option for fscores.")
+}
+
 
 # options
 here::i_am("analysis/fit.R")
@@ -196,7 +208,7 @@ print(glue("Nubmer of subjects: {nrow(data)}"))
 print(glue("Number of items: {ncol(data)}"))
 
 # sample 100 items for prototyping
-data <- data[, sample(1:ncol(data), 100)]
+# data <- data[, sample(1:ncol(data), 100)]
 
 # df scores
 scores <- rowSums(data)
