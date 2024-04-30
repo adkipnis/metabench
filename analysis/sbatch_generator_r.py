@@ -3,7 +3,7 @@ import argparse
 def sbatchGen(benchmark: str, email: str):
     o = f'''#!/bin/bash
     
-#SBATCH --job-name=mb-fitting-{benchmark} 
+#SBATCH --job-name=mb-cv-{benchmark} 
 #SBATCH --output=logs/{benchmark}.%j.out
 #SBATCH --error=logs/{benchmark}.%j.err
 #SBATCH --mail-type=ALL
@@ -19,9 +19,11 @@ def sbatchGen(benchmark: str, email: str):
 #SBATCH --nice=1000
 
 source $HOME/.bashrc
-Rscript fit.R {benchmark}
-    
-    '''
+LC_ALL=C.UTF-8 Rscript cv.R {benchmark} 2PL
+LC_ALL=C.UTF-8 Rscript cv.R {benchmark} 3PL
+LC_ALL=C.UTF-8 Rscript cv.R {benchmark} 3PLu
+LC_ALL=C.UTF-8 Rscript cv.R {benchmark} 4PL
+'''
     return o
 
 def main():
