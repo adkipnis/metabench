@@ -11,22 +11,25 @@ packages <-
 install.packages(setdiff(packages, rownames(installed.packages())))
 invisible(sapply(packages, require, character.only = T))
 
+# =============================================================================
+# parse args
+
 # set benchmark
 args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
    BM <- "truthfulqa"
+} else if (!BM %in% c('arc', 'gsm8k', 'hellaswag', 'truthfulqa', 'winogrande')) {
+  stop("Invalid benchmark option.")
 }
-print(glue("Benchmark: {BM}"))
 
 # set model
 args <- commandArgs(trailingOnly = T)
 Model <- args[2]
 if (is.na(Model)) {
   Model <- "2PL"
-}
-if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
-  stop("Invalid method option for fscores.")
+} else if (!Model %in% c('2PL', '3PL', '3PLu', '4PL')) {
+  stop("Invalid model option.")
 }
 
 # set theta estimator
@@ -35,12 +38,12 @@ if (is.na(Method)) {
   Method <- "MAP"
 }
 if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
-  stop("Invalid method option for fscores.")
+  stop("Invalid theta estimation method.")
 }
 
+print(glue("Benchmark: {BM}, IRT Model: {Model}, Theta Estimation Method: {Method}")
 
 # options
-here::i_am("analysis/fit.R")
 if (!dir.exists(here::here("analysis/models"))) {
   dir.create(here::here("analysis/models"))
 }
@@ -49,6 +52,7 @@ TOL <- 1e-4
 
 
 # helper functions =============================================================
+
 fit.model <- function(train, itemtype) {
   out <- mirt(
     train,
@@ -94,7 +98,7 @@ plot.prediction <- function(df.score, set) {
     geom_point() +
     geom_line(aes(y = p), color = 'red') +
     labs(x = expression(theta), y = 'Score') +
-    ggtitle(paste0('Score recovery (', set, ' set)'))
+    ggtitle(glue("Score recovery ({set} set)"))
 }
 
 
@@ -167,7 +171,7 @@ cv.wrapper <- function(folds, itemtype) {
   for (f in folds) {
     i <- i + 1
     print(glue("Fold {i}"))
-    modpath <- here::here(paste0("analysis/models/", BM, "-2PL-cv-", i, ".rds"))
+    modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
     result <- cv.fold(f, itemtype)
     saveRDS(result, file = modpath)
     results[[i]] <- result
@@ -193,7 +197,7 @@ cv.collect <- function(results) {
 
 # =============================================================================
 # prepare data
-df <- read_csv(here::here(paste0("data/", BM, ".csv")), show_col_types = F)
+df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
 data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
@@ -221,9 +225,9 @@ folds <- createFolds(scores, k = 10, list = T)
 
 
 # =============================================================================
-# 2PL Model
-modpath <- here::here(paste0("analysis/models/", BM, "-2PL-cv.rds"))
-results <- cv.wrapper(folds, '2PL')
+# Model
+modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv.rds"))
+results <- cv.wrapper(folds, Model)
 saveRDS(results, file = modpath)
 
 # =============================================================================
