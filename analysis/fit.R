@@ -1,4 +1,4 @@
-packages <- c("tidyr", "dplyr", "tibble", "readr", "mirt", "here")
+packages <- c("tidyr", "dplyr", "tibble", "readr", "mirt", "here", "glue")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 lapply(packages, require, character.only=T)
 
@@ -16,8 +16,7 @@ TOL <- 1e-4
 LOAD <- F
 
 # prepare data
-df <- read_csv(paste0("~/Documents/data/", BM, ".csv"))
-#df <- read_csv(here::here(paste0("data/", BM, ".csv")))
+df <- read_csv(here::here(glue("data/{BM}.csv"))
 data <- df %>% 
    mutate(correct = as.integer(correct)) %>%
    pivot_wider(names_from = item, values_from = correct) %>%
@@ -52,7 +51,7 @@ mirtrun <- function(itemtype){
 #===============================================================================
 # 2PL Model
 # set modpath using 
-modpath <- here::here(paste0("analysis/models/", BM, "-2pl.rds"))
+modpath <- here::here(glue("analysis/models/{BM}-2pl.rds"))
 if (!LOAD) {
   mod.2pl <- mirtrun('2PL')
   saveRDS(mod.2pl, file=modpath) 
@@ -63,7 +62,7 @@ mod.2pl
 
 #===============================================================================
 # Comparison with 3PL
-modpath <- here::here(paste0("analysis/models/", BM, "-3pl.rds"))
+modpath <- here::here(glue("analysis/models/{BM}-3pl.rds"))
 if (!LOAD) {
   mod.3pl <- mirtrun('3PL')
   saveRDS(mod.3pl, file=modpath) 
@@ -75,7 +74,7 @@ anova(mod.2pl, mod.3pl)
 
 #===============================================================================
 # Comparison with 3PLu
-modpath <- here::here(paste0("analysis/models/", BM, "-3plu.rds"))
+modpath <- here::here(glue("analysis/models/{BM}-3plu.rds"))
 if (!LOAD) {
   mod.3plu <- mirtrun('3PLu')
   saveRDS(mod.3plu, file=modpath) 
@@ -88,7 +87,7 @@ anova(mod.3pl, mod.3plu)
 
 #===============================================================================
 # Comparison with 4PL
-modpath <- here::here(paste0("analysis/models/", BM, "-4pl.rds"))
+modpath <- here::here(glue("analysis/models/{BM}-4pl.rds"))
 if (!LOAD) {
   mod.4pl <- mirtrun('4PL')
   saveRDS(mod.4pl, file=modpath)
@@ -97,4 +96,9 @@ if (!LOAD) {
 }
 mod.4pl
 anova(mod.3plu, mod.4pl)
+
+#===============================================================================
+# save all
+models <- list(mod.2pl, mod.3pl, mod.3plu, mod.4pl)
+saveRDS(models, file=here::here(glue("analysis/models/{BM}-all.rds")))
 
