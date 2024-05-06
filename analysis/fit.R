@@ -6,7 +6,6 @@ BM <- args[1]
 if (is.na(BM)) {
   BM <- "gsm8k"
 }
-print(glue("Fitting {BM}..."))
 
 # options
 set.seed(1)
@@ -21,20 +20,26 @@ data <- df %>%
 n_missing <- sum(is.na(data))
 rm(df)
 
+
 # remove outliers and items without variance
+scores <- rowSums(data)
+# hist(scores, breaks=100)
+threshold <- as.numeric(quantile(scores, probs=c(0.001)))
 n <- nrow(data)
-data <- data[!(rowSums(data) < 30),] # remove tail outliers
+data <- data[!(scores <= threshold),] # remove tail outliers
 std <- apply(data, 2, sd)
 m <- ncol(data)
 data <- data[, std > 0]
 
 # print summary
-summary.str <- glue("Prepared preprocessing for {BM}:\n",
-                    "Removed {n - nrow(data)} outlier subjects\n",
-                    "Removed {m - ncol(data)} items without variance\n",
-                    "Nubmer of subjects: {nrow(data)}\n",
-                    "Number of items: {ncol(data)}\n",
-                    "Number of missing values: {n_missing}")
+summary.str <- glue(
+  "Prepared preprocessing for {BM}:\n",
+  "{n_missing} missing values (check data if > 0)\n",
+  "Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold})\n",
+  "Removed {m - ncol(data)} items without variance\n",
+  "Nubmer of subjects: {nrow(data)}\n",
+  "Number of items: {ncol(data)}\n"
+  )
 print(summary.str)
 
 # prepare mirt
