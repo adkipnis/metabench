@@ -18,16 +18,21 @@ data <- df %>%
    mutate(correct = as.integer(correct)) %>%
    pivot_wider(names_from = item, values_from = correct) %>%
    column_to_rownames(var = "source")
-(sum(is.na(data)))
+print(glue("Number of missing values: {sum(is.na(data))}"))
 rm(df)
 
 # remove outliers and items without variance
+n <- nrow(data)
 data <- data[!(rowSums(data) < 30),] # remove tail outliers
+print(glue("Removed {n - nrow(data)} outlier subjects"))
 std <- apply(data, 2, sd)
+m <- ncol(data)
 data <- data[, std > 0]
-(n <- nrow(data))
-(d <- ncol(data))
+print(glue("Removed {m - ncol(data)} items without variance"))
+print(glue("Nubmer of subjects: {nrow(data)}"))
+print(glue("Number of items: {ncol(data)}"))
 
+# prepare mirt
 internaldat <- mirt(data, 1, large='return')
 run.mirt <- function(itemtype){
   out <- mirt(data, 1, itemtype=itemtype,
