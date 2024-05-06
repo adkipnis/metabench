@@ -66,35 +66,17 @@ collect.item.info <- function(model, theta, itemnames){
    return(info.items)
 }
 
-# =============================================================================
-# load data
+summarize.item.info <- function(info.items){
+   info.items.summary <- data.frame(item=colnames(info.items)[-1])
+   index <- apply(info.items, 2, which.max)[-1]
+   info.items.summary$argmax <- info.items$theta[index]
+   info.items.summary$max <- sapply(info.items, max)[-1]
+   info.items.summary$sd <- sapply(info.items, sd)[-1]
+   info.items.summary <- info.items.summary %>% arrange(by=argmax)
+   return(info.items.summary)
+}
 
-fits <- readRDS(here::here(glue("analysis/models/{BM}-all.rds")))
-fits <- fits_final
-saveRDS(fits, file=here::here(glue("analysis/models/{BM}-all.rds")))
-model <- fits$model
-theta <- fits$theta
-
-# item fits
-item.fit <- itemfit(model, fit_stats = 'infit', Theta = theta)
-plot.itemfit(item.fit)
-item.bad <- item.fit %>%
-   filter(infit <= 0.5 | infit >= 1.5 | outfit <= 0.5 | outfit >= 1.5)
-print(glue("percentage of bad items: {nrow(item.bad)/nrow(item.fit)}"))
-
-# item Info
-info.items <- collect.item.info(model, theta)
-
-info.items.summary <- data.frame(item=colnames(info.items)[-1])
-rownames(info.items.summary) <- info.items.summary$item
-index <- apply(info.items, 2, which.max)[-1]
-info.items.summary$argmax <- info.items$theta[index]
-info.items.summary$max <- sapply(info.items, max)[-1]
-info.items.summary$sd <- sapply(info.items, sd)[-1]
-info.items.summary <- info.items.summary %>% arrange(by=argmax)
-
-# Plot information curves
-infoplot <- function(itemnum, new=T){
+plot.info <- function(itemnum, new=T){
   if (new) {
     plot(info.items[,1], info.items[,as.character(itemnum)],
           type='l',
@@ -102,7 +84,7 @@ infoplot <- function(itemnum, new=T){
           xlim=c(info.items$theta[1], tail(info.items$theta, n=1)),
           xlab=expression(theta),
           ylab=expression(I(theta)),
-          # main=paste0('item #', itemnum),
+          main=paste0('item #', itemnum),
          )
   } else {
     lines(info.items[,1], info.items[,as.character(itemnum)],
@@ -116,8 +98,6 @@ infoplot <- function(itemnum, new=T){
         )
   }
 }
-info.items.summary["42",]
-infoplot(42)
 
 
 
