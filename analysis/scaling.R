@@ -55,14 +55,14 @@ plot.test.info <- function(model, theta) {
        main='Testinfo')
 }
 
-collect.item.info <- function(model, theta){
+collect.item.info <- function(model, theta, itemnames){
    n <- length(theta)
-   d <- dim(model)[2]
+   d <- model@Data[["nitems"]]
    info.items <- matrix(NA, nrow=n, ncol=d+1)
    info.items[,1] <- theta
    for (j in 1:d){info.items[,j+1] <- iteminfo(extract.item(model, j), Theta=theta)}
    info.items <- data.frame(info.items[order(theta),])
-   colnames(info.items) <- c("theta", colnames(model))
+   colnames(info.items) <- c("theta", itemnames)
    return(info.items)
 }
 
