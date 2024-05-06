@@ -13,24 +13,29 @@ set.seed(1)
 here::i_am("analysis/fit.R")
 
 # prepare data
-df <- read_csv(here::here(glue("data/{BM}.csv")))
+df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
 data <- df %>% 
    mutate(correct = as.integer(correct)) %>%
    pivot_wider(names_from = item, values_from = correct) %>%
    column_to_rownames(var = "source")
-print(glue("Number of missing values: {sum(is.na(data))}"))
+n_missing <- sum(is.na(data))
 rm(df)
 
 # remove outliers and items without variance
 n <- nrow(data)
 data <- data[!(rowSums(data) < 30),] # remove tail outliers
-print(glue("Removed {n - nrow(data)} outlier subjects"))
 std <- apply(data, 2, sd)
 m <- ncol(data)
 data <- data[, std > 0]
-print(glue("Removed {m - ncol(data)} items without variance"))
-print(glue("Nubmer of subjects: {nrow(data)}"))
-print(glue("Number of items: {ncol(data)}"))
+
+# print summary
+summary.str <- glue("Prepared preprocessing for {BM}:\n",
+                    "Removed {n - nrow(data)} outlier subjects\n",
+                    "Removed {m - ncol(data)} items without variance\n",
+                    "Nubmer of subjects: {nrow(data)}\n",
+                    "Number of items: {ncol(data)}\n",
+                    "Number of missing values: {n_missing}")
+print(summary.str)
 
 # prepare mirt
 internaldat <- mirt(data, 1, large='return')
@@ -45,11 +50,12 @@ run.mirt <- function(itemtype){
 }
 
 wrapper <- function(itemtype){
-   modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
    model <- run.mirt(itemtype)
-   saveRDS(model, file=modpath)
    theta <- fscores(mod, method='MAP')
-   return(list(model, theta))
+   modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
+   out <- list(model, theta)
+   saveRDS(out, file=modpath)
+   return(out)
 }
 
 #===============================================================================
