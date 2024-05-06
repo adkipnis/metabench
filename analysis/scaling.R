@@ -99,5 +99,62 @@ plot.info <- function(itemnum, new=T){
   }
 }
 
+info.quantiles <- function(info.items, steps=40){
+  theta.quantiles <- quantile(info.items$theta, probs = 0:steps/steps, type=4)
+  item.selection <- data.frame(quantile=theta.quantiles) %>%
+    rownames_to_column(var="percent")
+  item.selection$index <- findInterval(theta.quantiles, info.items$theta)
+  return(item.selection)
+}
 
+select.items <- function(info.items, item.selection, m=6){
+  index.set <- c()
+  info.items.tmp <- info.items
+  for (i in item.selection$index){
+    row <- t(info.items.tmp[i,-1]) # information per item at given quantile
+    index.row <- order(row, decreasing=T)[1:m] # m best indices
+    index.subset <- names(row[index.row,]) # row indices to item numbers
+    index.set <- c(index.set, index.subset)
+    info.items.tmp <- info.items.tmp %>% select(-all_of(index.subset)) # remove selected items
+  }
+  # index.set <- as.character(sort(as.numeric(unique(index.set))))
+  return(index.set)
+}
+
+# =============================================================================
+# prepare data
+
+# load data
+fits <- readRDS(here::here(glue("analysis/models/{BM}-all.rds")))
+data <- fits$data
+model <- fits[[Model]]$model
+theta <- fits[[Model]]$theta
+rm(fits)
+
+# item fits
+item.fit <- itemfit(model, fit_stats = 'infit', Theta = theta)
+item.fit$item <- colnames(data)
+plot.itemfit(item.fit)
+item.bad <- item.fit %>%
+   filter(infit <= 0.5 | infit >= 1.5 | outfit <= 0.5 | outfit >= 1.5)
+print(glue(
+  "percentage of bad items: {round(100* nrow(item.bad)/nrow(item.fit), 2)}"))
+
+# item info
+info.items <- collect.item.info(model, theta, colnames(data))
+info.items.summary <- summarize.item.info(info.items)
+# plot.info(42)
+
+#===============================================================================
+# subtest creation
+
+# 1. remove badly fitting items
+# get object type of info.items
+info.items <- info.items %>% select(!item.bad$item)
+
+# 2. decide on a range on theta quantiles
+item.selection <- info.quantiles(info.items, steps=40)
+
+# 3 select m items with the highest information in each quantile
+index.set <- select.items(info.items, item.selection, m=6)
 
