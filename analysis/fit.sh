@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --job-name=mb-fit-array
-#SBATCH --output=logs/%A_%a.%j.out
-#SBATCH --error=logs/%A_%a.%j.err
+#SBATCH --output=logs/fit.%A_%a.out
+#SBATCH --error=logs/fit.%A_%a.err
 #SBATCH --array=1-5
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de

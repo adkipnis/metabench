@@ -6,6 +6,7 @@ BM <- args[1]
 if (is.na(BM)) {
   BM <- "gsm8k"
 }
+print(glue("Fitting {BM}..."))
 
 # options
 set.seed(1)
