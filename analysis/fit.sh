@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #SBATCH --job-name=mb-fit-array
 #SBATCH --output=logs/%A_%a.%j.out
 #SBATCH --error=logs/%A_%a.%j.err
