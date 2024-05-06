@@ -6,7 +6,7 @@ invisible(suppressMessages(sapply(packages, require, character.only=T)))
 
 # =============================================================================
 # parse args
-args <- commandArgs(trailingOnly=T)
+args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
   BM <- "gsm8k"
@@ -26,7 +26,7 @@ set.seed(1)
 wrapper <- function(itemtype, save=T){
    model <- run.mirt(itemtype)
    theta <- fscores(model, method='MAP')
-   out <- list(model, theta)
+   out <- list(model=model, theta=theta)
    if (save) {
       modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
       saveRDS(out, file=modpath)
@@ -86,6 +86,6 @@ fit.2pl <- wrapper("2PL")
 fit.3pl <- wrapper("3PL")
 fit.3plu <- wrapper("3PLu")
 fit.4pl <- wrapper("4PL")
-fits <- list(fit.2pl, fit.3pl, fit.3plu, fit.4pl)
+fits <- list(`2PL`=fit.2pl, `3PL`=fit.3pl, `3PLu`=fit.3plu, `4PL`=fit.4pl)
 saveRDS(fits, file=here::here(glue("analysis/models/{BM}-all.rds")))
 
