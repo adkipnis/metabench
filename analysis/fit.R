@@ -51,7 +51,7 @@ run.mirt <- function(itemtype){
 
 wrapper <- function(itemtype, save=T){
    model <- run.mirt(itemtype)
-   theta <- fscores(mod, method='MAP')
+   theta <- fscores(model, method='MAP')
    out <- list(model, theta)
    if (save) {
       modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
