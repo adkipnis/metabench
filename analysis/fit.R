@@ -10,6 +10,9 @@ if (is.na(BM)) {
 # options
 set.seed(1)
 here::i_am("analysis/fit.R")
+if (!dir.exists(here::here("analysis/models"))) {
+  dir.create(here::here("analysis/models"))
+}
 
 # prepare data
 df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
