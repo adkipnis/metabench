@@ -13,7 +13,7 @@ set.seed(1)
 here::i_am("analysis/fit.R")
 
 # prepare data
-df <- read_csv(here::here(glue("data/{BM}.csv"))
+df <- read_csv(here::here(glue("data/{BM}.csv")))
 data <- df %>% 
    mutate(correct = as.integer(correct)) %>%
    pivot_wider(names_from = item, values_from = correct) %>%
