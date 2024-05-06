@@ -50,11 +50,12 @@ run.mirt <- function(itemtype){
 }
 
 wrapper <- function(itemtype){
-   modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
    model <- run.mirt(itemtype)
-   saveRDS(model, file=modpath)
    theta <- fscores(mod, method='MAP')
-   return(list(model, theta))
+   modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
+   out <- list(model, theta)
+   saveRDS(out, file=modpath)
+   return(out)
 }
 
 #===============================================================================
