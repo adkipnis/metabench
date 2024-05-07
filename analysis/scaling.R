@@ -46,14 +46,6 @@ plot.itemfit <- function(item.fit) {
   par(mfrow=c(1,1))
 }
 
-plot.test.info <- function(model, theta) {
-  info.test <- testinfo(model, Theta = theta)
-  df_tmp <- data.frame(theta=theta, info=info.test)[order(theta),]
-  plot(df_tmp, type='l', lwd=3,
-       xlab=expression(theta),
-       ylab=expression(I(theta)),
-       main='Testinfo')
-}
 
 collect.item.info <- function(model, theta, itemnames){
    n <- length(theta)
@@ -76,30 +68,48 @@ summarize.item.info <- function(info.items){
    return(info.items.summary)
 }
 
-plot.info <- function(itemnum, new=T){
-  if (new) {
-    plot(info.items[,1], info.items[,as.character(itemnum)],
-          type='l',
-          ylim=c(0,7),
-          xlim=c(info.items$theta[1], tail(info.items$theta, n=1)),
-          xlab=expression(theta),
-          ylab=expression(I(theta)),
-          main=paste0('item #', itemnum),
-         )
-  } else {
-    lines(info.items[,1], info.items[,as.character(itemnum)],
-        type='l',
-        ylim=c(0,7),
-        xlim=c(info.items$theta[1], tail(info.items$theta, n=1)),
-        xlab=expression(theta),
-        ylab=expression(I(theta)),
-        lty=2,
-        # main=paste0('item #', itemnum),
-        )
-  }
+plot.info <- function(itemnum, new=T, ymax=10){
+   func <- ifelse(new, 'plot', 'lines')
+   args <- list(info.items[,1], info.items[,as.character(itemnum)],
+                type='l',
+                ylim=c(0,ymax),
+                xlim=c(info.items$theta[1], tail(info.items$theta, n=1)),
+                xlab=expression(theta),
+                ylab=expression(I(theta)),
+                main=paste0('item #', itemnum))
+   do.call(func, args)
 }
 
-info.quantiles <- function(info.items, steps=40){
+plot.testinfo <- function(model, theta) {
+  info.test <- testinfo(model, Theta = theta)
+  df_tmp <- data.frame(theta=theta, info=info.test)[order(theta),]
+  plot(df_tmp, type='l', lwd=3,
+       xlab=expression(theta),
+       ylab=expression(I(theta)),
+       main='test info (full vs. reduced)')
+}
+
+plot.expected.testinfo <- function(info.items, index.set){
+   info.items.sub <- info.items[, index.set$item]
+   info.items.sub$cum <- rowSums(info.items.sub)
+   lines(info.items$theta, info.items.sub$cum,
+        type='l',
+        main='expected subtest info',
+        xlab=expression(theta),
+        ylab=expression(I(theta))
+   )
+}
+
+plot.info.summary <- function(model, theta, info.items, index.set){
+   plot.testinfo(model, theta)
+   plot.expected.testinfo(info.items, index.set)
+   # par(new=T)
+   # plot(density(theta), col='red', lwd=2, lty=2, ylab='', xlab='', axes=F, main='')
+   # axis(side=4)
+   # mtext('density', side=4, line=3)
+}
+
+get.info.quantiles <- function(info.items, steps=40){
   theta.quantiles <- quantile(info.items$theta, probs = 0:steps/steps, type=4)
   item.selection <- data.frame(quantile=theta.quantiles) %>%
     rownames_to_column(var="percent")
@@ -107,18 +117,31 @@ info.quantiles <- function(info.items, steps=40){
   return(item.selection)
 }
 
-select.items <- function(info.items, item.selection, m=6){
-  index.set <- c()
-  info.items.tmp <- info.items
-  for (i in item.selection$index){
-    row <- t(info.items.tmp[i,-1]) # information per item at given quantile
-    index.row <- order(row, decreasing=T)[1:m] # m best indices
-    index.subset <- names(row[index.row,]) # row indices to item numbers
-    index.set <- c(index.set, index.subset)
-    info.items.tmp <- info.items.tmp %>% select(-all_of(index.subset)) # remove selected items
-  }
-  # index.set <- as.character(sort(as.numeric(unique(index.set))))
-  return(index.set)
+plot.quantiles <- function(info.quantiles, theta) {
+   plot(info.quantiles$quantile, 1:41/41,
+        t='l',
+        xlab=expression(theta),
+        ylab=expression(F(theta)),
+        main='quantiles vs. ecdf (orange)'
+   )
+   lines(ecdf(theta), col='darkorange')
+}
+
+select.items <- function(info.summary, info.quantiles, n_max=6L, threshold=3.0){
+   index.set <- list()
+   # iterate over quantiles (get the current and next quantile)
+   for (i in 1:nrow(info.quantiles)) {
+      q0 <- info.quantiles$quantile[i]
+      q1 <- info.quantiles$quantile[i+1]
+      # get the items in the current quantile
+      selection <- info.summary %>%
+         filter(argmax >= q0 & argmax < q1 & max >= threshold) %>%
+         arrange(desc(max)) %>%
+         head(n_max)
+      index.set[[i]] <- selection
+   }
+   df.index <- do.call(rbind, index.set) %>% distinct() %>% arrange(argmax)
+   return(df.index)
 }
 
 # =============================================================================
@@ -142,19 +165,18 @@ print(glue(
 
 # item info
 info.items <- collect.item.info(model, theta, colnames(data))
+info.items <- info.items %>% select(!item.bad$item)
 info.items.summary <- summarize.item.info(info.items)
 # plot.info(42)
 
 #===============================================================================
 # subtest creation
 
-# 1. remove badly fitting items
-# get object type of info.items
-info.items <- info.items %>% select(!item.bad$item)
-
 # 2. decide on a range on theta quantiles
-item.selection <- info.quantiles(info.items, steps=40)
+info.quantiles <- get.info.quantiles(info.items, steps=40)
+# plot.quantiles(info.quantiles, theta)
 
 # 3 select m items with the highest information in each quantile
-index.set <- select.items(info.items, item.selection, m=6)
-
+index.set <- select.items(info.items.summary, info.quantiles,
+                          n_max=10L, threshold=1.0)
+plot.info.summary(model, theta, info.items, index.set)
