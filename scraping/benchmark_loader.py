@@ -312,7 +312,7 @@ class BenchmarkLoader:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--cachedir', type=str, default='/home/alex/Datasets/open-llm-leaderboard/')
-    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/Dropbox/Code/my-repos/metabench/data/')
+    parser.add_argument('-o', '--outputdir', type=str, default='/home/alex/metabench/data/')
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
     parser.add_argument('--download', action='store_true', default=False)
