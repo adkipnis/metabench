@@ -46,12 +46,17 @@ wrapper <- function(itemtype, save=F){
 
 # =============================================================================
 # prepare data
+print(glue("Preprocessing for {BM}..."))
 df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
 data <- df %>% 
    mutate(correct = as.integer(correct)) %>%
    pivot_wider(names_from = item, values_from = correct) %>%
    column_to_rownames(var = "source")
 n_missing <- sum(is.na(data))
+if (n_missing > 0) {
+   print(glue("Warning: {n_missing} missing values in data, aborting..."))
+   stop()
+}
 rm(df)
 
 
@@ -68,8 +73,6 @@ data <- data[, std > 0]
 
 # print summary
 summary.str <- glue(
-  "Prepared preprocessing for {BM}:\n",
-  "{n_missing} missing values (check data if > 0)\n",
   "Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold})\n",
   "Removed {m - ncol(data)} items without variance\n",
   "Nubmer of subjects: {nrow(data)}\n",
