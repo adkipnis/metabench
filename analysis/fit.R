@@ -9,7 +9,7 @@ invisible(suppressMessages(sapply(packages, require, character.only=T)))
 args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
-  BM <- "gsm8k"
+  BM <- "mmlu_abstract_algebra"
 }
 
 # =============================================================================
@@ -56,6 +56,8 @@ n_missing <- sum(is.na(data))
 if (n_missing > 0) {
    print(glue("Warning: {n_missing} missing values in data, aborting..."))
    stop()
+} else {
+  print("No missing data. :)")
 }
 rm(df)
 
