@@ -1,4 +1,4 @@
-#!/bin/bash
+#/bin/bash
 
 #SBATCH --job-name=mb-mmlu-fit-array
 #SBATCH --output=logs/mmlu-fit.%A_%a.out
@@ -18,8 +18,8 @@
 
 source $HOME/.bashrc
 
-# list of mmlu benchmarks
-benchmarks=$(basename -a $(ls ../data/mmlu*) | sed 's/.csv//g' | tr " " "\n" | grep -v "prompts" | tr "\n" " ")
+# array of mmlu benchmarks
+benchmarks=($(basename -a $(ls ../data/mmlu*) | sed 's/.csv//g' | tr " " "\n" | grep -v "prompts" | tr "\n" " "))
 
 # run the task
 task_index=$((SLURM_ARRAY_TASK_ID-1))
