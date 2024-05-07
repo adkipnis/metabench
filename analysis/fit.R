@@ -23,7 +23,17 @@ set.seed(1)
 # =============================================================================
 # helper functions
 
-wrapper <- function(itemtype, save=T){
+run.mirt <- function(itemtype){
+  out <- mirt(data, 1, itemtype=itemtype,
+              method='EM',
+              density='Davidian-4',
+              large=internaldat,
+              TOL=1e-4,
+              technical=list(NCYCLES=2000))
+  return(out)
+}
+
+wrapper <- function(itemtype, save=F){
    model <- run.mirt(itemtype)
    theta <- fscores(model, method='MAP')
    out <- list(model=model, theta=theta)
@@ -48,7 +58,8 @@ rm(df)
 # remove outliers and items without variance
 scores <- rowSums(data)
 # hist(scores, breaks=100)
-threshold <- as.numeric(quantile(scores, probs=c(0.001)))
+# threshold <- as.numeric(quantile(scores, probs=c(0.001)))
+threshold <- 0
 n <- nrow(data)
 data <- data[!(scores <= threshold),] # remove tail outliers
 std <- apply(data, 2, sd)
@@ -68,20 +79,12 @@ print(summary.str)
 
 # prepare mirt
 internaldat <- mirt(data, 1, large='return')
-run.mirt <- function(itemtype){
-  out <- mirt(data, 1, itemtype=itemtype,
-              method='EM',
-              density='Davidian-4',
-              large=internaldat,
-              TOL=1e-4,
-              technical=list(NCYCLES=2000))
-  return(out)
-}
+
 
 #===============================================================================
 # fit models
-mirtCluster()
-mirtCluster(remove=T)
+# mirtCluster()
+# mirtCluster(remove=T)
 fit.2pl <- wrapper("2PL")
 fit.3pl <- wrapper("3PL")
 fit.3plu <- wrapper("3PLu")
