@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 #SBATCH --job-name=mb-mmlu-fit-array
 #SBATCH --output=logs/mmlu-fit.%A_%a.out
