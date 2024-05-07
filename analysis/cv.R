@@ -1,3 +1,5 @@
+# =============================================================================
+# load packages
 packages <-
   c("tidyr",
     "dplyr",
@@ -42,16 +44,16 @@ if (is.na(Method)) {
 
 print(glue("Benchmark: {BM}, IRT Model: {Model}, Theta Estimation Method: {Method}"))
 
-# options
+# =============================================================================
+# path and seed
 here::i_am("analysis/cv.R")
 if (!dir.exists(here::here("analysis/models"))) {
   dir.create(here::here("analysis/models"))
 }
 set.seed(1)
-TOL <- 1e-4
 
-
-# helper functions =============================================================
+# =============================================================================
+# helper functions 
 
 fit.model <- function(train, itemtype) {
   out <- mirt(
@@ -60,7 +62,7 @@ fit.model <- function(train, itemtype) {
     itemtype = itemtype,
     method = 'EM',
     density = 'Davidian-4',
-    TOL = TOL,
+    TOL = 1e-4,
     technical = list(NCYCLES = 1000)
   )
   return(out)
@@ -165,38 +167,22 @@ cv.fold <- function(fold, itemtype) {
   return(out)
 }
 
-
-
-cv.wrapper <- function(folds, itemtype) {
+cv.wrapper <- function(folds, itemtype, save = F) {
   results <- list()
   i <- 0
   for (f in folds) {
     i <- i + 1
     print(glue("Fold {i}"))
-    # modpath <-
-    #   here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
     result <- cv.fold(f, itemtype)
-    # saveRDS(result, file = modpath)
+    if (save) {
+      modpath <-
+        here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
+      saveRDS(result, file = modpath)
+    }
     results[[i]] <- result
   }
   return(results)
 }
-
-
-cv.collect <- function(results) {
-  train <- lapply(results, function(x) x$train$error)
-  test <- lapply(results, function(x) x$test$error)
-  train <- do.call(rbind, train)
-  test <- do.call(rbind, test)
-  r.train <- lapply(results, function(x) x$train$r)
-  r.test <- lapply(results, function(x) x$test$r)
-  train$r <- do.call(rbind, r.train)[, 1]
-  test$r <- do.call(rbind, r.test)[, 1]
-  train$set <- 'train'
-  test$set <- 'test'
-  return (rbind(train, test))
-}
-
 
 # =============================================================================
 # prepare data
@@ -205,20 +191,31 @@ data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
   column_to_rownames(var = "source")
-print(glue("Number of missing values: {sum(is.na(data))}"))
+n_missing <- sum(is.na(data))
+rm(df)
 
-# remove outliers
+# remove outliers and items without variance
+scores <- rowSums(data)
+threshold <- as.numeric(quantile(scores, probs=c(0.001)))
 n <- nrow(data)
-data <- data[!(rowSums(data) < 30),] # remove tail outliers
-print(glue("Removed {n - nrow(data)} outlier subjects"))
-print(glue("Nubmer of subjects: {nrow(data)}"))
-print(glue("Number of items: {ncol(data)}"))
+data <- data[!(scores <= threshold),] # remove tail outliers
+std <- apply(data, 2, sd)
+m <- ncol(data)
+data <- data[, std > 0]
 
-# sample 100 items for prototyping
-# data <- data[, sample(1:ncol(data), 100)]
+# print summary
+summary.str <- glue(
+  "Prepared preprocessing for {BM}:\n",
+  "{n_missing} missing values (check data if > 0)\n",
+  "Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold})\n",
+  "Removed {m - ncol(data)} items without variance\n",
+  "Nubmer of subjects: {nrow(data)}\n",
+  "Number of items: {ncol(data)}\n"
+  )
+print(summary.str)
 
 # df scores
-scores <- rowSums(data)
+scores <- rowSums(data) # after removing outliers
 df.score <- data.frame(score = scores) %>%
   mutate(rank.score = rank(score),
          perc.score = rank.score / max(rank.score))
@@ -228,31 +225,10 @@ folds <- createFolds(scores, k = 10, list = T)
 
 
 # =============================================================================
-# Model
+# fit model
+mirtCluster()
+mirtCluster(remove=T)
 modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv.rds"))
 results <- cv.wrapper(folds, Model)
-results[['Model']] <- Model
 saveRDS(results, file = modpath)
 
-# =============================================================================
-# show results
-# results <- readRDS(modpath)
-# summary <- cv.collect(results)
-# p <- ggplot(summary, aes(x = set, y = mae, fill = set)) +
-#   geom_boxplot() +
-#   labs(x = 'Set', y = 'MAE') +
-#   ggtitle('Mean absolute error (score prediction)') +
-#   # scale_y_continuous(limits = c(0, 3)) +
-#   scale_x_discrete(limits = c('train', 'test')) +
-#   theme_minimal()
-# p
-#
-# # same for Spearman correlation
-# p <- ggplot(summary, aes(x = set, y = r, fill = set)) +
-#   geom_boxplot() +
-#   labs(x = 'Set', y = 'Spearman correlation') +
-#   ggtitle('Spearman correlation (theta x score)') +
-#   scale_y_continuous(limits = c(0, 1)) +
-#   scale_x_discrete(limits = c('train', 'test')) +
-#   theme_minimal()
-# p

@@ -1,16 +1,40 @@
+# =============================================================================
+# load packages
 packages <- c("tidyr", "dplyr", "tibble", "readr", "mirt", "here", "glue")
 install.packages(setdiff(packages, rownames(installed.packages())))  
 invisible(suppressMessages(sapply(packages, require, character.only=T)))
-args <- commandArgs(trailingOnly=T)
+
+# =============================================================================
+# parse args
+args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
   BM <- "gsm8k"
 }
 
-# options
-set.seed(1)
+# =============================================================================
+# path and seed
 here::i_am("analysis/fit.R")
+if (!dir.exists(here::here("analysis/models"))) {
+  dir.create(here::here("analysis/models"))
+}
+set.seed(1)
 
+# =============================================================================
+# helper functions
+
+wrapper <- function(itemtype, save=T){
+   model <- run.mirt(itemtype)
+   theta <- fscores(model, method='MAP')
+   out <- list(model=model, theta=theta)
+   if (save) {
+      modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
+      saveRDS(out, file=modpath)
+   }
+   return(out)
+}
+
+# =============================================================================
 # prepare data
 df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
 data <- df %>% 
@@ -54,24 +78,14 @@ run.mirt <- function(itemtype){
   return(out)
 }
 
-wrapper <- function(itemtype, save=T){
-   model <- run.mirt(itemtype)
-   theta <- fscores(model, method='MAP')
-   out <- list(model, theta)
-   if (save) {
-      modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
-      saveRDS(out, file=modpath)
-   }
-   return(out)
-}
-
 #===============================================================================
+# fit models
 mirtCluster()
 mirtCluster(remove=T)
 fit.2pl <- wrapper("2PL")
 fit.3pl <- wrapper("3PL")
 fit.3plu <- wrapper("3PLu")
 fit.4pl <- wrapper("4PL")
-fits <- list(fit.2pl, fit.3pl, fit.3plu, fit.4pl)
+fits <- list(data=data, `2PL`=fit.2pl, `3PL`=fit.3pl, `3PLu`=fit.3plu, `4PL`=fit.4pl)
 saveRDS(fits, file=here::here(glue("analysis/models/{BM}-all.rds")))
 
