@@ -151,6 +151,51 @@ select.items <- function(info.summary, info.quantiles, n_max=6L, threshold=3.0){
    return(df.index)
 }
 
+# -----------------------------------------------------------------------------
+# parameter recovery
+
+get.estimates <- function(model){
+  estimates <- coef(model, simplify=T, rotate="none")$items
+  estimates <- data.frame(estimates) %>%
+      rownames_to_column(var='item') %>%
+      mutate(item = as.numeric(item))
+   return(estimates)
+}
+
+compare.parameters <- function(model, model.sub){
+   estimates <- get.estimates(model)
+   estimates.sub <- get.estimates(model.sub)
+   df.comparison <- merge(estimates, estimates.sub, by='item')
+   par(mfrow=c(1,2))
+   plot(d.y ~ d.x, data=df.comparison,
+      main='difficulty', xlab='original', ylab='recovered')
+   plot(a1.y ~ a1.x, data=df.comparison,
+      main='loading', xlab='original', ylab='recovered')
+   par(mfrow=c(1,1))
+   r1 <- cor(df.comparison$d.x, df.comparison$d.y)
+   r2 <- cor(df.comparison$a1.x, df.comparison$a1.y)
+   print(glue("correlation difficulty: {round(r1, 2)}"))
+   print(glue("correlation loading: {round(r2, 2)}"))
+}
+
+compare.theta <- function(theta, theta.sub){
+   df.comparison <- data.frame(theta, theta.sub) %>%
+      arrange(by=theta) %>%
+      mutate(
+             rank = rank(theta),
+             rank.sub = rank(theta.sub),
+             perc = rank/max(rank),
+             perc.sub = rank.sub/max(rank.sub),
+      )
+   plot(perc.sub ~ perc,
+        data=df.comparison,
+        main="Theta (percentiles)",
+        xlab="original",
+        ylab="recovered")
+   r <- cor(theta, theta.sub, method='spearman')
+   print(glue("theta x theta - spearman correlation: {round(r, 2)}"))
+}
+
 # =============================================================================
 # prepare data
 
