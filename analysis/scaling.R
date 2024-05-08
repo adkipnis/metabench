@@ -30,23 +30,26 @@ set.seed(1)
 # =============================================================================
 # helper functions
 
+# -----------------------------------------------------------------------------
+# itemfit
 plot.itemfit <- function(item.fit) {
   par(mfrow=c(1,2))
   # infit
-  plot(y=item.fit$item, x=item.fit$infit, xlab="", ylab="index", main="Infit")
+  plot(item ~ infit, data=item.fit, type='n', xlab="", ylab="index", main="Infit")
   abline(v=1, col="gray")
   abline(v=0.5, col="gray", lty=2)
   abline(v=1.5, col="gray", lty=2)
   
   # outfit
-  plot(y=item.fit$item, x=item.fit$outfit, xlab="", ylab="index", main="Outfit")
+  plot(item ~ outfit, data=item.fit, type='n', xlab="", ylab="index", main="Outfit")
   abline(v=1, col="gray")
   abline(v=0.5, col="gray", lty=2)
   abline(v=1.5, col="gray", lty=2)
   par(mfrow=c(1,1))
 }
 
-
+# -----------------------------------------------------------------------------
+# item info
 collect.item.info <- function(model, theta, itemnames){
    n <- length(theta)
    d <- model@Data[["nitems"]]
@@ -80,13 +83,13 @@ plot.info <- function(itemnum, new=T, ymax=10){
    do.call(func, args)
 }
 
-plot.testinfo <- function(model, theta) {
+plot.testinfo <- function(model, theta, main='test info') {
   info.test <- testinfo(model, Theta = theta)
   df_tmp <- data.frame(theta=theta, info=info.test)[order(theta),]
   plot(df_tmp, type='l', lwd=3,
        xlab=expression(theta),
        ylab=expression(I(theta)),
-       main='test info (full vs. reduced)')
+       main=main)
 }
 
 plot.expected.testinfo <- function(info.items, index.set){
@@ -101,13 +104,16 @@ plot.expected.testinfo <- function(info.items, index.set){
 }
 
 plot.info.summary <- function(model, theta, info.items, index.set){
-   plot.testinfo(model, theta)
+   plot.testinfo(model, theta, main='test info (full vs. reduced)')
    plot.expected.testinfo(info.items, index.set)
    # par(new=T)
    # plot(density(theta), col='red', lwd=2, lty=2, ylab='', xlab='', axes=F, main='')
    # axis(side=4)
    # mtext('density', side=4, line=3)
 }
+
+# -----------------------------------------------------------------------------
+# subtest creation
 
 get.info.quantiles <- function(info.items, steps=40){
   theta.quantiles <- quantile(info.items$theta, probs = 0:steps/steps, type=4)
@@ -118,7 +124,8 @@ get.info.quantiles <- function(info.items, steps=40){
 }
 
 plot.quantiles <- function(info.quantiles, theta) {
-   plot(info.quantiles$quantile, 1:41/41,
+   n <- nrow(info.quantiles)
+   plot(info.quantiles$quantile, 1:n/n,
         t='l',
         xlab=expression(theta),
         ylab=expression(F(theta)),
