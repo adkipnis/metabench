@@ -196,6 +196,62 @@ compare.theta <- function(theta, theta.sub){
    print(glue("theta x theta - spearman correlation: {round(r, 2)}"))
 }
 
+# -----------------------------------------------------------------------------
+# score modeling
+
+get.score.table <- function(theta, scores){
+   colnames(theta) <- 'theta'
+   df.score <- data.frame(theta=theta, score=scores) %>%
+      arrange(by=theta) %>%
+      mutate(rank.score = rank(score),
+             rank.theta = rank(theta),
+             perc.score = rank.score/max(rank.score),
+             perc.theta = rank.theta/max(rank.theta))
+   return(df.score)
+}
+
+plot.score <- function(df.score){
+   plot(score ~ theta, data=df.score,
+        xlab=expression(theta),
+        ylab='Full Score',
+        main='Score Recovery')
+   # if p is a column in df.score
+   if ('p' %in% colnames(df.score)) {
+      lines(p ~ theta, data=df.score, col='red')
+   }
+}
+
+compare.score <- function(score.table){
+   r <- cor(score.table$theta, score.table$score, method='spearman')
+   print(glue("theta x score - spearman correlation: {round(r, 2)}"))
+   par(mfrow=c(2,1))
+   plot(perc.score ~ perc.theta,
+        data=score.table,
+        main="Percentile Recovery",
+        xlab=glue('% {expression(theta)}'),
+        ylab="% Full Score")
+   score.table %>%
+     reframe(abs.error = abs(perc.score - perc.theta)) %>% 
+     pull(abs.error) %>%
+     hist(breaks=100, main='Error Distribution', xlab='Absolute Percentile Error')
+   par(mfrow=c(1,1))
+}
+
+score.fit.statistics <- function(score.table){
+   abs.error <- score.table %>%
+      reframe(abs.error = abs(score - p)) %>%
+      pull(abs.error)
+   hist(abs.error, breaks=100, main='Error Distribution', xlab='Absolute Error')
+   out <- list(
+      mae = mean(abs.error),
+      sd = sd(abs.error),
+      max = max(abs.error),
+      min = min(abs.error),
+      total = sum(abs.error)
+   )
+   return(out)
+}
+
 # =============================================================================
 # prepare data
 
