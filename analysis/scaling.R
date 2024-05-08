@@ -258,9 +258,18 @@ score.fit.statistics <- function(score.table){
 # load data
 fits <- readRDS(here::here(glue("analysis/models/{BM}-all.rds")))
 data <- fits$data
+scores <- rowSums(data)
 model <- fits[[Model]]$model
 theta <- fits[[Model]]$theta
 rm(fits)
+
+# score table
+score.table <- get.score.table(theta, scores)
+mod.score <- mgcv::gam(score ~ s(theta), data = score.table)
+score.table$p <- predict(mod.score)
+compare.score(score.table)
+plot.score(score.table)
+sfs <- score.fit.statistics(score.table)
 
 # item fits
 item.fit <- itemfit(model, fit_stats = 'infit', Theta = theta)
