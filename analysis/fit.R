@@ -9,7 +9,7 @@ invisible(suppressMessages(sapply(packages, require, character.only=T)))
 args <- commandArgs(trailingOnly = T)
 BM <- args[1]
 if (is.na(BM)) {
-  BM <- "mmlu_abstract_algebra"
+  BM <- "hellaswag"
 }
 
 # =============================================================================
@@ -47,36 +47,18 @@ wrapper <- function(itemtype, save=F){
 # =============================================================================
 # prepare data
 print(glue("Preprocessing for {BM}..."))
-df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
-data <- df %>% 
-   mutate(correct = as.integer(correct)) %>%
-   pivot_wider(names_from = item, values_from = correct) %>%
-   column_to_rownames(var = "source")
-n_missing <- sum(is.na(data))
-if (n_missing > 0) {
-   print(glue("Warning: {n_missing} missing values in data, aborting..."))
-   stop()
-} else {
-  print("No missing data. :)")
-}
-rm(df)
-
+data <- read_csv(here::here(glue("data/{BM}_sub.csv")), show_col_types = F)
 
 # remove outliers and items without variance
 scores <- rowSums(data)
 # hist(scores, breaks=100)
-# threshold <- as.numeric(quantile(scores, probs=c(0.001)))
-threshold <- 0
+threshold <- as.numeric(quantile(scores, probs=c(0.001)))
 n <- nrow(data)
 data <- data[!(scores <= threshold),] # remove tail outliers
-std <- apply(data, 2, sd)
-m <- ncol(data)
-data <- data[, std > 0]
 
 # print summary
 summary.str <- glue(
   "Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold})\n",
-  "Removed {m - ncol(data)} items without variance\n",
   "Nubmer of subjects: {nrow(data)}\n",
   "Number of items: {ncol(data)}\n"
   )
