@@ -289,11 +289,38 @@ info.items.summary <- summarize.item.info(info.items)
 #===============================================================================
 # subtest creation
 
-# 2. decide on a range on theta quantiles
+# 1. decide on a range on theta quantiles
 info.quantiles <- get.info.quantiles(info.items, steps=40)
 # plot.quantiles(info.quantiles, theta)
 
-# 3 select m items with the highest information in each quantile
+# 2. select up to n_max items with the highest information within each quantile
 index.set <- select.items(info.items.summary, info.quantiles,
-                          n_max=10L, threshold=1.0)
+                          n_max=5L, threshold=1.0)
 plot.info.summary(model, theta, info.items, index.set)
+
+# 3. create subtest
+data.sub <- data[, index.set$item]
+model.sub <- mirt(data.sub, 1, itemtype='2PL',
+                  method='EM', dentype='Davidian-4', TOL=1e-4,
+                  technical = list(NCYCLES=2000))
+theta.sub <- fscores(model.sub, method="MAP")
+
+# 4. check test info
+par(mfrow=c(2,1))
+plot.testinfo(model, theta)
+plot.testinfo(model.sub, theta.sub, 'test info (reduced)')
+par(mfrow=c(1,1))
+
+# 5. check recovery for parameters and theta
+compare.parameters(model, model.sub)
+compare.theta(theta, theta.sub)
+
+# 6. check score recovery
+score.table.sub <- get.score.table(theta.sub, scores)
+compare.score(score.table.sub)
+
+# 7. check exact score prediction
+score.table.sub$p <- predict(mod.score, data=data.sub)
+plot.score(score.table.sub)
+sfs.sub <- score.fit.statistics(score.table.sub)
+
