@@ -53,7 +53,7 @@ if (!dir.exists(here::here("analysis/models"))) {
 set.seed(1)
 
 # =============================================================================
-# helper functions 
+# helper functions  
 
 fit.model <- function(train, itemtype) {
   out <- mirt(
@@ -91,12 +91,6 @@ subset.score <- function(df.score, indices, theta) {
   return(df)
 }
 
-
-fit.score <- function(df.score) {
-  return(df.score)
-}
-
-
 plot.prediction <- function(df.score, set) {
   p <- ggplot(df.score, aes(x = theta, y = score)) +
     geom_point() +
@@ -130,7 +124,7 @@ cv.fold <- function(fold, itemtype) {
   
   # train performance
   theta.train <- get.theta(model)
-  df.train <- subset.score(df.score,-fold, theta.train)
+  df.train <- subset.score(df.score, -fold, theta.train)
   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
   df.train$p <- predict(mod.score)
   p.train <- plot.prediction(df.train, 'training')
