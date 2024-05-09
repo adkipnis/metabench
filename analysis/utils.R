@@ -1,5 +1,5 @@
-#' @export
-parse.args <- function(names, defaults) {
+#" @export
+parse.args <- function(names, defaults, legal=NULL) {
    args <- commandArgs(trailingOnly = T)
    opts <- list()
    for (i in 1:length(names)) {
@@ -9,11 +9,14 @@ parse.args <- function(names, defaults) {
       } else {
          opts[[name]] <- defaults[i]
       }
+      if (!is.null(legal) && !opts[[name]] %in% legal[[name]]) {
+         stop("Invalid option for ", name)
+      }
    }
    invisible(list2env(opts, envir = globalenv()))
 }
 
-#' @export
+#" @export
 mkdir <- function(relpath) {
    fullpath <- here::here(relpath)
    if (!dir.exists(fullpath)) {
@@ -22,19 +25,19 @@ mkdir <- function(relpath) {
 }
 
 
-#' @export
+#" @export
 gprint <- function(s) {
    eval(substitute(print(glue::glue(s))), parent.frame())
 }
 
 
-#' @export
+#" @export
 gpath <- function(s) {
    eval(substitute(here::here(glue::glue(s))), parent.frame())
 }
 
 
-#' @export
+#" @export
 df2data <- function(df) {
    df |>
       dplyr::mutate(correct = as.integer(correct)) |>
@@ -42,11 +45,11 @@ df2data <- function(df) {
       tibble::column_to_rownames(var = "source")
 }
 
-#' @export
+#" @export
 run.mirt <- function(data, itemtype, large=F){
   mirt::mirt(data, 1, itemtype=itemtype,
-               method='EM',
-               density='Davidian-4',
+               method="EM",
+               density="Davidian-4",
                large=large,
                TOL=1e-4,
                technical=list(NCYCLES=3000))
