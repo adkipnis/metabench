@@ -1,81 +1,39 @@
-# =============================================================================
-# load packages
-packages <- c("tidyr", "dplyr", "tibble", "readr", "mirt", "here", "glue")
-install.packages(setdiff(packages, rownames(installed.packages())))  
-invisible(suppressMessages(sapply(packages, require, character.only=T)))
+# full IRT fitting (2pl, 3pl, 3plu, 4pl) of preprocessed data
+# usage: Rscript fit.R {benchmark}
 
 # =============================================================================
-# parse args
-args <- commandArgs(trailingOnly = T)
-BM <- args[1]
-if (is.na(BM)) {
-  BM <- "hellaswag"
-}
-
-# =============================================================================
-# path and seed
+# custom utils, args, path, seed
+box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt])
+parse.args(names = c("BM"), defaults = c("hellaswag"))
 here::i_am("analysis/fit.R")
-if (!dir.exists(here::here("analysis/models"))) {
-  dir.create(here::here("analysis/models"))
-}
 set.seed(1)
 
 # =============================================================================
 # helper functions
-
-run.mirt <- function(itemtype){
-  out <- mirt(data, 1, itemtype=itemtype,
-              method='EM',
-              density='Davidian-4',
-              large=internaldat,
-              TOL=1e-4,
-              technical=list(NCYCLES=2000))
-  return(out)
-}
-
-wrapper <- function(itemtype, save=F){
-   model <- run.mirt(itemtype)
+wrapper <- function(itemtype, large=F, save=F){
+   gprint("⚙️  Fitting {itemtype} model...")
+   model <- run.mirt(data, itemtype, large=large)
+   gprint("🤖 Estimating person parameters...")
    theta <- fscores(model, method='MAP')
    out <- list(model=model, theta=theta)
-   if (save) {
-      modpath <- here::here(glue("analysis/models/{BM}-{itemtype}.rds"))
-      saveRDS(out, file=modpath)
-   }
+   if (save) saveRDS(out, gpath("analysis/models/{BM}-{itemtype}.rds"))
    return(out)
 }
 
 # =============================================================================
 # prepare data
-print(glue("Preprocessing for {BM}..."))
-data <- read_csv(here::here(glue("data/{BM}_sub.csv")), show_col_types = F)
-
-# remove outliers and items without variance
-scores <- rowSums(data)
-# hist(scores, breaks=100)
-threshold <- as.numeric(quantile(scores, probs=c(0.001)))
-n <- nrow(data)
-data <- data[!(scores <= threshold),] # remove tail outliers
-
-# print summary
-summary.str <- glue(
-  "Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold})\n",
-  "Nubmer of subjects: {nrow(data)}\n",
-  "Number of items: {ncol(data)}\n"
-  )
-print(summary.str)
-
-# prepare mirt
-internaldat <- mirt(data, 1, large='return')
-
+gprint("🚰 Loading {BM} data...")
+data <- readRDS(gpath("data/{BM}_preproc.rds"))$data
+internaldat <- mirt::mirt(data, 1, large='return')
 
 #===============================================================================
 # fit models
-# mirtCluster()
-# mirtCluster(remove=T)
-fit.2pl <- wrapper("2PL")
-fit.3pl <- wrapper("3PL")
-fit.3plu <- wrapper("3PLu")
-fit.4pl <- wrapper("4PL")
-fits <- list(data=data, `2PL`=fit.2pl, `3PL`=fit.3pl, `3PLu`=fit.3plu, `4PL`=fit.4pl)
-saveRDS(fits, file=here::here(glue("analysis/models/{BM}-all.rds")))
+fit.2pl <- wrapper("2PL", internaldat)
+fit.3pl <- wrapper("3PL", internaldat)
+fit.3plu <- wrapper("3PLu", internaldat)
+fit.4pl <- wrapper("4PL", internaldat)
+fits <- list(`2PL`=fit.2pl, `3PL`=fit.3pl, `3PLu`=fit.3plu, `4PL`=fit.4pl)
+outpath <- gpath("analysis/models/{BM}-all.rds")
+saveRDS(fits, outpath)
+gprint("💾 Saved to '{outpath}'.")
 
