@@ -20,32 +20,6 @@ set.seed(1)
 # =============================================================================
 # helper functions  
 
-fit.model <- function(train, itemtype) {
-  out <- mirt(
-    train,
-    1,
-    itemtype = itemtype,
-    method = 'EM',
-    density = 'Davidian-4',
-    TOL = 1e-4,
-    technical = list(NCYCLES = 1000)
-  )
-  return(out)
-}
-
-
-get.theta <- function(model, resp = NULL) {
-  use_dentype_estimate <- Method %in% c('EAPsum', 'EAP')
-  theta <- fscores(
-    model,
-    method = Method,
-    use_dentype_estimate = use_dentype_estimate,
-    response.pattern = resp
-  )
-  return(theta)
-}
-
-
 subset.score <- function(df.score, indices, theta) {
   df <- df.score[indices, ]
   df$theta <- theta[, 1]
