@@ -13,3 +13,12 @@ parse.args <- function(names, defaults) {
    invisible(list2env(opts, envir = globalenv()))
 }
 
+#' @export
+mkdir <- function(relpath) {
+   fullpath <- here::here(relpath)
+   if (!dir.exists(fullpath)) {
+      dir.create(fullpath)
+   }
+}
+
+
