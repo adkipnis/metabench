@@ -47,47 +47,42 @@ cv.fold <- function(fold, itemtype) {
   std.train <- apply(train, 2, sd)
   std.test <- apply(test, 2, sd)
   item.ids <- which(std.train > 0 & std.test > 0)
-  print(glue("Removing {ncol(train) - length(item.ids)} items with zero variance."))
+  gprint("🧹 Removing {ncol(train) - length(item.ids)} items with zero variance.")
   train <- train[, item.ids]
   test <- test[, item.ids]
   
   # fit model
-  model <- fit.model(train, itemtype)
+  gprint("⚙️  Fitting {Model} model to training fold...")
+  model <- run.mirt(train, itemtype)
   
   # train performance
-  theta.train <- get.theta(model)
+  theta.train <- get.theta(model, method = "MAP")
   df.train <- subset.score(df.score, -fold, theta.train)
   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
   df.train$p <- predict(mod.score)
   p.train <- plot.prediction(df.train, 'training')
-  r.train <-
-    cor(df.train$theta, df.train$score, method = 'spearman')
-  eps.train <- get.error(df.train)
+  r.train <- cor(df.train$theta, df.train$score, method = 'spearman')
   
   # test performance
-  theta.test <- get.theta(model, resp = test)
+  theta.test <- get.theta(model, method = "MAP", resp = test)
   df.test <- subset.score(df.score, fold, theta.test)
   df.test$p <- predict(mod.score, newdata = df.test)
   p.test <- plot.prediction(df.test, 'test')
   r.test <- cor(df.test$theta, df.test$score, method = 'spearman')
-  eps.test <- get.error(df.test)
-  
-  # summary
+
+  # output
   out <- list(
-    model = model,
     train = list(
       theta = theta.train,
       df = df.train,
       plot = p.train,
       r = r.train,
-      error = eps.train
     ),
     test = list(
       theta = theta.test,
       df = df.test,
       plot = p.test,
       r = r.test,
-      error = eps.test
     )
   )
   return(out)
