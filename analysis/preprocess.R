@@ -84,3 +84,23 @@ rejection.sampling <- function(items) {
   return(items)
 }
 
+# =============================================================================
+# prepare data
+gprint("🚰 Loading {BM} data...")
+df <- readr::read_csv(gpath("data/{BM}.csv"), show_col_types = F)
+data <- df2data(df)
+rm(df)
+
+items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F)
+if (!all(colnames(data) == items$item)){
+   stop("❌ Item indices don't match prompts aborting.")
+}
+
+# =============================================================================
+# outlier removal
+scores <- rowSums(data)
+threshold <- as.numeric(quantile(scores, probs=c(0.001)))
+n <- nrow(data)
+data <- data[!(scores <= threshold),]
+gprint("🧹 Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold}).")
+
