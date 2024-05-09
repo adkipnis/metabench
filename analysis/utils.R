@@ -42,3 +42,13 @@ df2data <- function(df) {
       tibble::column_to_rownames(var = "source")
 }
 
+#' @export
+run.mirt <- function(data, itemtype, large=F){
+  mirt::mirt(data, 1, itemtype=itemtype,
+               method='EM',
+               density='Davidian-4',
+               large=large,
+               TOL=1e-4,
+               technical=list(NCYCLES=3000))
+}
+
