@@ -55,3 +55,13 @@ run.mirt <- function(data, itemtype, large=F){
                technical=list(NCYCLES=3000))
 }
 
+#" @export
+get.theta <- function(model, method="MAP", resp = NULL) {
+  use_dentype_estimate <- Method %in% c("EAPsum", "EAP")
+  mirt::fscores(
+    model,
+    method = Method,
+    use_dentype_estimate = use_dentype_estimate,
+    response.pattern = resp
+  )
+}
