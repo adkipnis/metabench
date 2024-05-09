@@ -88,17 +88,16 @@ cv.fold <- function(fold, itemtype) {
   return(out)
 }
 
+
 cv.wrapper <- function(folds, itemtype, save = F) {
   results <- list()
-  i <- 0
-  for (f in folds) {
-    i <- i + 1
-    print(glue("Fold {i}"))
-    result <- cv.fold(f, itemtype)
+  for (i in 1:length(folds)) {
+    gprint("🔁 Cross-validation fold {i}...")
+    result <- cv.fold(folds[[i]], itemtype)
     if (save) {
-      modpath <-
-        here::here(glue("analysis/models/{BM}-{Model}-cv-{i}.rds"))
-      saveRDS(result, file = modpath)
+      outpath <- gpath("analysis/models-cv/{BM}-{Model}-cv-{i}.rds")
+      saveRDS(result, modpath)
+      gprint("💾 Saved fold to '{outpath}'.")
     }
     results[[i]] <- result
   }
