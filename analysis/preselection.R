@@ -126,8 +126,10 @@ items$exclude <- F
 items$exclude[items$sd <= 0.01] <- T
 
 # 1. item difficulty shouldn't be extreme
-upper_bound <- 0.95 * (3 / 4)
-items$exclude[items$diff < 0.05 | items$diff > upper_bound] <- T
+guess_coeff <- 3/4
+lower_bound <- 0.05 * guess_coeff
+upper_bound <- 0.95 * guess_coeff
+items$exclude[items$diff < lower_bound | items$diff > upper_bound] <- T
 
 # 2. item discrimination shouldn't be small
 items$exclude[items$disc < 0.1] <- T
