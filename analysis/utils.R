@@ -34,3 +34,11 @@ gpath <- function(s) {
 }
 
 
+#' @export
+df2data <- function(df) {
+   df |>
+      dplyr::mutate(correct = as.integer(correct)) |>
+      tidyr::pivot_wider(names_from = item, values_from = correct) |>
+      tibble::column_to_rownames(var = "source")
+}
+
