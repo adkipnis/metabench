@@ -110,9 +110,11 @@ if (n_missing > 0) {
 }
 rm(df)
 
+items <- read_csv(here::here(glue("data/{BM}_prompts.csv")), show_col_types = F)
+print(glue("Item indices match prompts: {all(colnames(data) == items$item)}"))
+
 # =============================================================================
 # item analysis
-items <- data.frame(item = colnames(data))
 items$sd <- apply(data, 2, sd)
 items$diff <- get.item.difficulty(data)
 items$disc <- get.item.discrimination(data, d = items$diff)
@@ -153,5 +155,6 @@ while (nrow(items.sub) > 1500) {
 
 # reduce data and save
 data.sub <- data[, items.sub$item]
-write_csv(data.sub, here::here(glue("data/{BM}_sub.csv")))
+out <- list(items = items.sub, data = data.sub)
+saveRDS(out, here::here(glue("data/{BM}_selected.rds")))
 
