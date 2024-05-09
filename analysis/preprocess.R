@@ -138,6 +138,7 @@ gprint("1️⃣  Excluding {p_excluded}% items, {n_remaining} remain...")
 items.sub <- items[!items$exclude, ]
 plot.items(items.sub)
 
+# optionally do rejection sampling for item pre-selection
 n_max <- nrow(data)/4 # aspire an item to subject ratio of at max 1:4
 if (n_remaining > n_max) gprint("2️⃣  Starting rejection sampling...")
 while (nrow(items.sub) > n_max) {
