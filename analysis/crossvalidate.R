@@ -120,10 +120,9 @@ df.score <- data.frame(score = scores) |>
 folds <- caret::createFolds(scores, k = 10, list = T)
 
 # =============================================================================
-# fit model
-mirtCluster()
-mirtCluster(remove=T)
-modpath <- here::here(glue("analysis/models/{BM}-{Model}-cv.rds"))
+# main
 results <- cv.wrapper(folds, Model)
-saveRDS(results, file = modpath)
+outpath <- gpath("analysis/models-cv/{BM}-{Model}-cv.rds")
+saveRDS(results, outpath)
+gprint("💾 Saved to '{outpath}'.")
 
