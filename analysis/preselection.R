@@ -6,7 +6,6 @@
 # =============================================================================
 # load packages
 packages <- c("tidyr", "dplyr", "tibble", "readr", "here", "glue")
-install.packages(setdiff(packages, rownames(installed.packages())))
 invisible(suppressMessages(sapply(packages, require, character.only = T)))
 
 # =============================================================================
@@ -75,6 +74,7 @@ plot.items <- function(items, den = T) {
             col = "red",
             lwd = 2)
   }
+  par(mfrow = c(1, 1))
 }
 
 rejection.prob <- function(item, density) {
@@ -101,8 +101,7 @@ rejection.sampling <- function(items) {
 # =============================================================================
 # prepare data
 print(glue("Preprocessing for {BM}..."))
-df <-
-  read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
+df <- read_csv(here::here(glue("data/{BM}.csv")), show_col_types = F)
 data <- df %>%
   mutate(correct = as.integer(correct)) %>%
   pivot_wider(names_from = item, values_from = correct) %>%
@@ -142,9 +141,8 @@ items$exclude[items$disc < 0.1] <- T
 n_excluded <- sum(items$exclude)
 p_excluded <- round(n_excluded / nrow(items), 2)
 n_remaining <- nrow(items) - n_excluded
-print(glue(
-  "Excluding {n_excluded} ({p_excluded}%) items, {n_remaining} remain..."
-))
+print(glue("Excluding {n_excluded} ({p_excluded}%) items,
+           {n_remaining} remain..."))
 
 # plots (after)
 items.sub <- items[!items$exclude, ]
