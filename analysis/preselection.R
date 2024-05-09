@@ -77,22 +77,17 @@ plot.items <- function(items, den = T) {
   par(mfrow = c(1, 1))
 }
 
-rejection.prob <- function(item, density) {
-  x <- item$diff
-  y <- item$disc
-  z <-
-    density$z[which.min(abs(density$x - x)), which.min(abs(density$y - y))]
-  return(z)
+rejection.prob <- function(items, density) {
+   x_indices <- findInterval(items$diff, density$x)
+   y_indices <- findInterval(items$disc, density$y)
+   z <- density$z[cbind(x_indices, y_indices)]
+   return(z)
 }
 
 rejection.sampling <- function(items) {
   density <- MASS::kde2d(items$diff, items$disc, n = 100)
   density$z <- density$z / max(density$z)
-  items$reject <- 0
-  for (i in 1:nrow(items)) {
-    item <- items[i, ]
-    items$reject[i] <- rejection.prob(item, density)
-  }
+  items$reject <- rejection.prob(items, density)
   items$exclude <- items$reject > runif(nrow(items))
   items <- items[!items$exclude, ]
   return(items)
