@@ -1,55 +1,20 @@
-# =============================================================================
-# load packages
-packages <-
-  c("tidyr",
-    "dplyr",
-    "tibble",
-    "readr",
-    "ggplot2",
-    "mirt",
-    "here",
-    "glue",
-    "caret")
-install.packages(setdiff(packages, rownames(installed.packages())))
-invisible(sapply(packages, require, character.only = T))
+# cross-validated IRT fitting of preprocessed data
+# goal: determine the best IRT model for the given benchmark
+# usage: Rscript cv.R {benchmark} {model}
 
 # =============================================================================
-# parse args
-
-# set benchmark
-args <- commandArgs(trailingOnly = T)
-BM <- args[1]
-if (is.na(BM)) {
-  BM <- "arc"
-} else if (!BM %in% c('arc', 'gsm8k', 'hellaswag', 'truthfulqa', 'winogrande')) {
-  stop("Invalid benchmark option.")
-}
-
-# set model
-args <- commandArgs(trailingOnly = T)
-Model <- args[2]
-if (is.na(Model)) {
-  Model <- "2PL"
-} else if (!Model %in% c('2PL', '3PL', '3PLu', '4PL')) {
-  stop("Invalid model option.")
-}
-
-# set theta estimator
-Method <- args[3]
-if (is.na(Method)) {
-  Method <- "MAP"
-} else if (!Method %in% c('EAP', 'MAP', 'ML', 'WLE', 'EAPsum', 'plausible', 'classify')) {
-  stop("Invalid theta estimation method.")
-}
-
-print(glue("Benchmark: {BM}, IRT Model: {Model}, Theta Estimation Method: {Method}"))
-
-# =============================================================================
-# path and seed
-here::i_am("analysis/cv.R")
-if (!dir.exists(here::here("analysis/models"))) {
-  dir.create(here::here("analysis/models"))
-}
+# custom utils, args, path, seed
+box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
+parse.args(
+   names = c("BM", "Model" ),
+   defaults = c("hellaswag", "2PL"),
+   legal = list(
+     BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande"),
+     Model = c("2PL", "3PL", "3PLu", "4PL")
+   )
+)
+here::i_am("analysis/crossvalidate.R")
+mkdir("analysis/models-cv")
 set.seed(1)
 
 # =============================================================================
