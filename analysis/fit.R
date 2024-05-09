@@ -3,7 +3,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt])
+box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(names = c("BM"), defaults = c("hellaswag"))
 here::i_am("analysis/fit.R")
 set.seed(1)
@@ -14,7 +14,7 @@ wrapper <- function(itemtype, large=F, save=F){
    gprint("⚙️  Fitting {itemtype} model...")
    model <- run.mirt(data, itemtype, large=large)
    gprint("🤖 Estimating person parameters...")
-   theta <- fscores(model, method='MAP')
+   theta <- get.theta(model, method="MAP")
    out <- list(model=model, theta=theta)
    if (save) saveRDS(out, gpath("analysis/models/{BM}-{itemtype}.rds"))
    return(out)
