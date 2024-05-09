@@ -104,3 +104,37 @@ n <- nrow(data)
 data <- data[!(scores <= threshold),]
 gprint("🧹 Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold}).")
 
+# =============================================================================
+# item analysis
+gprint("⚙️  Starting item analysis...")
+items$sd <- apply(data, 2, sd)
+items$diff <- get.item.difficulty(data)
+items$disc <- get.item.discrimination(data, d = items$diff)
+plot.items(items, den = F)
+
+# =============================================================================
+# item pre-selection
+
+# 0. item answers must vary
+items$exclude <- F
+items$exclude[items$sd <= 0.01] <- T
+
+# 1. item difficulty shouldn't be extreme
+guess_coeff <- 3/4
+lower_bound <- 0.05 * guess_coeff
+upper_bound <- 0.95 * guess_coeff
+items$exclude[items$diff < lower_bound | items$diff > upper_bound] <- T
+
+# 2. item discrimination shouldn't be negative
+items$exclude[items$disc < 0] <- T
+
+# pre-selection summary
+n_excluded <- sum(items$exclude)
+p_excluded <- round(100 * n_excluded / nrow(items), 2)
+n_remaining <- nrow(items) - n_excluded
+gprint("1️⃣  Excluding {p_excluded}% items, {n_remaining} remain...")
+
+# plots (after)
+items.sub <- items[!items$exclude, ]
+plot.items(items.sub)
+
