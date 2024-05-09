@@ -23,12 +23,12 @@ set.seed(1)
 subset.score <- function(df.score, indices, theta) {
   df <- df.score[indices, ]
   df$theta <- theta[, 1]
-  df <- df %>% 
-    arange(by=theta) %>%
-    mutate(rank.theta = rank(theta),
-           perc.theta = rank.theta / max(rank.theta))
-  return(df)
+  df |>
+    dplyr::arange(theta) |>
+    dplyr::mutate(rank.theta = rank(theta),
+                  perc.theta = rank.theta / max(rank.theta))
 }
+
 
 plot.prediction <- function(df.score, set) {
   p <- ggplot(df.score, aes(x = theta, y = score)) +
@@ -36,14 +36,7 @@ plot.prediction <- function(df.score, set) {
     geom_line(aes(y = p), color = 'red') +
     labs(x = expression(theta), y = 'Score') +
     ggtitle(glue("Score recovery ({set} set)"))
-}
-
-
-get.error <- function(df.score) {
-  error <- df.score %>%
-    summarize(mae = mean(abs(score - p)),
-              sd = sd(abs(score - p)))
-  return(error)
+  return(p)
 }
 
 
