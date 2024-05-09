@@ -138,3 +138,17 @@ gprint("1️⃣  Excluding {p_excluded}% items, {n_remaining} remain...")
 items.sub <- items[!items$exclude, ]
 plot.items(items.sub)
 
+n_max <- nrow(data)/4 # aspire an item to subject ratio of at max 1:4
+if (n_remaining > n_max) gprint("2️⃣  Starting rejection sampling...")
+while (nrow(items.sub) > n_max) {
+  items.sub <- rejection.sampling(items.sub)
+  plot.items(items.sub)
+}
+
+# reduce data and save
+data.sub <- data[, items.sub$item]
+gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
+out <- list(items = items.sub, data = data.sub, scores = rowSums(data))
+outpath <- gpath("data/{BM}_preproc.rds")
+saveRDS(out, outpath)
+gprint("💾 Saved to '{outpath}'.")
