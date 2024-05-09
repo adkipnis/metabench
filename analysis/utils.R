@@ -22,3 +22,15 @@ mkdir <- function(relpath) {
 }
 
 
+#' @export
+gprint <- function(s) {
+   eval(substitute(print(glue::glue(s))), parent.frame())
+}
+
+
+#' @export
+gpath <- function(s) {
+   eval(substitute(here::here(glue::glue(s))), parent.frame())
+}
+
+
