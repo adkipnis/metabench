@@ -1,6 +1,6 @@
 # cross-validated IRT fitting of preprocessed data
 # goal: determine the best IRT model for the given benchmark
-# usage: Rscript cv.R {benchmark} {model}
+# usage: Rscript crossvalidate.R {benchmark} {model}
 
 # =============================================================================
 # custom utils, args, path, seed
