@@ -25,4 +25,4 @@ benchmarks=($(basename -a $(ls ../data/mmlu*) | sed 's/.csv//g' | tr " " "\n" | 
 task_index=$((SLURM_ARRAY_TASK_ID-1))
 task=${benchmarks[$task_index]}
 echo "Running task $task"
-LC_ALL=C.UTF-8 Rscript fit.R $task
+LC_ALL=C.UTF-8 Rscript ../analysis/fit.R $task
