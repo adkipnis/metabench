@@ -75,11 +75,17 @@ rejection.prob <- function(items, density) {
    return(z)
 }
 
-rejection.sampling <- function(items) {
+rejection.sampling <- function(items, max_reject = 100) {
   density <- MASS::kde2d(items$diff, items$disc, n = 100)
   density$z <- density$z / max(density$z)
   items$reject <- rejection.prob(items, density)
   items$exclude <- items$reject > runif(nrow(items))
+  # if too many items are rejected, keep the rest
+  if (sum(items$exclude) > max_reject) {
+     n_too_many <- sum(items$exclude) - max_reject
+     indices <- sample(which(items$exclude), n_too_many)
+     items$exclude[indices] <- F
+  }
   items <- items[!items$exclude, ]
   return(items)
 }
