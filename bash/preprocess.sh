@@ -19,5 +19,5 @@ source $HOME/.bashrc
 benchmarks=($(ls ../data | grep .csv | grep -v prompts.csv | sed 's/.csv//'))
 for b in "${benchmarks[@]}"; do
 	echo "Preprocessing $b"
-	LC_ALL=C.UTF-8 Rscript analysis/preprocess.R $b
+	LC_ALL=C.UTF-8 Rscript ../analysis/preprocess.R $b
 done
