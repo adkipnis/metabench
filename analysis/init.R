@@ -10,7 +10,7 @@ install.packages(setdiff(packages, rownames(installed.packages())))
 box::use(./utils)
 # =============================================================================
 # check data health
-here::i_am("analysis/prepare.R")
+here::i_am("analysis/init.R")
 benchmarks <- c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
 mmlu <- c(
     "abstract_algebra",
