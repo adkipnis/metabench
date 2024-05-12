@@ -16,10 +16,9 @@
 #SBATCH --time=24:00:00
 #SBATCH --nice=1000
 
-mkdir -p logs
 source $HOME/.bashrc
 benchmarks=("arc" "gsm8k" "hellaswag" "truthfulqa" "winogrande")
 task_index=$((SLURM_ARRAY_TASK_ID-1))
 task=${benchmarks[$task_index]}
 echo "Running task $task"
-LC_ALL=C.UTF-8 Rscript fit.R $task
+LC_ALL=C.UTF-8 ../analysis/Rscript fit.R $task
