@@ -19,7 +19,7 @@
 source $HOME/.bashrc
 
 # array of mmlu benchmarks
-benchmarks=($(basename -a $(ls ../data/mmlu*) | sed 's/.csv//g' | tr " " "\n" | grep -v "prompts" | tr "\n" " "))
+benchmarks=($(ls ../data | grep mmlu | grep .csv | grep -v prompts.csv | sed 's/.csv//'))
 
 # run the task
 task_index=$((SLURM_ARRAY_TASK_ID-1))
