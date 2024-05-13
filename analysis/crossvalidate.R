@@ -59,32 +59,20 @@ cv.fold <- function(fold, itemtype) {
   df.train <- subset.score(df.score, -fold, theta.train)
   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
   df.train$p <- predict(mod.score)
-  p.train <- plot.prediction(df.train, 'training')
-  r.train <- cor(df.train$theta, df.train$score, method = 'spearman')
   
   # test performance
   theta.test <- get.theta(model, method = "MAP", resp = test)
   df.test <- subset.score(df.score, fold, theta.test)
   df.test$p <- predict(mod.score, newdata = df.test)
-  p.test <- plot.prediction(df.test, 'test')
-  r.test <- cor(df.test$theta, df.test$score, method = 'spearman')
 
-  # output
-  out <- list(
-    train = list(
-      theta = theta.train,
-      df = df.train,
-      plot = p.train,
-      r = r.train,
-    ),
-    test = list(
-      theta = theta.test,
-      df = df.test,
-      plot = p.test,
-      r = r.test,
-    )
-  )
-  return(out)
+  # collaps both dataframes
+  df.train$set <- "train"
+  df.test$set <- "test"
+  theta.train$set <- "train"
+  theta.test$set <- "test"
+  df <- rbind(df.train, df.test)
+  theta <- rbind(theta.train, theta.test)
+  list(df = df, theta = theta)
 }
 
 
