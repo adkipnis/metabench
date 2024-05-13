@@ -64,6 +64,5 @@ get.theta <- function(model, method="MAP", resp = NULL) {
     use_dentype_estimate = use_dentype_estimate,
     response.pattern = resp
   )
-  colnames(theta) <- "theta"
   as.data.frame(theta)
 }
