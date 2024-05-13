@@ -68,10 +68,11 @@ cv.fold <- function(fold, itemtype) {
   # collaps both dataframes
   df.train$set <- "train"
   df.test$set <- "test"
+  df <- rbind(df.train, df.test)
   theta.train$set <- "train"
   theta.test$set <- "test"
-  df <- rbind(df.train, df.test)
-  theta <- rbind(theta.train, theta.test)
+  common_names <- intersect(names(theta.train), names(theta.test))
+  theta <- rbind(theta.train[common_names], theta.test[common_names])
   list(df = df, theta = theta)
 }
 
