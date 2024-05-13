@@ -22,7 +22,4 @@ benchmarks=("arc" "gsm8k" "hellaswag" "truthfulqa" "winogrande")
 task_index=$((SLURM_ARRAY_TASK_ID-1))
 task=${benchmarks[$task_index]}
 echo "Running task $task"
-LC_ALL=C.UTF-8 Rscript fit.R $task 2PL
-LC_ALL=C.UTF-8 Rscript fit.R $task 3PL
-LC_ALL=C.UTF-8 Rscript fit.R $task 3PLu
-LC_ALL=C.UTF-8 Rscript fit.R $task 4PL
+LC_ALL=C.UTF-8 Rscript ../analysis/crossvalidate.R $task
