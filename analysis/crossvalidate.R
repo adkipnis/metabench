@@ -1,20 +1,19 @@
 # cross-validated IRT fitting of preprocessed data
 # goal: determine the best IRT model for the given benchmark
-# usage: Rscript crossvalidate.R {benchmark} {model}
+# usage: Rscript crossvalidate.R {benchmark}
 
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(
-   names = c("BM", "Model" ),
-   defaults = c("hellaswag", "2PL"),
+   names = c("BM"),
+   defaults = c("hellaswag"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande"),
-     Model = c("2PL", "3PL", "3PLu", "4PL")
+     BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
    )
 )
 here::i_am("analysis/crossvalidate.R")
-mkdir("analysis/models-cv")
+mkdir("analysis/models")
 set.seed(1)
 
 # =============================================================================
@@ -52,7 +51,7 @@ cv.fold <- function(fold, itemtype) {
   test <- test[, item.ids]
   
   # fit model
-  gprint("⚙️  Fitting {Model} model to training fold...")
+  gprint("⚙️  Fitting {itemtype} model to training fold...")
   model <- run.mirt(train, itemtype)
   
   # train performance
@@ -89,16 +88,11 @@ cv.fold <- function(fold, itemtype) {
 }
 
 
-cv.wrapper <- function(folds, itemtype, save = F) {
+cv.wrapper <- function(folds, itemtype) {
   results <- list()
   for (i in 1:length(folds)) {
     gprint("🔁 Cross-validation fold {i}...")
     result <- cv.fold(folds[[i]], itemtype)
-    if (save) {
-      outpath <- gpath("analysis/models-cv/{BM}-{Model}-cv-{i}.rds")
-      saveRDS(result, modpath)
-      gprint("💾 Saved fold to '{outpath}'.")
-    }
     results[[i]] <- result
   }
   return(results)
@@ -120,9 +114,13 @@ df.score <- data.frame(score = scores) |>
 folds <- caret::createFolds(scores, k = 10, list = T)
 
 # =============================================================================
-# main
-results <- cv.wrapper(folds, Model)
-outpath <- gpath("analysis/models-cv/{BM}-{Model}-cv.rds")
-saveRDS(results, outpath)
+# cv models
+cv.2pl <- cv.wrapper(folds, "2PL")
+cv.3pl <- cv.wrapper(folds, "3PL")
+cv.3plu <- cv.wrapper(folds, "3PLu")
+cv.4pl <- cv.wrapper(folds, "4PL")
+cvs <- list(`2PL`=cv.2pl, `3PL`=cv.3pl, `3PLu`=cv.3plu, `4PL`=cv.4pl)
+outpath <- gpath("analysis/models/{BM}-cv.rds")
+saveRDS(cvs, outpath)
 gprint("💾 Saved to '{outpath}'.")
 
