@@ -7,7 +7,6 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, df2data])
 box::use(./utils[parse.args, mkdir, gprint, gpath, df2data])
 parse.args(names = c("BM"), defaults = c("hellaswag"))
 here::i_am("analysis/preprocess.R")
@@ -44,30 +43,47 @@ get.item.discrimination <- function(data, d) {
   return(rpbis)
 }
 
-plot.items <- function(items, den = T) {
-  par(mfrow = c(3, 1))
-  hist(items$diff,
-       breaks = 100,
-       main = "",
-       xlab = "difficulty")
-  hist(items$disc,
-       breaks = 100,
-       main = "",
-       xlab = "discrimination")
-  plot(
-    disc ~ diff,
-    data = items,
-    xlab = "difficulty",
-    ylab = "discrimination"
-  )
-  if (den) {
-    density <- MASS::kde2d(items$diff, items$disc, n = 100)
-    contour(density,
-            add = T,
-            col = "red",
-            lwd = 2)
-  }
-  par(mfrow = c(1, 1))
+mytheme <- function() {
+   box::use(ggplot2[theme_bw, theme, element_text])
+   theme_bw() +
+      theme(
+        axis.title.x = element_text(
+            size = 10, margin = margin(t = 10)),
+         axis.title.y = element_text(
+            size = 10, margin = margin(r = 10)),
+         axis.text.x = element_text(size = 10),
+         axis.text.y = element_text(size = 10),
+      )
+}
+
+plot.items <- function(items, den = T, outpath = NULL) {
+   box::use(ggplot2[...], cowplot[plot_grid])
+   hist1 <- ggplot(items, aes(diff)) +
+      geom_histogram(bins = 100, fill="lightgrey", color="black") +
+      labs(x = "difficulty") +
+      mytheme()
+   hist2 <- ggplot(items, aes(disc)) +
+      geom_histogram(bins = 100, fill="lightgrey", color="black") +
+      labs(x = "discrimination") +
+      mytheme()
+   scatter <- ggplot(items, aes(diff, disc)) +
+      geom_point() +
+      labs(x = "difficulty", y = "discrimination") +
+      mytheme()
+   if (den) {
+      scatter <- scatter +
+         geom_density_2d(color = "red", linewidth = 1)
+   }
+
+   # position three plots in a single column
+   p <- plot_grid(hist1, hist2, scatter, ncol = 1)
+
+   # save or print
+   if (!is.null(outpath)) {
+      ggsave(outpath, p, width = 8, height = 8)
+   } else {
+      print(p)
+   }
 }
 
 rejection.prob <- function(items, density) {
@@ -118,7 +134,7 @@ gprint("⚙️  Starting item analysis...")
 items$sd <- apply(data, 2, sd)
 items$diff <- get.item.difficulty(data)
 items$disc <- get.item.discrimination(data, d = items$diff)
-plot.items(items, den = F)
+plot.items(items, den = F, outpath = gpath("plots/pp_{BM}_0.png"))
 
 # =============================================================================
 # item pre-selection
@@ -144,14 +160,14 @@ gprint("1️⃣  Excluding {p_excluded}% items, {n_remaining} remain...")
 
 # plots (after)
 items.sub <- items[!items$exclude, ]
-plot.items(items.sub)
+plot.items(items.sub, outpath = gpath("plots/pp_{BM}_1.png"))
 
 # optionally do rejection sampling for item pre-selection
 n_max <- nrow(data)/4 # aspire an item to subject ratio of at max 1:4
 if (n_remaining > n_max) gprint("2️⃣  Starting rejection sampling...")
 while (nrow(items.sub) > n_max) {
   items.sub <- rejection.sampling(items.sub)
-  plot.items(items.sub)
+  plot.items(items.sub, outpath = gpath("plots/pp_{BM}_2.png"))
 }
 
 # reduce data and save
