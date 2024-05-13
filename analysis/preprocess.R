@@ -44,7 +44,7 @@ get.item.discrimination <- function(data, d) {
 }
 
 mytheme <- function() {
-   box::use(ggplot2[theme_bw, theme, element_text])
+   box::use(ggplot2[...])
    theme_bw() +
       theme(
         axis.title.x = element_text(
