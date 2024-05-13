@@ -40,3 +40,25 @@ summarize.comparisons <- function(comparisons) {
    gprint("Best BIC: {rownames(comparisons)[best_bic]} ({bic})")
 }
 
+get.itemfit <- function(result){
+   model <- result$model
+   theta <- result$theta
+   itemtype <- model@Model[["itemtype"]][1]
+   item.fit <- mirt::itemfit(model, fit_stats = 'infit', Theta = theta) |>
+      dplyr::mutate(outlier = infit <= 0.5 |
+                    infit >= 1.5 |
+                    outfit <= 0.5 |
+                    outfit >= 1.5)
+   item.fit$itemtype <- itemtype
+   gprint("{itemtype} - Proportion of bad item fits: {round(100 * sum(item.fit$outlier) / nrow(item.fit), 2)}%")
+   item.fit
+}
+
+wrap.itemfits <- function(results){
+   gprint("📊 Item fits...")
+   item.fits <- lapply(results, get.itemfit)
+   item.fits <- do.call(rbind, item.fits)
+   rownames(item.fits) <- NULL
+   item.fits
+}
+
