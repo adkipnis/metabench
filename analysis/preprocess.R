@@ -7,7 +7,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, mkdir, gprint, gpath, df2data])
+box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, mytheme])
 parse.args(names = c("BM"), defaults = c("hellaswag"))
 here::i_am("analysis/preprocess.R")
 mkdir(gpath("plots"))
@@ -41,19 +41,6 @@ get.item.discrimination <- function(data, d) {
   s <- sd(scores)
   rpbis <- (m_c - m) / s * sqrt(d * (1 - d))
   return(rpbis)
-}
-
-mytheme <- function() {
-   box::use(ggplot2[...])
-   theme_bw() +
-      theme(
-        axis.title.x = element_text(
-            size = 10, margin = margin(t = 10)),
-         axis.title.y = element_text(
-            size = 10, margin = margin(r = 10)),
-         axis.text.x = element_text(size = 10),
-         axis.text.y = element_text(size = 10),
-      )
 }
 
 plot.items <- function(items, den = T, outpath = NULL) {

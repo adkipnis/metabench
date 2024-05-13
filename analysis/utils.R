@@ -66,3 +66,19 @@ get.theta <- function(model, method="MAP", resp = NULL) {
   )
   as.data.frame(theta)
 }
+
+#" @export
+mytheme <- function() {
+   box::use(ggplot2[...])
+   theme_bw() +
+      theme(
+        axis.title.x = element_text(
+            size = 10, margin = margin(t = 10)),
+         axis.title.y = element_text(
+            size = 10, margin = margin(r = 10)),
+         axis.text.x = element_text(size = 10),
+         axis.text.y = element_text(size = 10),
+      )
+}
+
+
