@@ -62,3 +62,28 @@ wrap.itemfits <- function(results){
    item.fits
 }
 
+plot.itemfit <- function(item.fits) {
+   box::use(ggplot2[...])
+   subroutine <- function(fittype){
+      item.fits |> 
+         ggplot(aes(x = get(fittype), y = item)) +
+         facet_wrap(~itemtype) +
+         geom_point(alpha = 0.25) +
+         scale_x_continuous(limits = c(0, 2)) +
+         geom_vline(xintercept = 0.5, color = "gray", linetype = "dashed") +
+         geom_vline(xintercept = 1.5, color = "gray", linetype = "dashed") +
+         labs(
+            x = fittype,
+            y = "index"
+         ) +
+         mytheme() +
+         theme(axis.text.y = element_blank(),
+               axis.ticks.y = element_blank())
+   }
+
+   infits <- subroutine("infit")
+   outfits <- subroutine("outfit")
+   cowplot::plot_grid(infits, outfits, nrow = 1)
+}
+
+
