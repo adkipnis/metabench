@@ -8,8 +8,10 @@
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, df2data])
+box::use(./utils[parse.args, mkdir, gprint, gpath, df2data])
 parse.args(names = c("BM"), defaults = c("hellaswag"))
 here::i_am("analysis/preprocess.R")
+mkdir(gpath("plots"))
 set.seed(1)
 
 # =============================================================================
