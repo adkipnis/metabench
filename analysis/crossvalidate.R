@@ -23,7 +23,7 @@ subset.score <- function(df.score, indices, theta) {
   df <- df.score[indices, ]
   df$theta <- theta[, 1]
   df |>
-    dplyr::arange(theta) |>
+    dplyr::arrange(theta) |>
     dplyr::mutate(rank.theta = rank(theta),
                   perc.theta = rank.theta / max(rank.theta))
 }
