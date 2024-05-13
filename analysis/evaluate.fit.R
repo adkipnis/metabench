@@ -87,3 +87,12 @@ plot.itemfit <- function(item.fits) {
 }
 
 
+# =============================================================================
+# load fit results
+path <- gpath("analysis/models/{BM}-all.rds")
+results <- readRDS(path)
+comparisons <- compare.models(results)
+print(comparisons)
+summarize.comparisons(comparisons)
+item.fits <- wrap.itemfits(results)
+plot.itemfit(item.fits)
