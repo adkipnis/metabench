@@ -1,12 +1,8 @@
 # Evaluate the performance of the IRT models on the given benchmark
-# A) Cross-Validated IRT Models
 #   1. Score Recovery (Train Set)
 #   2. Score Recovery (Test Set)
-# B) Full IRT Models
-#   1. Model comparisons (AIC, Chi-Square)
-#   2. Item fits (Infit, Outfit)
 #
-# usage: Rscript cv.R {benchmark} {model}
+# usage: Rscript evaluate.cv.R {benchmark}
 
 # =============================================================================
 # custom utils, args, path, seed
@@ -27,7 +23,6 @@ plot.score <- function(df.score, itemtype, limits = c(200, 1000)){
    box::use(ggplot[...])
    df.score |> 
       dplyr::filter(itemtype == itemtype) |>
-
       ggplot(aes(x = score, y = p, color = type)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
@@ -51,4 +46,3 @@ plot.score <- function(df.score, itemtype, limits = c(200, 1000)){
 cvpath <- gpath("analysis/models/{BM}-cv.rds")
 cvs <- readRDS(cvpath)
 
-#
