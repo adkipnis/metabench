@@ -58,10 +58,12 @@ run.mirt <- function(data, itemtype, large=F){
 #" @export
 get.theta <- function(model, method="MAP", resp = NULL) {
   use_dentype_estimate <- method %in% c("EAPsum", "EAP")
-  mirt::fscores(
+  theta <- mirt::fscores(
     model,
     method = method,
     use_dentype_estimate = use_dentype_estimate,
     response.pattern = resp
   )
+  colnames(theta) <- "theta"
+  as.data.frame(theta)
 }
