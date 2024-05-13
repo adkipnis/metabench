@@ -6,6 +6,7 @@
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(names = c("BM"), defaults = c("hellaswag"))
 here::i_am("analysis/fit.R")
+mkdir("analysis/models")
 set.seed(1)
 
 # =============================================================================
