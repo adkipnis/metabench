@@ -4,7 +4,7 @@
 # install dependencies
 packages <- c("tibble", "MASS", # base
               "readr", "here", "glue", "box", # utilities
-              "tidyr", "dplyr", "ggplot2", # tidyverse
+              "tidyr", "dplyr", "ggplot2", "cowplot", # tidyverse
               "mirt", "caret") # data analysis
 install.packages(setdiff(packages, rownames(installed.packages())))
 box::use(./utils)
