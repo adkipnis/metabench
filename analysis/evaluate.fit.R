@@ -20,7 +20,7 @@ set.seed(1)
 # =============================================================================
 # helper functions  
 compare.models <- function(results) {
-   gprint("🔍 Model comparisons...")
+   gprint("🔍 Comparing models...")
    model_names <- names(results)
    args <- glue::glue("results[['{model_names}']]$model")
    args <- paste(args, collapse = ", ")
@@ -31,7 +31,7 @@ compare.models <- function(results) {
 }
 
 summarize.comparisons <- function(comparisons) {
-   gprint("📊 Summarizing model comparisons")
+   gprint("📊 Summary of model comparisons...")
    best_aic <- which.min(comparisons$AIC)
    aic <- round(min(comparisons$AIC))
    best_bic <- which.min(comparisons$BIC)
@@ -55,14 +55,14 @@ get.itemfit <- function(result){
 }
 
 wrap.itemfits <- function(results){
-   gprint("📊 Item fits...")
+   gprint("⚙️  Computing item fits...")
    item.fits <- lapply(results, get.itemfit)
    item.fits <- do.call(rbind, item.fits)
    rownames(item.fits) <- NULL
    item.fits
 }
 
-plot.itemfit <- function(item.fits) {
+plot.itemfit <- function(item.fits, outpath = NULL) {
    box::use(ggplot2[...])
    subroutine <- function(fittype){
       item.fits |> 
@@ -83,16 +83,26 @@ plot.itemfit <- function(item.fits) {
 
    infits <- subroutine("infit")
    outfits <- subroutine("outfit")
-   cowplot::plot_grid(infits, outfits, nrow = 1)
+   p <- cowplot::plot_grid(infits, outfits, nrow = 1)
+
+   # save or print
+   if (!is.null(outpath)) {
+      ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 Item fit plot saved to {outpath}")
+   } else {
+      print(p)
+   }
 }
 
 
 # =============================================================================
 # load fit results
+gprint("🚰 Loading {BM} fits...")
 path <- gpath("analysis/models/{BM}-all.rds")
 results <- readRDS(path)
 comparisons <- compare.models(results)
 print(comparisons)
 summarize.comparisons(comparisons)
 item.fits <- wrap.itemfits(results)
-plot.itemfit(item.fits)
+plot.itemfit(item.fits, gpath("plots/itemfit-{BM}.png"))
+
