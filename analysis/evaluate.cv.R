@@ -41,6 +41,15 @@ cv.collect <- function(results) {
    dfs
 }
 
+spearmanize <- function(df.score) {
+   gprint("Calculating Spearman correlation between theta and score...")
+   df.score |>
+      dplyr::group_by(type, set) |>
+      dplyr::summarize(
+            spearman = cor(theta, score, method = "spearman"),
+            .groups = 'drop')
+}
+
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
