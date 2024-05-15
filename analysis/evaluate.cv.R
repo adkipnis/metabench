@@ -100,4 +100,8 @@ plot.error <- function(df.score, outpath=NULL){
 # load cv results
 cvpath <- gpath("analysis/models/{BM}-cv.rds")
 cvs <- readRDS(cvpath)
+df.score <- cv.collect(cvs)
+print(spearmanize(df.score))
+plot.score(df.score, c(0, 100), gpath("plots/score_predicted_{BM}.png"))
+plot.error(df.score, gpath("plots/score_error_{BM}.png"))
 
