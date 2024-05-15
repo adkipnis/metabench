@@ -73,6 +73,29 @@ plot.score <- function(df.score, limits, outpath = NULL){
    }
 }
 
+plot.error <- function(df.score, outpath=NULL){
+   box::use(ggplot2[...])
+   p <- df.score |> 
+      dplyr::mutate(error = abs(p - score)) |>
+      ggplot(aes(x = type, y = error, fill = set)) +
+         geom_boxplot() +
+         scale_fill_manual(values = c("train" = "gray", "test" = "orange")) +
+         labs(
+            title = glue::glue("{BM} Error Distribution"),
+            x = "type",
+            y = "absolute error",
+            fill = "set"
+            ) +
+         mytheme()
+   # save or print
+   if (!is.null(outpath)) {
+      ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 CV error distribution saved to {outpath}")
+   } else {
+      print(p)
+   }
+}
+
 # =============================================================================
 # load cv results
 cvpath <- gpath("analysis/models/{BM}-cv.rds")
