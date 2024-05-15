@@ -14,7 +14,7 @@ parse.args(
      BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
    )
 )
-here::i_am("analysis/evaluate.R")
+here::i_am("analysis/evaluate.cv.R")
 set.seed(1)
 
 # =============================================================================
@@ -24,6 +24,23 @@ plot.score <- function(df.score, itemtype, limits = c(200, 1000)){
    df.score |> 
       dplyr::filter(itemtype == itemtype) |>
       ggplot(aes(x = score, y = p, color = type)) +
+cv.extract <- function(results, itemtype) {
+   dfs <- lapply(results[[itemtype]], function(fold) fold$df)
+   for (i in 1:length(dfs)) {
+      dfs[[i]]$type <- itemtype
+      dfs[[i]]$fold <- i
+   }
+   do.call(rbind, dfs)
+}
+
+cv.collect <- function(results) {
+   dfs <- lapply(names(results), function(itemtype) cv.extract(results, itemtype))
+   dfs <- do.call(rbind, dfs)
+   dfs$fold <- as.factor(dfs$fold)
+   dfs$set <- factor(dfs$set, levels = c("train", "test"))
+   dfs
+}
+
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
