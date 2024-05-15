@@ -19,11 +19,6 @@ set.seed(1)
 
 # =============================================================================
 # helper functions  
-plot.score <- function(df.score, itemtype, limits = c(200, 1000)){
-   box::use(ggplot[...])
-   df.score |> 
-      dplyr::filter(itemtype == itemtype) |>
-      ggplot(aes(x = score, y = p, color = type)) +
 cv.extract <- function(results, itemtype) {
    dfs <- lapply(results[[itemtype]], function(fold) fold$df)
    for (i in 1:length(dfs)) {
@@ -50,21 +45,32 @@ spearmanize <- function(df.score) {
             .groups = 'drop')
 }
 
+plot.score <- function(df.score, limits, outpath = NULL){
+   box::use(ggplot2[...])
+   p <- df.score |> 
+      ggplot(aes(x = score, y = p, color = set)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
                      linetype = "dashed") +
+         facet_wrap(~type, scales = "free") +
          scale_x_continuous(limits = limits) +
          scale_y_continuous(limits = limits) +
-         facet_wrap( ~ fold) +
          scale_color_manual(values = c("train" = "gray", "test" = "orange")) +
          labs(
-            title = glue("{BM} Score Reconstruction ({Model})"),
-            x = "Score",
-            y = "Prediction",
-            color = "Type"
+            title = glue::glue("{BM} Score Reconstruction"),
+            x = "true",
+            y = "predicted",
+            color = "Set"
             ) +
          mytheme()
+   # save or print
+   if (!is.null(outpath)) {
+      ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 Score reconstruction saved to {outpath}")
+   } else {
+      print(p)
+   }
 }
 
 # =============================================================================
