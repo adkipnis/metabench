@@ -51,7 +51,7 @@ cv.fold <- function(fold, itemtype) {
   test <- test[, item.ids]
   
   # fit model
-  gprint("⚙️  Fitting {itemtype} model to training fold...")
+  gprint("⚙️ Fitting {itemtype} model to training fold...")
   model <- run.mirt(train, itemtype)
   
   # train performance
@@ -68,12 +68,7 @@ cv.fold <- function(fold, itemtype) {
   # collaps both dataframes
   df.train$set <- "train"
   df.test$set <- "test"
-  df <- rbind(df.train, df.test)
-  theta.train$set <- "train"
-  theta.test$set <- "test"
-  common_names <- intersect(names(theta.train), names(theta.test))
-  theta <- rbind(theta.train[common_names], theta.test[common_names])
-  list(df = df, theta = theta)
+  list(df = rbind(df.train, df.test), model = model)
 }
 
 
