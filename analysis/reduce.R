@@ -4,7 +4,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, mytheme])
+box::use(./utils[parse.args, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "Model"),
    defaults = c("hellaswag", "2PL"),
