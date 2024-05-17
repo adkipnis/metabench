@@ -270,3 +270,14 @@ model <- results$model
 items <- merge.params(items, model)
 rm(results)
 
+# summarize score
+score.table <- get.score.table(theta, scores)
+r <- cor(score.table$theta, score.table$score, method = 'spearman')
+gprint("Spearman correlation Theta x Score: {round(r, 2)}")
+cowplot::plot_grid(
+   plot.theta.score(score.table),
+   plot.perc(score.table),
+   plot.score.error(score.table),
+   plot.error.dist(score.table))
+sfs <- score.stats(score.table)
+
