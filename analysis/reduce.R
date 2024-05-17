@@ -356,6 +356,13 @@ evaluate.subtest.params <- function(model.sub, theta.sub, outpath = NULL){
    }
 }
 
+evaluate.subtest.score <- function(theta.sub, scores){
+   # evaluation 2: score prediction
+   score.table.sub <- get.score.table(theta.sub, scores)
+   evaluate.score.table(score.table.sub)
+   score.stats(score.table.sub)
+}
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
