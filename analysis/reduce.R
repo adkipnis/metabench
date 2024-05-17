@@ -243,3 +243,30 @@ select.items <- function(items, info.quantiles, n_max=6L, threshold=3.0){
       dplyr::arrange(info.argmax)
 }
 
+# =============================================================================
+# prepare data
+gprint("🚰 Loading {BM} data...")
+datapath <- gpath("data/{BM}_preproc.rds")
+full <- readRDS(datapath)
+data <- full$data
+items <- full$items
+scores <- full$scores
+rm(full)
+
+# append itemfits to items
+itemfitpath <- gpath("analysis/itemfits/{BM}.rds")
+itemfits <- readRDS(itemfitpath) |>
+   dplyr::filter(itemtype == Model) |>
+   dplyr::select(-itemtype)
+items <- merge(items, itemfits, by="item")
+rm(itemfits)
+
+# prepare model
+gprint("🚰 Loading {BM} fits...")
+fitpath <- gpath("analysis/models/{BM}-all.rds")
+results <- readRDS(fitpath)[[Model]]
+theta <- results$theta
+model <- results$model
+items <- merge.params(items, model)
+rm(results)
+
