@@ -66,14 +66,6 @@ get.theta <- function(model, method="MAP", resp = NULL) {
   )
 }
 
-#" @export
-merge.params <- function(items, model){
-   mirt::coef(model, simplify=T, rotate="none")$items |>
-      data.frame() |>
-      tibble::rownames_to_column(var='item') |>
-      dplyr::mutate(item = as.numeric(item)) |>
-      dplyr::left_join(items, by="item")
-}
 
 #" @export
 mytheme <- function() {

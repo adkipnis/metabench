@@ -4,7 +4,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, mytheme, merge.params])
+box::use(./utils[parse.args, gprint, gpath, mytheme])
 parse.args(
    names = c("BM", "Model"),
    defaults = c("hellaswag", "2PL"),
@@ -18,6 +18,14 @@ set.seed(1)
 
 # =============================================================================
 # helper functions
+
+merge.params <- function(items, model){
+   mirt::coef(model, simplify=t, rotate="none")$items |>
+      data.frame() |>
+      tibble::rownames_to_column(var='item') |>
+      dplyr::mutate(item = as.numeric(item)) |>
+      dplyr::left_join(items, by="item")
+}
 
 # -----------------------------------------------------------------------------
 # Score prediction
