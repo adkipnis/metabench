@@ -20,7 +20,7 @@ set.seed(1)
 # helper functions
 
 merge.params <- function(items, model){
-   mirt::coef(model, simplify=t, rotate="none")$items |>
+   mirt::coef(model, simplify=T, rotate="none")$items |>
       data.frame() |>
       tibble::rownames_to_column(var='item') |>
       dplyr::mutate(item = as.numeric(item)) |>
