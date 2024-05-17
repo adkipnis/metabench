@@ -337,6 +337,25 @@ create.subtest <- function(data, items, info.items, theta, hyper) {
    list(data=data.sub, items=items.sub)
 }
 
+evaluate.subtest.params <- function(model.sub, theta.sub, outpath = NULL){
+   # evaluation 1: parameter recovery + testinfo
+   param.compare <- compare.parameters(model, model.sub)
+   p <- cowplot::plot_grid(
+      plot.theta(theta.sub),
+      plot.recovery.d(param.compare),
+      plot.testinfo(model.sub, theta.sub),
+      plot.recovery.a1(param.compare),
+      align = "v"
+   )
+   # save or print
+   if (!is.null(outpath)) {
+      ggplot2::ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 Parameter recovery saved to {outpath}")
+   } else {
+      print(p)
+   }
+}
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
