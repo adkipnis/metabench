@@ -133,6 +133,19 @@ score.stats <- function(df.score){
           SD: {round(out$sd, 2)}
           Range: [{round(out$min, 2)}, {round(out$max, 2)}]
           Total: {round(out$total, 2)}")
+   out
+}
+
+compare.score.stats <- function(sfs, sfs.sub){
+   out <- list()
+   for (key in names(sfs)) {
+      out[[key]] <- sfs.sub[[key]] - sfs[[key]]
+   }
+   gprint("📊 Abs. Error Delta (subtest - full test):
+          Mean: {round(out$mae, 2)}
+          SD: {round(out$sd, 2)}
+          Range: [{round(out$min, 2)}, {round(out$max, 2)}]
+          Total: {round(out$total, 2)}")
 }
 
 
