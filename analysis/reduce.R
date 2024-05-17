@@ -248,7 +248,6 @@ plot.quantiles <- function(info.quantiles, theta) {
 summarize.info <- function(info.items){
    theta <- info.items$theta
    info.items$theta <- NULL
-
    data.frame(item=colnames(info.items)) |>
       dplyr::mutate(
          info.argmax.index = sapply(info.items, which.max),
@@ -275,6 +274,25 @@ select.items <- function(items, info.quantiles, n_max=6L, threshold=3.0){
       dplyr::arrange(info.argmax)
 }
 
+# -----------------------------------------------------------------------------
+# parameter recovery
+
+compare.parameters <- function(model, model.sub){
+   get.estimates <- function(model){
+      mirt::coef(model, simplify=T, rotate="none")$items |>
+         data.frame() |>
+         tibble::rownames_to_column(var='item') |>
+         dplyr::mutate(item = as.numeric(item))
+   }
+   estimates <- get.estimates(model)
+   estimates.sub <- get.estimates(model.sub)
+   df.comparison <- merge(estimates, estimates.sub, by='item')
+   r1 <- cor(df.comparison$d.x, df.comparison$d.y)
+   r2 <- cor(df.comparison$a1.x, df.comparison$a1.y)
+   gprint("Correlation difficulty: {round(r1, 2)}")
+   gprint("Correlation loading: {round(r2, 2)}")
+   df.comparison
+}
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
