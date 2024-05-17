@@ -65,6 +65,22 @@ plot.theta.dists <- function(results){
 
 }
 
+plot.theta <- function(results, outpath = NULL){
+   p <- cowplot::plot_grid(
+      plot.theta.dists(results),
+      plot.theta.ests(results),
+      nrow = 2, align = "v"
+   )
+
+   # save or print
+   if (!is.null(outpath)) {
+      ggplot2::ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 Theta plot saved to {outpath}")
+   } else {
+      print(p)
+   }
+}
+
 compare.models <- function(results) {
    gprint("🔍 Comparing models...")
    model_names <- names(results)
