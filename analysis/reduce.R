@@ -210,3 +210,36 @@ plot.quantiles <- function(info.quantiles, theta) {
          mytheme()
 }
 
+# -----------------------------------------------------------------------------
+# Subtest creation
+
+summarize.info <- function(info.items){
+   theta <- info.items$theta
+   info.items$theta <- NULL
+
+   data.frame(item=colnames(info.items)) |>
+      dplyr::mutate(
+         info.argmax.index = sapply(info.items, which.max),
+         info.argmax = theta[info.argmax.index],
+         info.max = sapply(info.items, max),
+         info.sd = sapply(info.items, sd)
+      )
+}
+
+select.items <- function(items, info.quantiles, n_max=6L, threshold=3.0){
+   index.set <- list()
+   # iterate over quantiles (get the current and next quantile)
+   for (i in 1:nrow(info.quantiles)) {
+      q0 <- info.quantiles$quantile[i]
+      q1 <- info.quantiles$quantile[i+1]
+      selection <- items |>
+         dplyr::filter(info.argmax >= q0 & info.argmax < q1 & info.max >= threshold) |>
+         dplyr::arrange(dplyr::desc(info.max)) |>
+         utils::head(n_max)
+      index.set[[i]] <- selection
+   }
+   do.call(rbind, index.set) |>
+      dplyr::distinct() |>
+      dplyr::arrange(info.argmax)
+}
+
