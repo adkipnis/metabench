@@ -81,6 +81,35 @@ plot.theta <- function(results, outpath = NULL){
    }
 }
 
+plot.parameters <- function(results, outpath = NULL){
+   box::use(ggplot2[...], latex2exp[TeX])
+   coefs <- lapply(results, function(result){
+         mirt::coef(result$model, simplify = T, rotate = "none")$items
+   })
+   for (i in 1:length(coefs)) {
+      coefs[[i]] <- data.frame(coefs[[i]])
+      coefs[[i]]$itemtype <- names(results)[i]
+   }
+   p <- do.call(rbind, coefs) |>
+      ggplot(aes(x = d, y = a1)) +
+      geom_point(alpha = 0.5) +
+      facet_wrap(~itemtype) +
+      labs(
+         title = "Parameter estimates",
+         x = "difficulty",
+         y = "loading"
+      ) +
+      mytheme()
+
+   # save or print
+   if (!is.null(outpath)) {
+      ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 Parameter plot saved to {outpath}")
+   } else {
+      print(p)
+   }
+}
+
 compare.models <- function(results) {
    gprint("🔍 Comparing models...")
    model_names <- names(results)
@@ -162,11 +191,18 @@ plot.itemfit <- function(item.fits, outpath = NULL) {
 gprint("🚰 Loading {BM} fits...")
 path <- gpath("analysis/models/{BM}-all.rds")
 results <- readRDS(path)
-# TODO: plot thetas and params
+
+# plot theta and params
+plot.theta(results, gpath("plots/{BM}-theta.png"))
+plot.parameters(results, gpath("plots/{BM}-params.png"))
+
+# compare models
 comparisons <- compare.models(results)
 print(comparisons)
 summarize.comparisons(comparisons)
+
+# analyze item fits
 item.fits <- wrap.itemfits(results)
-plot.itemfit(item.fits, gpath("plots/itemfit-{BM}.png"))
+plot.itemfit(item.fits, gpath("plots/{BM}-itemfits.png"))
 saveRDS(item.fits, gpath("analysis/itemfits/{BM}.rds"))
 
