@@ -6,15 +6,17 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, mytheme])
+box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme])
 parse.args(
    names = c("BM"),
-   defaults = c("winogrande"),
+   defaults = c("gsm8k"),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
    )
 )
 here::i_am("analysis/evaluate.fit.R")
+mkdir("plots")
+mkdir("analysis/itemfits")
 set.seed(1)
 
 # =============================================================================
@@ -100,9 +102,11 @@ plot.itemfit <- function(item.fits, outpath = NULL) {
 gprint("🚰 Loading {BM} fits...")
 path <- gpath("analysis/models/{BM}-all.rds")
 results <- readRDS(path)
+# TODO: plot thetas and params
 comparisons <- compare.models(results)
 print(comparisons)
 summarize.comparisons(comparisons)
 item.fits <- wrap.itemfits(results)
 plot.itemfit(item.fits, gpath("plots/itemfit-{BM}.png"))
+saveRDS(item.fits, gpath("analysis/itemfits/{BM}.rds"))
 
