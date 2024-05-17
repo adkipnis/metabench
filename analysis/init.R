@@ -3,7 +3,7 @@
 # =============================================================================
 # install dependencies
 packages <- c("tibble", "MASS", # base
-              "readr", "here", "glue", "box", # utilities
+              "readr", "here", "glue", "box", "latex2exp", # utilities
               "tidyr", "dplyr", "ggplot2", "cowplot", # tidyverse
               "mirt", "caret") # data analysis
 install.packages(setdiff(packages, rownames(installed.packages())))
