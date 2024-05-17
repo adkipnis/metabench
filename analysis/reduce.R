@@ -363,6 +363,22 @@ evaluate.subtest.score <- function(theta.sub, scores){
    score.stats(score.table.sub)
 }
 
+hyperparam.wrapper <- function(hyperparams){
+   # 1. create subtest
+   subtest <- create.subtest(data, items, info.items, theta, hyperparams)
+   data.sub <- subtest$data
+   items.sub <- subtest$items
+
+   # 2. fit subtest
+   model.sub <- run.mirt(data.sub, Model)
+   theta.sub <- get.theta(model.sub, method="MAP")
+
+   # 3. evaluate subtest
+   evaluate.subtest.params(model.sub, theta.sub)
+   evaluate.subtest.score(theta.sub, scores)
+}
+
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
@@ -401,24 +417,8 @@ info.items <- info.items |>
    dplyr::select(!as.character(items$item[items$outlier]))
 info.quantiles <- get.info.quantiles(info.items, steps=40)
 
-
-# =============================================================================
-# subtest creation
-# 1. select up to n_max items with the highest information within each quantile
+# run hyperparameter search
 items <- merge(items, summarize.info(info.items), by="item")
-index.set <- select.items(items, info.quantiles, n_max=5L, threshold=1.0)
-cowplot::plot_grid(
-  plot.theta(theta),
-  plot.quantiles(info.quantiles, theta),
-  plot.expected.testinfo(info.items, items, 900, "Full Testinfo"),
-  plot.expected.testinfo(info.items, index.set, 900, "Expected Testinfo"),
-  align = "v"
-)
+hyperparams <- list(n_max=6L, threshold=3.0)
+sfs.sub <- hyperparam.wrapper(hyperparams)
 
-# 2. create subtest
-data.sub <- data[, as.character(index.set$item)]
-model.sub <- run.mirt(data.sub, Model)
-theta.sub <- get.theta(model.sub, method="EAPsum")
-score.table.sub <- get.score.table(theta.sub, scores)
-evaluate.score.table(score.table.sub)
-sfs.sub <- score.stats(score.table.sub)
