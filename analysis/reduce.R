@@ -100,9 +100,10 @@ plot.error.dist <- function(df.score){
    df.score |> 
       ggplot(aes(x = abs(error)/max_score)) +
          geom_histogram(bins = 50, fill="white", color="black") +
+         xlim(NA, 1) +
          labs(
             title = glue::glue("Error Distribution"),
-            x = "Relative Error",
+            x = "Points / Max Score",
             y = "Count",
             ) +
          mytheme()
