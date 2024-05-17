@@ -21,6 +21,28 @@ set.seed(1)
 
 # =============================================================================
 # helper functions  
+
+plot.theta.ests <- function(results){
+   box::use(ggplot2[...], latex2exp[TeX])
+   n <- length(results)
+   thetas <- list()
+   for (i in 1:n) {
+      thetas[[i]] <- data.frame(results[[i]]$theta)
+      thetas[[i]]$itemtype <- names(results)[i]
+   }
+   do.call(rbind, thetas) |>
+      ggplot(aes(x = F1)) +
+      geom_density() +
+      facet_wrap(~itemtype, ncol = n) +
+      labs(
+         title = "est. Theta Posterior",
+         x = TeX("$\\theta$"),
+         y = TeX("$f(\\theta)$")
+      ) +
+      mytheme()
+   
+}
+
 compare.models <- function(results) {
    gprint("🔍 Comparing models...")
    model_names <- names(results)
