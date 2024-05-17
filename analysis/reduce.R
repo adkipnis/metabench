@@ -185,7 +185,7 @@ plot.testinfo <- function(model, theta) {
 plot.expected.testinfo <- function(info.items, index.set, ylim=NULL, title="Expected Testinfo"){
    box::use(ggplot2[...], latex2exp[TeX])
    quantiles <- info.items$theta
-   info.sub <- info.items[,as.character(index.set$item)]
+   info.sub <- info.items[, as.character(index.set$item)]
    info.sub$cum <- rowSums(info.sub)
    info.sub$theta <- quantiles
    ymax <- ifelse(is.null(ylim), max(info.sub$cum), ylim)
@@ -314,3 +314,10 @@ cowplot::plot_grid(
   align = "v"
 )
 
+# 2. create subtest
+data.sub <- data[, as.character(index.set$item)]
+model.sub <- run.mirt(data.sub, Model)
+theta.sub <- get.theta(model.sub, method="EAPsum")
+score.table.sub <- get.score.table(theta.sub, scores)
+evaluate.score.table(score.table.sub)
+sfs.sub <- score.stats(score.table.sub)
