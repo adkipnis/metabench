@@ -43,6 +43,28 @@ plot.theta.ests <- function(results){
    
 }
 
+plot.theta.dists <- function(results){
+   box::use(ggplot2[...], latex2exp[TeX])
+   n <- length(results)
+   dists <- list()
+   for (i in 1:n) {
+      post <- results[[i]]$model@Internals$thetaPosterior$all
+      # post$posterior <- post$posterior / sum(post$posterior)
+      dists[[i]] <- data.frame(post, itemtype = names(results)[i])
+   }
+   do.call(rbind, dists) |> 
+      ggplot(aes(x = Theta, y = posterior)) +
+      geom_line() +
+      facet_wrap(~itemtype, ncol = n) +
+      labs(
+         title = "unnorm. Theta Posterior",
+         x = TeX("$\\theta$"),
+         y = TeX("$f(\\theta)$"),
+         ) +
+      mytheme()
+
+}
+
 compare.models <- function(results) {
    gprint("🔍 Comparing models...")
    model_names <- names(results)
