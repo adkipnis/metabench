@@ -320,6 +320,23 @@ plot.recovery.a1 <- function(df.comparison){
          mytheme()
 }
 
+# -----------------------------------------------------------------------------
+# hyperparameter search
+
+create.subtest <- function(data, items, info.items, theta, hyper) {
+   index.set <- select.items(items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
+   cowplot::plot_grid(
+      plot.theta(theta),
+      plot.quantiles(info.quantiles, theta),
+      plot.expected.testinfo(info.items, items, 900, "Full Testinfo"),
+      plot.expected.testinfo(info.items, index.set, 900, "Expected Testinfo"),
+      align = "v"
+   )
+   data.sub <- data[, as.character(index.set$item)]
+   items.sub <- items[index.set$item,]
+   list(data=data.sub, items=items.sub)
+}
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
