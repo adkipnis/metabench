@@ -293,6 +293,33 @@ compare.parameters <- function(model, model.sub){
    gprint("Correlation loading: {round(r2, 2)}")
    df.comparison
 }
+
+plot.recovery.d <- function(df.comparison){
+   box::use(ggplot2[...], latex2exp[TeX])
+   df.comparison |> 
+      ggplot(aes(x = d.x, y = d.y)) +
+         geom_point(alpha = 0.5) +
+         labs(
+            title = "Difficulty Recovery",
+            x = "Full Difficulty",
+            y = "Subtest Difficulty",
+            ) +
+         mytheme()
+}
+
+plot.recovery.a1 <- function(df.comparison){
+   box::use(ggplot2[...], latex2exp[TeX])
+   df.comparison |> 
+      ggplot(aes(x = a1.x, y = a1.y)) +
+         geom_point(alpha = 0.5) +
+         labs(
+            title = "Loading Recovery",
+            x = "Full Loading",
+            y = "Subtest Loading",
+            ) +
+         mytheme()
+}
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
