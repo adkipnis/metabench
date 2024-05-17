@@ -109,6 +109,16 @@ plot.error.dist <- function(df.score){
          mytheme()
 }
 
+evaluate.score.table <- function(score.table){
+   r <- cor(score.table$theta, score.table$score, method = 'spearman')
+   gprint("Spearman correlation Theta x Score: {round(r, 2)}")
+   cowplot::plot_grid(
+      plot.theta.score(score.table),
+      plot.perc(score.table),
+      plot.score.error(score.table),
+      plot.error.dist(score.table))
+}
+
 score.stats <- function(df.score){
    abs.error <- abs(df.score$error)
    out <- list(
@@ -281,13 +291,7 @@ rm(results)
 
 # summarize score
 score.table <- get.score.table(theta, scores)
-r <- cor(score.table$theta, score.table$score, method = 'spearman')
-gprint("Spearman correlation Theta x Score: {round(r, 2)}")
-cowplot::plot_grid(
-   plot.theta.score(score.table),
-   plot.perc(score.table),
-   plot.score.error(score.table),
-   plot.error.dist(score.table))
+evaluate.score.table(score.table)
 sfs <- score.stats(score.table)
 
 # get item infos, remove outliers and plot distributions
