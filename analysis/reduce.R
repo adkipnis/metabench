@@ -281,3 +281,23 @@ cowplot::plot_grid(
    plot.error.dist(score.table))
 sfs <- score.stats(score.table)
 
+# get item infos, remove outliers and plot distributions
+info.items <- collect.item.info(model, theta, colnames(data))
+info.items <- info.items |>
+   dplyr::select(!as.character(items$item[items$outlier]))
+info.quantiles <- get.info.quantiles(info.items, steps=40)
+
+
+# =============================================================================
+# subtest creation
+# 1. select up to n_max items with the highest information within each quantile
+items <- merge(items, summarize.info(info.items), by="item")
+index.set <- select.items(items, info.quantiles, n_max=5L, threshold=1.0)
+cowplot::plot_grid(
+  plot.theta(theta),
+  plot.quantiles(info.quantiles, theta),
+  plot.expected.testinfo(info.items, items, 900, "Full Testinfo"),
+  plot.expected.testinfo(info.items, index.set, 900, "Expected Testinfo"),
+  align = "v"
+)
+
