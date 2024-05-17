@@ -117,3 +117,96 @@ score.stats <- function(df.score){
 }
 
 
+# -----------------------------------------------------------------------------
+# Item info
+
+collect.item.info <- function(model, theta, itemnames){
+   box::use(mirt[extract.item, iteminfo])
+
+   # create list of item info
+   theta <- sort(theta[,1])
+   infos <- lapply(1:length(itemnames), function(i){
+      iteminfo(extract.item(model, i), Theta=theta)
+   })
+
+   # combine into data frame
+   info.items <- data.frame(theta=theta, do.call(cbind, infos))
+   colnames(info.items) <- c("theta", itemnames)
+   info.items
+}
+
+plot.theta <- function(theta){
+   box::use(ggplot2[...], latex2exp[TeX])
+   as.data.frame(theta) |> 
+      ggplot(aes(x = F1)) +
+         geom_density(color="black") +
+         labs(
+            title = "Theta Distribution",
+            x = TeX("$\\theta$"),
+            y = TeX("$f(\\theta)$"),
+            ) +
+         mytheme()
+}
+
+plot.testinfo <- function(model, theta) {
+   box::use(ggplot2[...], latex2exp[TeX])
+   info.test <- mirt::testinfo(model, Theta = theta)
+   data.frame(theta=theta, info=info.test) |>
+      ggplot(aes(x = F1, y = info)) +
+      # increase linewidth
+         geom_line(linewidth = 1) +
+         labs(
+            title = "Full Testinfo",
+            x = TeX("$\\theta$"),
+            y = TeX("$I(\\theta)$"),
+            ) +
+         mytheme()
+}
+
+plot.expected.testinfo <- function(info.items, index.set, ylim=NULL, title="Expected Testinfo"){
+   box::use(ggplot2[...], latex2exp[TeX])
+   quantiles <- info.items$theta
+   info.sub <- info.items[,as.character(index.set$item)]
+   info.sub$cum <- rowSums(info.sub)
+   info.sub$theta <- quantiles
+   ymax <- ifelse(is.null(ylim), max(info.sub$cum), ylim)
+   info.sub |>
+      ggplot(aes(x = theta, y = cum)) +
+         geom_line() +
+         ylim(0, ymax) +
+         labs(
+            title = title,
+            x = TeX("$\\theta$"),
+            y = TeX("$I(\\theta)$"),
+            ) +
+         mytheme()
+}
+
+get.info.quantiles <- function(info.items, steps=40){
+  theta.quantiles <- quantile(info.items$theta, probs = 0:steps/steps, type=4)
+  data.frame(quantile=theta.quantiles) |>
+    tibble::rownames_to_column(var="percent") |>
+    dplyr::mutate(index = findInterval(theta.quantiles, info.items$theta))
+}
+
+plot.quantiles <- function(info.quantiles, theta) {
+   box::use(ggplot2[...], latex2exp[TeX])
+   n <- nrow(info.quantiles)
+   info.ecdf <- info.quantiles
+   info.ecdf$F <- ecdf(theta)(info.ecdf$quantile)
+   info.ecdf$type <- "ecdf"
+   info.quantiles$F <- 1:n/n
+   info.quantiles$type <- "quantile"
+   rbind(info.ecdf, info.quantiles) |> 
+      ggplot(aes(x=quantile, y=F, color=type)) +
+         geom_line() +
+         scale_color_manual(values=c("darkorange", "black")) +
+         labs(
+            x = TeX("$\\theta$"),
+            y = TeX("$F(\\theta)$"),
+            title = "Quantiles vs. ECDF",
+            fill = "source"
+         ) +
+         mytheme()
+}
+
