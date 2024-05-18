@@ -473,9 +473,12 @@ sfs <- score.stats(score.table)
 info.items <- collect.item.info(model, theta, colnames(data))
 info.items <- info.items |>
    dplyr::select(!as.character(items$item[items$outlier]))
-
-# run hyperparameter search
 items <- merge(items, summarize.info(info.items), by="item")
-hyperparams <- list(n_max=6L, threshold=3.0, n_quant=40)
-sfs.sub <- hyperparam.wrapper(hyperparams)
 
+# run hyperparameter search using rBayesianOptimization
+opt.results <- optimize.hyperparameters()
+hyperparams <- as.list(opt.results$Best_Par)
+sfs.sub <- hyperparam.wrapper(hyperparams)
+items.sub <- sfs.sub$items.sub
+sfs.sub$items.sub <- NULL
+compare.score.stats(sfs, sfs.sub)
