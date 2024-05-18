@@ -43,6 +43,16 @@ merge.params <- function(items, model){
       dplyr::left_join(items, by="item")
 }
 
+printorsave <- function(p, outsuffix){
+   if (!is.null(outsuffix)) {
+      outpath <- gpath("plots/{BM}-{Model}-{Method}-{outsuffix}.png")
+      ggplot2::ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 Saved plot to {outpath}")
+   } else {
+      print(p)
+   }
+}
+
 # -----------------------------------------------------------------------------
 # Score prediction
 get.score.table <- function(theta, scores){
