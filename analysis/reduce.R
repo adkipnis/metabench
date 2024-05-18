@@ -410,6 +410,26 @@ hyperparam.wrapper <- function(hyperparams, plot=T){
    out
 }
 
+optimize.hyperparameters <- function(){
+   box::use(rBayesianOptimization[...])
+   objective <- function(n_max, threshold, n_quant) {
+     hyperparams <- list(n_max=n_max, threshold=threshold, n_quant=n_quant)
+     res <- hyperparam.wrapper(hyperparams, plot=F)
+     score <- res$ub + 0.1 * nrow(res$items.sub) # minimize this
+     list(Score = -score, Pred = res$items.sub)
+  }
+  BayesianOptimization(
+   objective,
+   bounds = list(n_max = c(1L, 6L),
+                 threshold = c(0, 2),
+                 n_quant = c(20L, 50L)),
+   init_points = 5,
+   n_iter = 15,
+   acq = "ucb", 
+   kappa = 2.576,
+   eps = 0.0,
+   verbose = T)
+}
 
 # =============================================================================
 # prepare data
