@@ -1,6 +1,15 @@
 # Get the information per item and construct a reduced test set:
-#   1. 
-# usage: Rscript reduce.R {benchmark} {model}
+#   1. load data and fits
+#   2. remove itemfit outliers
+#   3. evaluate full score prediction (upper bound)
+#   4. get item information
+#   5. run hyperparameter search for subtest creation:
+#      - select items based on test information
+#      - fit subtest
+#      - evaluate subtest parameter recovery
+#      - evaluate subtest score prediction
+#   6. final run with best hyperparameters
+# usage: Rscript reduce.R {benchmark} {model} {method}
 
 # =============================================================================
 # custom utils, args, path, seed
