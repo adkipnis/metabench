@@ -147,31 +147,31 @@ evaluate.score.table <- function(score.table){
 
 score.stats <- function(df.score){
    abs.error <- abs(df.score$error)
+   mae <- mean(abs.error)
    out <- list(
-      mae = mean(abs.error),
-      sd = sd(abs.error),
-      max = max(abs.error),
-      min = min(abs.error),
-      total = sum(abs.error)
+      mae = mae,
+      ub = mae + 1.96 * sd(abs.error),
+      total = sum(abs.error),
+      rmse = sqrt(mean(df.score$error^2))
    )
-   gprint("📊 Score absolute error:
-          Mean: {round(out$mae, 2)}
-          SD: {round(out$sd, 2)}
-          Range: [{round(out$min, 2)}, {round(out$max, 2)}]
-          Total: {round(out$total, 2)}")
+   gprint("📊 Score error:
+          RMSE: {round(out$rmse, 2)}
+          MAE: {round(out$mae, 2)}
+          MAE + 1.96 SD: {round(out$ub, 2)}
+          Total AE: {round(out$total, 2)}")
    out
 }
 
 compare.score.stats <- function(sfs, sfs.sub){
    out <- list()
    for (key in names(sfs)) {
-      out[[key]] <- sfs.sub[[key]] - sfs[[key]]
+      out[[key]] <- sfs[[key]] - sfs.sub[[key]]
    }
-   gprint("📊 Abs. Error Delta (subtest - full test):
-          Mean: {round(out$mae, 2)}
-          SD: {round(out$sd, 2)}
-          Range: [{round(out$min, 2)}, {round(out$max, 2)}]
-          Total: {round(out$total, 2)}")
+   gprint("📊 Score error change (full - subtest, bigger is better):
+          Δ RMSE: {round(out$rmse, 2)}
+          Δ MAE: {round(out$mae, 2)}
+          Δ (MAE + 1.96 SD): {round(out$ub, 2)}
+          Δ Total AE: {round(out$total, 2)}")
 }
 
 
