@@ -323,7 +323,7 @@ plot.recovery.a1 <- function(df.comparison){
 # -----------------------------------------------------------------------------
 # hyperparameter search
 
-create.subtest <- function(data, items, info.items, theta, hyper) {
+create.subtest <- function(data, items, info.items, theta, info.quantiles, hyper) {
    index.set <- select.items(items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
    cowplot::plot_grid(
       plot.theta(theta),
@@ -365,7 +365,8 @@ evaluate.subtest.score <- function(theta.sub, scores){
 
 hyperparam.wrapper <- function(hyperparams){
    # 1. create subtest
-   subtest <- create.subtest(data, items, info.items, theta, hyperparams)
+   info.quantiles <- get.info.quantiles(info.items, steps=hyperparams$n_quant)
+   subtest <- create.subtest(data, items, info.items, theta, info.quantiles, hyperparams)
    data.sub <- subtest$data
    items.sub <- subtest$items
 
@@ -415,10 +416,9 @@ sfs <- score.stats(score.table)
 info.items <- collect.item.info(model, theta, colnames(data))
 info.items <- info.items |>
    dplyr::select(!as.character(items$item[items$outlier]))
-info.quantiles <- get.info.quantiles(info.items, steps=40)
 
 # run hyperparameter search
 items <- merge(items, summarize.info(info.items), by="item")
-hyperparams <- list(n_max=6L, threshold=3.0)
+hyperparams <- list(n_max=6L, threshold=3.0, n_quant=40)
 sfs.sub <- hyperparam.wrapper(hyperparams)
 
