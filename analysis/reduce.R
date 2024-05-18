@@ -13,13 +13,17 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, mytheme, run.mirt, get.theta])
+box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "Model"),
    defaults = c("hellaswag", "2PL"),
+   names = c("BM", "Model", "Method"),
+   defaults = c("gsm8k", "3PLu", "MAP"),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande"),
      Model = c("2PL", "3PL", "3PLu", "4PL")
+     Model = c("2PL", "3PL", "3PLu", "4PL"),
+     Method = c("MAP", "EAPsum") # for theta estimation
    )
 )
 here::i_am("analysis/reduce.R")
