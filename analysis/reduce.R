@@ -26,7 +26,10 @@ parse.args(
      Method = c("MAP", "EAPsum") # for theta estimation
    )
 )
+Saveplots <- T
 here::i_am("analysis/reduce.R")
+mkdir("plots")
+mkdir("analysis/reduced")
 set.seed(1)
 
 # =============================================================================
