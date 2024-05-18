@@ -355,18 +355,20 @@ create.subtest <- function(data, items, info.quantiles, hyper) {
    list(data=data.sub, items=index.set)
 }
 
+evaluate.selection <- function(theta, info.quantiles, info.items, items, index.set){
+   # evaluation 0: before fitting
+   p <- cowplot::plot_grid(
       plot.theta(theta),
       plot.quantiles(info.quantiles, theta),
-      plot.expected.testinfo(info.items, items, 900, "Full Testinfo"),
-      plot.expected.testinfo(info.items, index.set, 900, "Expected Testinfo"),
+      plot.expected.testinfo(info.items, items, 1000, "Full Testinfo"),
+      plot.expected.testinfo(info.items, index.set, 1000, "Expected Testinfo"),
       align = "v"
    )
-   data.sub <- data[, as.character(index.set$item)]
-   items.sub <- items[index.set$item,]
-   list(data=data.sub, items=items.sub)
+   outsuffix <- ifelse(Saveplots, "selection-evaluation", NULL)
+   printorsave(p, outsuffix)
 }
 
-evaluate.subtest.params <- function(model.sub, theta.sub, outpath = NULL){
+evaluate.subtest.params <- function(model.sub, theta.sub){
    # evaluation 1: parameter recovery + testinfo
    param.compare <- compare.parameters(model, model.sub)
    p <- cowplot::plot_grid(
@@ -376,31 +378,19 @@ evaluate.subtest.params <- function(model.sub, theta.sub, outpath = NULL){
       plot.recovery.a1(param.compare),
       align = "v"
    )
-   # save or print
-   if (!is.null(outpath)) {
-      ggplot2::ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Parameter recovery saved to {outpath}")
-   } else {
-      print(p)
-   }
+   outsuffix <- ifelse(Saveplots, "parameter-recovery", NULL)
+   printorsave(p, outsuffix)
 }
 
-evaluate.subtest.score <- function(theta.sub, scores, outpath = NULL){
+evaluate.subtest.score <- function(theta.sub, scores){
    # evaluation 2: score prediction
    score.table.sub <- get.score.table(theta.sub, scores)
    p <- evaluate.score.table(score.table.sub)
-
-   # save or print
-   if (!is.null(outpath)) {
-      ggplot2::ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Score prediction saved to {outpath}")
-   } else {
-      print(p)
-   }
+   outsuffix <- ifelse(Saveplots, "score-prediction-sub", NULL)
+   printorsave(p, outsuffix)
    score.stats(score.table.sub)
 }
 
-hyperparam.wrapper <- function(hyperparams){
    # 1. create subtest
    info.quantiles <- get.info.quantiles(info.items, steps=hyperparams$n_quant)
    subtest <- create.subtest(data, items, info.items, theta, info.quantiles, hyperparams)
