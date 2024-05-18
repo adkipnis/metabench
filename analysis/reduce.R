@@ -356,10 +356,18 @@ evaluate.subtest.params <- function(model.sub, theta.sub, outpath = NULL){
    }
 }
 
-evaluate.subtest.score <- function(theta.sub, scores){
+evaluate.subtest.score <- function(theta.sub, scores, outpath = NULL){
    # evaluation 2: score prediction
    score.table.sub <- get.score.table(theta.sub, scores)
-   evaluate.score.table(score.table.sub)
+   p <- evaluate.score.table(score.table.sub)
+
+   # save or print
+   if (!is.null(outpath)) {
+      ggplot2::ggsave(outpath, p, width = 8, height = 8)
+      gprint("💾 Score prediction saved to {outpath}")
+   } else {
+      print(p)
+   }
    score.stats(score.table.sub)
 }
 
