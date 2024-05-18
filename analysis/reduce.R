@@ -391,19 +391,23 @@ evaluate.subtest.score <- function(theta.sub, scores){
    score.stats(score.table.sub)
 }
 
+hyperparam.wrapper <- function(hyperparams, plot=T){
    # 1. create subtest
    info.quantiles <- get.info.quantiles(info.items, steps=hyperparams$n_quant)
-   subtest <- create.subtest(data, items, info.items, theta, info.quantiles, hyperparams)
+   subtest <- create.subtest(data, items, info.quantiles, hyperparams)
    data.sub <- subtest$data
    items.sub <- subtest$items
+   if (plot) evaluate.selection(theta, info.quantiles, info.items, items, items.sub)
 
    # 2. fit subtest
    model.sub <- run.mirt(data.sub, Model)
-   theta.sub <- get.theta(model.sub, method="MAP")
+   theta.sub <- get.theta(model.sub, method=Method)
 
    # 3. evaluate subtest
-   evaluate.subtest.params(model.sub, theta.sub)
-   evaluate.subtest.score(theta.sub, scores)
+   if (plot) evaluate.subtest.params(model.sub, theta.sub)
+   out <- evaluate.subtest.score(theta.sub, scores)
+   out[["items.sub"]] <- items.sub
+   out
 }
 
 
