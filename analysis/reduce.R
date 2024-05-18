@@ -482,3 +482,17 @@ sfs.sub <- hyperparam.wrapper(hyperparams)
 items.sub <- sfs.sub$items.sub
 sfs.sub$items.sub <- NULL
 compare.score.stats(sfs, sfs.sub)
+gprint("🎉 Reduced test to {nrow(items.sub)} items.")
+
+# save results
+out <- list(
+   items.sub = items.sub,
+   info.items = info.items,
+   hyperparams = hyperparams,
+   opt.results = opt.results,
+   fit.full = sfs,
+   fit.sub = sfs.sub
+)
+outpath <- gpath("analysis/reduced/{BM}-{Model}.rds")
+saveRDS(out, outpath)
+gprint("💾 Saved results to {outpath}")
