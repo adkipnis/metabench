@@ -453,9 +453,14 @@ rm(itemfits)
 gprint("🚰 Loading {BM} fits...")
 fitpath <- gpath("analysis/models/{BM}-all.rds")
 results <- readRDS(fitpath)[[Model]]
-theta <- results$theta
 model <- results$model
 items <- merge.params(items, model)
+if (Method == "MAP") {
+   theta <- results$theta
+} else {
+   theta <- get.theta(model, method=Method)
+}
+
 rm(results)
 
 # summarize score
