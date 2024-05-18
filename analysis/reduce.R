@@ -465,7 +465,8 @@ rm(results)
 
 # summarize score
 score.table <- get.score.table(theta, scores)
-evaluate.score.table(score.table)
+p <- evaluate.score.table(score.table)
+printorsave(p, "score-prediction-full")
 sfs <- score.stats(score.table)
 
 # get item infos, remove outliers and plot distributions
