@@ -349,9 +349,12 @@ plot.recovery.a1 <- function(df.comparison){
 # -----------------------------------------------------------------------------
 # hyperparameter search
 
-create.subtest <- function(data, items, info.items, theta, info.quantiles, hyper) {
+create.subtest <- function(data, items, info.quantiles, hyper) {
    index.set <- select.items(items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
-   cowplot::plot_grid(
+   data.sub <- data[, as.character(index.set$item)]
+   list(data=data.sub, items=index.set)
+}
+
       plot.theta(theta),
       plot.quantiles(info.quantiles, theta),
       plot.expected.testinfo(info.items, items, 900, "Full Testinfo"),
