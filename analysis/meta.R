@@ -97,3 +97,21 @@ res.fa <- res.fa.2
 res.fa
 psych::fa.diagram(res.fa)
 
+# estimate factor scores
+thetas.partial <- merge.theta(thetas.full)
+res.fs <- psych::factor.scores(thetas.partial, res.fa)
+
+
+# =============================================================================
+# check relation to grand sum
+scores.full <- lapply(names(benchmarks), collect.scores)
+scores.partial <- merge.theta(scores.full)
+scores.partial$grand <- rowSums(scores.partial)
+scores.partial <- rowmerge(scores.partial, res.fs$scores)
+mod.score <- mgcv::gam(grand ~ s(ML1) + s(ML2), data = scores.partial)
+scores.partial$p <- predict(mod.score)
+
+# evaluate grand sum prediction from factor scores
+plot(p ~ total, data = scores.partial)
+cor(scores.partial$total, scores.partial$p)
+
