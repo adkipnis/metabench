@@ -65,3 +65,15 @@ construct.covmat <- function(thetas){
   covmat
 }
 
+do.fa <- function(covmat, nfactors){
+  psych::fa(covmat, nfactors = nfactors, rotate="oblimin", fm = "ml",
+            covar = T, n.obs = n.obs.min)
+}
+
+eval.fa.fit <- function(res.fa){
+   gprint("RMSEA: {round(res.fa$RMSEA[1], 2)} (< 0.05: good, 0.05 - 0.08: reasonable, > 0.10: poor)")
+   gprint("Corrected RMSR: {round(res.fa$crms, 2)} (< 0.08: good)")
+   gprint("CFI: {round(res.fa$CFI, 2)} (> 0.95: good)")
+   gprint("TLI: {round(res.fa$TLI, 2)} (> 0.95: good)")
+}
+
