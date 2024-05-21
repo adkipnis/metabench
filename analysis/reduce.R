@@ -9,21 +9,19 @@
 #      - evaluate subtest parameter recovery
 #      - evaluate subtest score prediction
 #   6. final run with best hyperparameters
-# usage: Rscript reduce.R {benchmark} {model} {method}
+# usage: Rscript reduce.R {benchmark} {model} {method} {lambda}
 
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
-   names = c("BM", "Model"),
-   defaults = c("hellaswag", "2PL"),
-   names = c("BM", "Model", "Method"),
-   defaults = c("gsm8k", "3PLu", "MAP"),
+   names = c("BM", "MOD", "METH", "LAMBDA"),
+   defaults = c("gsm8k", "3PLu", "MAP", 0.0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande"),
-     Model = c("2PL", "3PL", "3PLu", "4PL")
-     Model = c("2PL", "3PL", "3PLu", "4PL"),
-     Method = c("MAP", "EAPsum") # for theta estimation
+     MOD = c("2PL", "3PL", "3PLu", "4PL"),
+     METH = c("MAP", "EAPsum"), # for theta estimation
+     LAMBDA = seq(0, 1, 0.1) # penalty for subtest size (0 = no penalty)
    )
 )
 Saveplots <- T
@@ -45,7 +43,7 @@ merge.params <- function(items, model){
 
 printorsave <- function(p, outsuffix){
    if (!is.null(outsuffix)) {
-      outpath <- gpath("plots/{BM}-{Model}-{Method}-{outsuffix}.png")
+      outpath <- gpath("plots/{BM}-{MOD}-{METH}-{outsuffix}.png")
       ggplot2::ggsave(outpath, p, width = 8, height = 8)
       gprint("💾 Saved plot to {outpath}")
    } else {
@@ -365,6 +363,7 @@ evaluate.selection <- function(theta, info.quantiles, info.items, items, index.s
       align = "v"
    )
    outsuffix <- ifelse(Saveplots, "selection-evaluation", NULL)
+   outsuffix <- ifelse(Saveplots, glue::glue("selection-evaluation-{LAMBDA}"), NULL)
    printorsave(p, outsuffix)
 }
 
@@ -378,7 +377,7 @@ evaluate.subtest.params <- function(model.sub, theta.sub){
       plot.recovery.a1(param.compare),
       align = "v"
    )
-   outsuffix <- ifelse(Saveplots, "parameter-recovery", NULL)
+   outsuffix <- ifelse(Saveplots, glue::glue("parameter-recovery-{LAMBDA}"), NULL)
    printorsave(p, outsuffix)
 }
 
@@ -386,7 +385,7 @@ evaluate.subtest.score <- function(theta.sub, scores){
    # evaluation 2: score prediction
    score.table.sub <- get.score.table(theta.sub, scores)
    p <- evaluate.score.table(score.table.sub)
-   outsuffix <- ifelse(Saveplots, "score-prediction-sub", NULL)
+   outsuffix <- ifelse(Saveplots, glue::glue("score-prediction-sub-{LAMBDA}"), NULL)
    printorsave(p, outsuffix)
    score.stats(score.table.sub)
 }
@@ -400,8 +399,8 @@ hyperparam.wrapper <- function(hyperparams, plot=T){
    if (plot) evaluate.selection(theta, info.quantiles, info.items, items, items.sub)
 
    # 2. fit subtest
-   model.sub <- run.mirt(data.sub, Model)
-   theta.sub <- get.theta(model.sub, method=Method)
+   model.sub <- run.mirt(data.sub, MOD)
+   theta.sub <- get.theta(model.sub, method=METH)
 
    # 3. evaluate subtest
    if (plot) evaluate.subtest.params(model.sub, theta.sub)
@@ -444,7 +443,7 @@ rm(full)
 # append itemfits to items
 itemfitpath <- gpath("analysis/itemfits/{BM}.rds")
 itemfits <- readRDS(itemfitpath) |>
-   dplyr::filter(itemtype == Model) |>
+   dplyr::filter(itemtype == MOD) |>
    dplyr::select(-itemtype)
 items <- merge(items, itemfits, by="item")
 rm(itemfits)
@@ -452,13 +451,13 @@ rm(itemfits)
 # prepare model
 gprint("🚰 Loading {BM} fits...")
 fitpath <- gpath("analysis/models/{BM}-all.rds")
-results <- readRDS(fitpath)[[Model]]
+results <- readRDS(fitpath)[[MOD]]
 model <- results$model
 items <- merge.params(items, model)
-if (Method == "MAP") {
+if (METH == "MAP") {
    theta <- results$theta
 } else {
-   theta <- get.theta(model, method=Method)
+   theta <- get.theta(model, method=METH)
 }
 
 rm(results)
@@ -493,6 +492,7 @@ out <- list(
    fit.full = sfs,
    fit.sub = sfs.sub
 )
-outpath <- gpath("analysis/reduced/{BM}-{Model}.rds")
+
+outpath <- gpath("analysis/reduced/{BM}-{MOD}-{LAMBDA}.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved results to {outpath}")
