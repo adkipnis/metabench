@@ -51,3 +51,17 @@ collect.scores <- function(benchmark){
    scores
 }
 
+construct.covmat <- function(thetas){
+  # construct covariance matrix from list of thetas
+  n <- length(thetas)
+  covmat <- matrix(0, n, n)
+  rownames(covmat) <- colnames(covmat) <- names(benchmarks)
+  for (i in 1:n){
+     for (j in 1:n){
+        df.cov <- rowmerge(thetas[[i]], thetas[[j]])
+        covmat[i, j] <- cov(df.cov[,1], df.cov[,2])
+     }
+  }
+  covmat
+}
+
