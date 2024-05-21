@@ -88,3 +88,12 @@ cov2cor(covmat.theta) |>
   corrplot::corrplot(method="color", type="upper", order="hclust",
                      tl.col="black", tl.srt=45)
 
+# exploratory factor analysis
+res.fa.1 <- do.fa(covmat.theta, 1)
+res.fa.2 <- do.fa(covmat.theta, 2)
+eval.fa.fit(res.fa.1)
+eval.fa.fit(res.fa.2)
+res.fa <- res.fa.2
+res.fa
+psych::fa.diagram(res.fa)
+
