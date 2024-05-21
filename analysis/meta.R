@@ -77,3 +77,14 @@ eval.fa.fit <- function(res.fa){
    gprint("TLI: {round(res.fa$TLI, 2)} (> 0.95: good)")
 }
 
+# =============================================================================
+# collect theta estimates and construct covariance matrix
+thetas.full <- lapply(names(benchmarks), collect.theta)
+covmat.theta <- construct.covmat(thetas.full)
+n.obs.min <- min(sapply(thetas.full, function(t) nrow(t)))
+
+# plot correlation matrix
+cov2cor(covmat.theta) |> 
+  corrplot::corrplot(method="color", type="upper", order="hclust",
+                     tl.col="black", tl.srt=45)
+
