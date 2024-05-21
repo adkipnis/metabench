@@ -404,9 +404,10 @@ hyperparam.wrapper <- function(hyperparams, plot=T){
 
    # 3. evaluate subtest
    if (plot) evaluate.subtest.params(model.sub, theta.sub)
-   out <- evaluate.subtest.score(theta.sub, scores)
-   out[["items.sub"]] <- items.sub
-   out
+   sfs.sub <- evaluate.subtest.score(theta.sub, scores)
+
+   # 4. return results
+   list(items=items.sub, model=model.sub, theta=theta.sub, sfs=sfs.sub)
 }
 
 optimize.hyperparameters <- function(){
@@ -414,8 +415,9 @@ optimize.hyperparameters <- function(){
    objective <- function(n_max, threshold, n_quant) {
      hyperparams <- list(n_max=n_max, threshold=threshold, n_quant=n_quant)
      res <- hyperparam.wrapper(hyperparams, plot=F)
-     score <- res$ub + 0.1 * nrow(res$items.sub) # minimize this
-     list(Score = -score, Pred = res$items.sub)
+     sfs <- res$sfs
+     score <- sfs$ub + as.numeric(LAMBDA) * nrow(res$items) # minimize this
+     list(Score = -score, Pred = sfs$items.sub)
   }
   BayesianOptimization(
    objective,
@@ -477,20 +479,19 @@ items <- merge(items, summarize.info(info.items), by="item")
 # run hyperparameter search using rBayesianOptimization
 opt.results <- optimize.hyperparameters()
 hyperparams <- as.list(opt.results$Best_Par)
-sfs.sub <- hyperparam.wrapper(hyperparams)
-items.sub <- sfs.sub$items.sub
-sfs.sub$items.sub <- NULL
-compare.score.stats(sfs, sfs.sub)
-gprint("🎉 Reduced test to {nrow(items.sub)} items.")
+final <- hyperparam.wrapper(hyperparams)
+compare.score.stats(sfs, final$sfs)
+gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
 
-# save results
 out <- list(
-   items.sub = items.sub,
+   items.sub = merge.params(final$items, final$model),
+   model.sub = final$model,
+   theta.sub = final$theta,
    info.items = info.items,
    hyperparams = hyperparams,
    opt.results = opt.results,
    fit.full = sfs,
-   fit.sub = sfs.sub
+   fit.sub = final$sfs
 )
 
 outpath <- gpath("analysis/reduced/{BM}-{MOD}-{LAMBDA}.rds")
