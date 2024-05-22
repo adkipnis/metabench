@@ -9,8 +9,11 @@ Saveplots <- T
 mkdir("plots")
 here::i_am("analysis/meta.R")
 set.seed(1)
-benchmarks <- list(arc="4PL", gsm8k="3PLu", hellaswag="3PL", truthfulqa="3PL", winogrande="3PL")
-
+benchmarks <- list(arc="4PL",
+                   gsm8k="3PLu",
+                   hellaswag="3PL",
+                   truthfulqa="3PL",
+                   winogrande="3PL")
 # TODO: include MMLU
 
 # =============================================================================
@@ -58,7 +61,7 @@ merge.theta <- function(theta.full){
 collect.scores <- function(benchmark){
    datapath <- gpath("data/{benchmark}_preproc.rds")
    all <- readRDS(datapath)
-   scores <- data.frame(all$score)
+   scores <- data.frame(all$scores.norm)
    colnames(scores) <- benchmark
    rownames(scores) <- rownames(all$data)
    scores
@@ -85,11 +88,41 @@ do.fa <- function(covmat, nfactors){
    res
 }
 
-eval.fa.fit <- function(res.fa){
+evaluate.fa.fit <- function(res.fa){
    gprint("RMSEA: {round(res.fa$RMSEA[1], 2)} (< 0.05: good, 0.05 - 0.08: reasonable, > 0.10: poor)")
    gprint("Corrected RMSR: {round(res.fa$crms, 2)} (< 0.08: good)")
    gprint("CFI: {round(res.fa$CFI, 2)} (> 0.95: good)")
    gprint("TLI: {round(res.fa$TLI, 2)} (> 0.95: good)")
+}
+
+fit.score <- function(scores.partial, res.fa){
+   pred.names <- colnames(scores.partial)[(length(benchmarks)+2):ncol(scores.partial)]
+   formula <- paste0("grand ~ ", paste0("s(", pred.names, ")", collapse=" + "))
+   mod.score <- mgcv::gam(as.formula(formula), data = scores.partial)
+   scores.partial$p <- predict(mod.score)
+   scores.partial
+}
+
+evaluate.score.pred <- function(scores.partial){
+   r <- cor(scores.partial$grand, scores.partial$p)
+   gprint("Correlation between normalized grand sum and predicted grand sum: {round(r, 3)}")
+   s <- scores.partial |>
+      dplyr::mutate(error = grand - p) |>
+      dplyr::summarize(mae = mean(abs(error)),
+                       rmse = sqrt(mean(error^2)))
+   gprint("Mean absolute error: {round(s$mae, 3)}, RMSE: {round(s$rmse, 3)}")
+   plot.score.pred(scores.partial)
+}
+
+plot.score.pred <- function(scores.partial){
+   box::use(ggplot2[...])
+   ggplot(scores.partial, aes(x=grand, y=p)) +
+      geom_point(alpha=0.3) +
+      geom_abline(intercept=0, slope=1, color="red") +
+      xlim(0.1, 0.9) + ylim(0.1, 0.9) +
+      labs(title="Score prediction from latent factors",
+           x="Total Score (norm.)", y="Predicted") +
+      mytheme()
 }
 
 # =============================================================================
@@ -125,17 +158,9 @@ res.fs <- psych::factor.scores(thetas.partial, res.fa)
 # check relation to grand sum
 scores.full <- lapply(names(benchmarks), collect.scores)
 scores.partial <- merge.theta(scores.full)
-scores.partial$grand <- rowSums(scores.partial)
+scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
 scores.partial <- rowmerge(scores.partial, res.fs$scores)
-mod.score <- mgcv::gam(grand ~ s(ML1) + s(ML2), data = scores.partial)
-scores.partial$p <- predict(mod.score)
+scores.partial <- fit.score(scores.partial, res.fa)
 
 # evaluate grand sum prediction from factor scores
-plot(p ~ total, data = scores.partial)
-cor(scores.partial$total, scores.partial$p)
-
-# =============================================================================
-# TODO: check stability wrt subtest creation
-
-# =============================================================================
-# TODO: check which subtests / items have highest loadings and reduce further
+evaluate.score.pred(scores.partial)
