@@ -15,6 +15,18 @@ benchmarks <- list(arc="4PL", gsm8k="3PLu", hellaswag="3PL", truthfulqa="3PL", w
 # =============================================================================
 # helper functions
 
+add.mmlu <- function(){
+   # list all mmlu_*.rds files in data folder
+   mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*_preproc.rds", full.names=T)
+   mmlu.benchmarks <- gsub("_preproc.rds", "", basename(mmlu.files))
+   # write list where each key is from mmlu.benchmarks and the value is "3PL"
+   out <- list()
+   for (benchmark in mmlu.benchmarks){
+      out[[benchmark]] <- "3PL"
+   }
+   out
+}
+
 rowmerge <- function(df1, df2){
    merge(df1, df2, by="row.names") |>
      tibble::column_to_rownames("Row.names")
