@@ -9,7 +9,11 @@ Saveplots <- T
 mkdir("plots")
 here::i_am("analysis/meta.R")
 set.seed(1)
-benchmarks <- list(arc="4PL", gsm8k="3PLu", hellaswag="3PL", truthfulqa="3PL", winogrande="3PL")
+benchmarks <- list(arc="4PL",
+                   gsm8k="3PLu",
+                   hellaswag="3PL",
+                   truthfulqa="3PL",
+                   winogrande="3PL")
 # TODO: include MMLU
 
 # =============================================================================
@@ -45,7 +49,7 @@ merge.theta <- function(theta.full){
 collect.scores <- function(benchmark){
    datapath <- gpath("data/{benchmark}_preproc.rds")
    all <- readRDS(datapath)
-   scores <- data.frame(all$score)
+   scores <- data.frame(all$scores.norm)
    colnames(scores) <- benchmark
    rownames(scores) <- rownames(all$data)
    scores
@@ -66,11 +70,11 @@ construct.covmat <- function(thetas){
 }
 
 do.fa <- function(covmat, nfactors){
-  psych::fa(covmat, nfactors = nfactors, rotate="oblimin", fm = "ml",
+  psych::fa(covmat, nfactors = nfactors, rotate="promax", fm = "ml",
             covar = T, n.obs = n.obs.min)
 }
 
-eval.fa.fit <- function(res.fa){
+evaluate.fa.fit <- function(res.fa){
    gprint("RMSEA: {round(res.fa$RMSEA[1], 2)} (< 0.05: good, 0.05 - 0.08: reasonable, > 0.10: poor)")
    gprint("Corrected RMSR: {round(res.fa$crms, 2)} (< 0.08: good)")
    gprint("CFI: {round(res.fa$CFI, 2)} (> 0.95: good)")
@@ -106,12 +110,9 @@ res.fs <- psych::factor.scores(thetas.partial, res.fa)
 # check relation to grand sum
 scores.full <- lapply(names(benchmarks), collect.scores)
 scores.partial <- merge.theta(scores.full)
-scores.partial$grand <- rowSums(scores.partial)
+scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
 scores.partial <- rowmerge(scores.partial, res.fs$scores)
-mod.score <- mgcv::gam(grand ~ s(ML1) + s(ML2), data = scores.partial)
-scores.partial$p <- predict(mod.score)
+scores.partial <- fit.score(scores.partial, res.fa)
 
 # evaluate grand sum prediction from factor scores
-plot(p ~ total, data = scores.partial)
-cor(scores.partial$total, scores.partial$p)
-
+evaluate.score.pred(scores.partial)
