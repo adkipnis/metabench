@@ -10,6 +10,7 @@ mkdir("plots")
 here::i_am("analysis/meta.R")
 set.seed(1)
 benchmarks <- list(arc="4PL", gsm8k="3PLu", hellaswag="3PL", truthfulqa="3PL", winogrande="3PL")
+
 # TODO: include MMLU
 
 # =============================================================================
@@ -78,8 +79,10 @@ construct.covmat <- function(thetas){
 }
 
 do.fa <- function(covmat, nfactors){
-  psych::fa(covmat, nfactors = nfactors, rotate="oblimin", fm = "ml",
+   res <- psych::fa(covmat, nfactors = nfactors, rotate="oblimin", fm = "ml",
             covar = T, n.obs = n.obs.min)
+   eval.fa.fit(res)
+   res
 }
 
 eval.fa.fit <- function(res.fa){
@@ -90,6 +93,9 @@ eval.fa.fit <- function(res.fa){
 }
 
 # =============================================================================
+# merge benchmarks and add mmlu
+benchmarks <- c(benchmarks, add.mmlu())
+
 # collect theta estimates and construct covariance matrix
 thetas.full <- lapply(names(benchmarks), collect.theta)
 covmat.theta <- construct.covmat(thetas.full)
@@ -100,11 +106,12 @@ cov2cor(covmat.theta) |>
   corrplot::corrplot(method="color", type="upper", order="hclust",
                      tl.col="black", tl.srt=45)
 
+covmat.theta <- cov(thetas.partial)
+
 # exploratory factor analysis
 res.fa.1 <- do.fa(covmat.theta, 1)
 res.fa.2 <- do.fa(covmat.theta, 2)
-eval.fa.fit(res.fa.1)
-eval.fa.fit(res.fa.2)
+res.fa.3 <- do.fa(covmat.theta, 3)
 res.fa <- res.fa.2
 res.fa
 psych::fa.diagram(res.fa)
@@ -127,3 +134,8 @@ scores.partial$p <- predict(mod.score)
 plot(p ~ total, data = scores.partial)
 cor(scores.partial$total, scores.partial$p)
 
+# =============================================================================
+# TODO: check stability wrt subtest creation
+
+# =============================================================================
+# TODO: check which subtests / items have highest loadings and reduce further
