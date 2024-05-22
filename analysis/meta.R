@@ -81,6 +81,36 @@ evaluate.fa.fit <- function(res.fa){
    gprint("TLI: {round(res.fa$TLI, 2)} (> 0.95: good)")
 }
 
+fit.score <- function(scores.partial, res.fa){
+   pred.names <- colnames(scores.partial)[(length(benchmarks)+2):ncol(scores.partial)]
+   formula <- paste0("grand ~ ", paste0("s(", pred.names, ")", collapse=" + "))
+   mod.score <- mgcv::gam(as.formula(formula), data = scores.partial)
+   scores.partial$p <- predict(mod.score)
+   scores.partial
+}
+
+evaluate.score.pred <- function(scores.partial){
+   r <- cor(scores.partial$grand, scores.partial$p)
+   gprint("Correlation between normalized grand sum and predicted grand sum: {round(r, 3)}")
+   s <- scores.partial |>
+      dplyr::mutate(error = grand - p) |>
+      dplyr::summarize(mae = mean(abs(error)),
+                       rmse = sqrt(mean(error^2)))
+   gprint("Mean absolute error: {round(s$mae, 3)}, RMSE: {round(s$rmse, 3)}")
+   plot.score.pred(scores.partial)
+}
+
+plot.score.pred <- function(scores.partial){
+   box::use(ggplot2[...])
+   ggplot(scores.partial, aes(x=grand, y=p)) +
+      geom_point(alpha=0.3) +
+      geom_abline(intercept=0, slope=1, color="red") +
+      xlim(0.1, 0.9) + ylim(0.1, 0.9) +
+      labs(title="Score prediction from latent factors",
+           x="Total Score (norm.)", y="Predicted") +
+      mytheme()
+}
+
 # =============================================================================
 # collect theta estimates and construct covariance matrix
 thetas.full <- lapply(names(benchmarks), collect.theta)
