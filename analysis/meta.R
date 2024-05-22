@@ -14,7 +14,6 @@ benchmarks <- list(arc="4PL",
                    hellaswag="3PL",
                    truthfulqa="3PL",
                    winogrande="3PL")
-# TODO: include MMLU
 
 # =============================================================================
 # helper functions
@@ -139,14 +138,12 @@ cov2cor(covmat.theta) |>
   corrplot::corrplot(method="color", type="upper", order="hclust",
                      tl.col="black", tl.srt=45)
 
-covmat.theta <- cov(thetas.partial)
-
 # exploratory factor analysis
 res.fa.1 <- do.fa(covmat.theta, 1)
 res.fa.2 <- do.fa(covmat.theta, 2)
 res.fa.3 <- do.fa(covmat.theta, 3)
 res.fa <- res.fa.2
-res.fa
+res.fa$loadings
 psych::fa.diagram(res.fa)
 
 # estimate factor scores
