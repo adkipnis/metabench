@@ -159,7 +159,10 @@ while (nrow(items.sub) > n_max) {
 # reduce data and save
 data.sub <- data[, items.sub$item]
 gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
-out <- list(items = items.sub, data = data.sub, scores = rowSums(data))
+scores <- rowSums(data)
+scores.norm <- scores / ncol(data)
+out <- list(items = items.sub, data = data.sub,
+            scores = scores, scores.norm = scores.norm)
 outpath <- gpath("data/{BM}_preproc.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved to '{outpath}'.")
