@@ -9,15 +9,9 @@ Saveplots <- T
 mkdir("plots")
 here::i_am("analysis/meta.R")
 set.seed(1)
-benchmarks <- list(arc="4PL",
-                   gsm8k="3PLu",
-                   hellaswag="3PL",
-                   truthfulqa="3PL",
-                   winogrande="3PL")
 
 # =============================================================================
 # helper functions
-
 add.mmlu <- function(){
    # list all mmlu_*.rds files in data folder
    mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*_preproc.rds", full.names=T)
@@ -72,11 +66,13 @@ construct.covmat <- function(thetas){
   covmat <- matrix(0, n, n)
   rownames(covmat) <- colnames(covmat) <- names(benchmarks)
   for (i in 1:n){
-     for (j in 1:n){
+     for (j in i:n){
         df.cov <- rowmerge(thetas[[i]], thetas[[j]])
         covmat[i, j] <- cov(df.cov[,1], df.cov[,2])
      }
   }
+  # make symmetric
+  covmat <- covmat + t(covmat) - diag(diag(covmat))
   covmat
 }
 
