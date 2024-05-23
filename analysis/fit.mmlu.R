@@ -38,6 +38,23 @@ plot.unique <- function(unique){
          mytheme()
 }
 
+predict.scores <- function(scores, fa.res, full.points = NULL){
+  fs <- psych::factor.scores(scores, fa.res, method = "Bartlett")$scores
+  colnames(fs) <- paste0("F", 1:ncol(fs))
+  if (is.null(full.points)){
+     full.points <- rowSums(scores)
+  }
+  df.scores <- data.frame(points = full.points, fs)
+  formula <- paste0("points ~ ", paste0("s(", colnames(fs), ")", collapse=" + "))
+  mod.score <- mgcv::gam(as.formula(formula), data = df.scores)
+  df.scores$p <- predict(mod.score)
+  df.scores |>
+     dplyr::mutate(error = points - p,
+                   F1.rank = rank(F1),
+                   points.rank = rank(points),
+                   F1.perc = F1.rank / max(F1.rank),
+                   points.perc = points.rank / max(points.rank))
+}
 
 
 # =============================================================================
