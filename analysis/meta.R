@@ -125,18 +125,38 @@ plot.score.pred <- function(scores.partial){
 }
 
 # =============================================================================
-# merge benchmarks and add mmlu
-benchmarks <- c(benchmarks, add.mmlu())
+# start with mmlu
+benchmarks <- add.mmlu()
+thetas.mmlu <- lapply(names(benchmarks), collect.theta)
+thetas.mmlu <- merge.theta(thetas.mmlu)
+covmat.mmlu <- cov(thetas.mmlu)
+n.obs.min <- nrow(thetas.mmlu)
 
+# exploratory factor analysis
+res.fa.1.mmlu <- do.fa(covmat.mmlu, 1)
+res.fa.2.mmlu <- do.fa(covmat.mmlu, 2)
+res.fa.3.mmlu <- do.fa(covmat.mmlu, 3)
+res.fa <- res.fa.2.mmlu
+res.fa$loadings
+psych::fa.diagram(res.fa)
+res.fs <- psych::factor.scores(thetas.mmlu, res.fa)
+
+# =============================================================================
 # collect theta estimates and construct covariance matrix
+benchmarks <- list(arc="4PL",
+                   gsm8k="3PLu",
+                   hellaswag="3PL",
+                   truthfulqa="3PL",
+                   winogrande="3PL")
+
 thetas.full <- lapply(names(benchmarks), collect.theta)
+thetas.partial <- merge.theta(thetas.full)
 covmat.theta <- construct.covmat(thetas.full)
 n.obs.min <- min(sapply(thetas.full, function(t) nrow(t)))
 
 # plot correlation matrix
-cov2cor(covmat.theta) |> 
-  corrplot::corrplot(method="color", type="upper", order="hclust",
-                     tl.col="black", tl.srt=45)
+cov2cor(covmat.theta)|>
+   corrplot::corrplot(method="color", type="upper", tl.pos="n", tl.cex=0.5)
 
 # exploratory factor analysis
 res.fa.1 <- do.fa(covmat.theta, 1)
@@ -161,3 +181,15 @@ scores.partial <- fit.score(scores.partial, res.fa)
 
 # evaluate grand sum prediction from factor scores
 evaluate.score.pred(scores.partial)
+
+# efa on scores
+res.fa.score <- psych::fa(scores.partial,
+          nfactors = 1,
+          fm = "minres")
+evaluate.fa.fit(res.fa.score)
+res.fa.score$loadings
+psych::fa.diagram(res.fa.score)
+unique <- sort(res.fa.score$uniquenesses, decreasing = T)
+plot(unique)
+# =============================================================================
+# TODO: check stability wrt subtests
