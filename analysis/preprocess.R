@@ -134,7 +134,7 @@ gprint("🧹 Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, thres
 gprint("⚙️  Starting item analysis...")
 items$sd <- apply(data, 2, sd)
 items$diff <- get.item.difficulty(data)
-items$disc <- get.item.discrimination(data, d = items$diff)
+items$disc <- get.item.discrimination(data, scores)
 plot.items(items, den = F, outpath = gpath("plots/pp_{BM}_0.png"))
 
 # =============================================================================
@@ -167,8 +167,8 @@ n_max <- nrow(data)/4 # aspire an item to subject ratio of at max 1:4
 if (n_remaining > n_max) gprint("2️⃣  Starting rejection sampling...")
 while (nrow(items.sub) > n_max) {
   items.sub <- rejection.sampling(items.sub)
-  plot.items(items.sub, outpath = gpath("plots/pp_{BM}_2.png"))
 }
+plot.items(items.sub, outpath = gpath("plots/pp_{BM}_2.png"))
 
 # reduce data and save
 data.sub <- data[, items.sub$item]
