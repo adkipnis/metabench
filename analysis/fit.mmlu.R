@@ -119,10 +119,22 @@ data.list <- lapply(mmlu.files, collect.data)
 names(data.list) <- mmlu.names
 scores <- Reduce(rowmerge, lapply(data.list, collect.scores))
 
-# exploratory factor analysis to determine unique subtests
+# exploratory factor analysis
 cor(scores) |>
-   corrplot::corrplot(method="color", type="upper", tl.pos="n", tl.cex=0.5, order="hclust")
+   corrplot::corrplot(method = "color",
+                      order="hclust",
+                      tl.cex = 0.3,
+                      tl.col = "black",
+                      col.lim = c(0,1))
 fa.mmlu <- do.fa(scores, 1)
+p.full <- evaluate.scores(scores, fa.mmlu)
+
+# determine unique contribution of subtests
 unique <- sort(fa.mmlu$uniquenesses, decreasing=T)
 plot.unique(unique)
-keepers <- names(unique[unique > 0.1])
+keepers <- names(unique[1:30]) # keep first n
+# keepers <- names(unique[unique > 0.1]) # alternatively: keep most informative
+scores.sub <- scores[keepers]
+fa.mmlu.sub <- do.fa(scores.sub, 1)
+p.sub <- evaluate.scores(scores.sub, fa.mmlu.sub, full.points = rowSums(scores), labels = c("C", "D"))
+
