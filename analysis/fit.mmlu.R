@@ -42,10 +42,13 @@ plot.unique <- function(unique){
 
 # =============================================================================
 # prepare data
-gprint("🚰 Loading preprocessed MMLU data...")
-mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*_preproc.rds", full.names=T)
-scores.list <- lapply(mmlu.files, collect.scores)
-scores <- Reduce(rowmerge, scores.list)
+gprint("🚰 Loading  MMLU data...")
+mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*csv", full.names=T)
+mmlu.files <- mmlu.files[!grepl("prompts", mmlu.files)]
+mmlu.names <- gsub("mmlu_", "", gsub(".csv", "", basename(mmlu.files)))
+data.list <- lapply(mmlu.files, collect.data)
+names(data.list) <- mmlu.names
+scores <- Reduce(rowmerge, lapply(data.list, collect.scores))
 
 # exploratory factor analysis to determine unique subtests
 cor(scores) |>
