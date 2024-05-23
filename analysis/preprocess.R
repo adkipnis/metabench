@@ -78,17 +78,16 @@ plot.items <- function(items, den = T, outpath = NULL) {
    }
 }
 
-rejection.prob <- function(items, density) {
-   x_indices <- findInterval(items$diff, density$x)
-   y_indices <- findInterval(items$disc, density$y)
-   z <- density$z[cbind(x_indices, y_indices)]
-   return(z)
+rejection.prob <- function(items, pmf) {
+   x.values <- findInterval(items$diff, pmf$x)
+   pmf$y[x.values] * (1 - items$disc) # reduce probability for high discrimination
 }
 
 rejection.sampling <- function(items, max_reject = 100) {
-  density <- MASS::kde2d(items$diff, items$disc, n = 100)
-  density$z <- density$z / max(density$z)
-  items$reject <- rejection.prob(items, density)
+  # create pmf for equally spaced bins
+  pmf <- density(items$diff, from = 0, to = 1, n = 100)
+  pmf$y <- pmf$y / max(pmf$y)
+  items$reject <- rejection.prob(items, pmf)
   items$exclude <- items$reject > runif(nrow(items))
   # if too many items are rejected, keep the rest
   if (sum(items$exclude) > max_reject) {
