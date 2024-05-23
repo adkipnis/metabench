@@ -16,7 +16,9 @@
 #SBATCH --nice=1000
 
 source $HOME/.bashrc
-benchmarks=($(ls ../data | grep .csv | grep -v prompts.csv | sed 's/.csv//'))
+# benchmarks=($(ls ../data | grep .csv | grep -v prompts.csv | sed 's/.csv//'))
+LC_ALL=C.UTF-8 Rscript ../analysis/prepare.mmlu.R
+benchmarks=("arc" "gsm8k" "hellaswag" "mmlu_sub" "truthfulqa" "winogrande")
 for b in "${benchmarks[@]}"; do
 	echo "Preprocessing $b"
 	LC_ALL=C.UTF-8 Rscript ../analysis/preprocess.R $b
