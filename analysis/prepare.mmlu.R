@@ -1,12 +1,13 @@
 # Jointly fit MMLU single model on all subtests 
 # 1. Perform exploratory FA on scores and discard non-unique subtests
 # 2. Fit IRT model on remaining subtests
-# usage: Rscript fit.mmlu.R
+# usage: Rscript prepare.mmlu.R
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[gprint, gpath, df2data, rowmerge, do.fa, mytheme])
+box::use(./utils[mkdir, gprint, gpath, df2data, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
+mkdir(gpath("plots"))
 set.seed(1)
 
 # =============================================================================
