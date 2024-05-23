@@ -102,9 +102,19 @@ rejection.sampling <- function(items, max_reject = 100) {
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-df <- readr::read_csv(gpath("data/{BM}.csv"), show_col_types = F)
-data <- df2data(df)
-rm(df)
+if (BM == "mmlu_sub"){
+  datapath <- gpath("data/{BM}.rds")
+  all <- readRDS(datapath)
+  data <- all$data
+  items <- all$prompts
+  scores <- rowSums(all$scores)
+} else {
+  df <- readr::read_csv(gpath("data/{BM}.csv"), show_col_types = F)
+  data <- df2data(df)
+  rm(df)
+  items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F) 
+  scores <- rowSums(data)
+}
 
 items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F)
 if (!all(colnames(data) == items$item)){
