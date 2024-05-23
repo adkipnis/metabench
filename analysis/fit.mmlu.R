@@ -12,14 +12,20 @@ set.seed(1)
 # =============================================================================
 # helper functions
 
-collect.scores <- function(datapath){
-   all <- readRDS(datapath)
-   scores <- data.frame(all$scores)
-   benchmark <- gsub("mmlu_", "", gsub("_preproc.rds", "", basename(datapath)))
-   colnames(scores) <- benchmark
-   rownames(scores) <- rownames(all$data)
-   scores
+collect.data <- function(datapath){
+  df <- readr::read_csv(datapath, show_col_types = F)
+  data <- df2data(df)
+  benchmark <- gsub("mmlu_", "", gsub(".csv", "", basename(datapath)))
+  colnames(data) <- paste0(benchmark, ".", colnames(data))
+  data
 }
+
+collect.scores <- function(dataset){
+  scores <- data.frame(rowSums(dataset))
+  colnames(scores) <- gsub("\\..*", "", colnames(dataset)[1])
+  scores
+}
+
 
 plot.unique <- function(unique){
    box::use(ggplot2[...])
