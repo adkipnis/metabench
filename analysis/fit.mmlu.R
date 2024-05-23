@@ -89,6 +89,26 @@ plot.perc <- function(df.scores, text = ""){
    mytheme()
 }
 
+evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO"){
+  df.scores <- predict.scores(scores, fa.res, full.points)
+  r <- cor(df.scores$points, df.scores$F1, method = "spearman")
+  gprint("Spearman correlation points x F1: {round(r, 2)}")
+  summary <- df.scores |> 
+    dplyr::summarise(
+    RMSE = sqrt(mean((points - p)^2)),
+    MAE = mean(abs(points - p))
+  )
+  gprint("Predicting benchmark points from latent ability...
+         - RMSE: {round(summary$RMSE, 3)},
+         - MAE: {round(summary$MAE, 3)}")
+  cowplot::plot_grid(
+    plot.scores(df.scores, text = glue::glue("RMSE = {round(summary$RMSE, 2)}\nMAE = {round(summary$MAE, 2)}")),
+    plot.perc(df.scores, text = glue::glue("r = {round(r,2)}")),
+    labels = labels,
+    nrow = 1)
+}
+
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading  MMLU data...")
