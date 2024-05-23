@@ -138,3 +138,9 @@ scores.sub <- scores[keepers]
 fa.mmlu.sub <- do.fa(scores.sub, 1)
 p.sub <- evaluate.scores(scores.sub, fa.mmlu.sub, full.points = rowSums(scores), labels = c("C", "D"))
 
+# save plot
+p <- cowplot::plot_grid(p.full, p.sub, align = "v", nrow = 2)
+outpath <- gpath("plots/mmlu_efa.png")
+ggplot2::ggsave(outpath, p, width = 8, height = 8)
+gprint("💾 Saved plot to {outpath}")
+
