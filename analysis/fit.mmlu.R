@@ -56,6 +56,21 @@ predict.scores <- function(scores, fa.res, full.points = NULL){
                    points.perc = points.rank / max(points.rank))
 }
 
+plot.scores <- function(df.scores, text = ""){
+  box::use(ggplot2[...], latex2exp[TeX])
+  x.label <- 0.9 * diff(range(df.scores$F1)) + min(df.scores$F1)
+  y.label <- 0.1 * diff(range(df.scores$points)) + min(df.scores$points)
+  ggplot(df.scores, aes(x = F1, y = points)) +
+   geom_point(alpha = 0.5) +
+   geom_line(aes(y = p), color = "red") +
+   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+   labs(
+      x = TeX("$\\theta$"),
+      y = "Full score",
+      title = "FA Theta vs. Score"
+   ) +
+   mytheme()
+}
 
 # =============================================================================
 # prepare data
