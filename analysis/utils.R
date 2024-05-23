@@ -36,6 +36,11 @@ gpath <- function(s) {
    eval(substitute(here::here(glue::glue(s))), parent.frame())
 }
 
+#" @export
+rowmerge <- function(df1, df2){
+   merge(df1, df2, by="row.names") |>
+     tibble::column_to_rownames("Row.names")
+}
 
 #" @export
 df2data <- function(df) {
@@ -66,6 +71,40 @@ get.theta <- function(model, method="MAP", resp = NULL) {
   )
 }
 
+#" @export
+do.fa <- function(raw, nfactors){
+   res <- psych::fa(
+      raw,
+      nfactors = nfactors,
+      rotate = "oblimin",
+      fm = "minres",
+      n.obs = nrow(raw)
+   ) 
+   evaluate.fa.fit(res)
+   res
+}
+
+#" @export
+do.fa.cov <- function(covmat, nfactors, n.obs){
+   res <- psych::fa(covmat,
+                    nfactors = nfactors,
+                    rotate = "oblimin",
+                    fm = "minres",
+                    covar = T,
+                    n.obs = n.obs)
+   evaluate.fa.fit(res)
+   res
+}
+
+#" @export
+evaluate.fa.fit <- function(res.fa){
+   propVar <- data.frame(res.fa$Vaccounted)["Proportion Var",]
+   gprint("Proportion of variance accounted for: {100 * round(propVar, 3)}%")
+   gprint("RMSEA: {round(res.fa$RMSEA[1], 3)} (< 0.05: good, 0.05 - 0.08: reasonable, > 0.10: poor)")
+   gprint("Corrected RMSR: {round(res.fa$crms, 3)} (< 0.08: good)")
+   gprint("CFI: {round(res.fa$CFI, 3)} (> 0.95: good)")
+   gprint("TLI: {round(res.fa$TLI, 3)} (> 0.95: good)")
+}
 
 #" @export
 mytheme <- function() {
