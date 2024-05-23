@@ -34,3 +34,10 @@ plot.unique <- function(unique){
 
 
 
+# =============================================================================
+# prepare data
+gprint("🚰 Loading preprocessed MMLU data...")
+mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*_preproc.rds", full.names=T)
+scores.list <- lapply(mmlu.files, collect.scores)
+scores <- Reduce(rowmerge, scores.list)
+
