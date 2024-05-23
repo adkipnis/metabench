@@ -120,7 +120,7 @@ evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO")
 
 # =============================================================================
 # prepare data
-gprint("🚰 Loading  MMLU data...")
+gprint("🚰 Loading MMLU data...")
 mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*csv", full.names=T)
 mmlu.data <- mmlu.files[!grepl("prompts", mmlu.files)]
 mmlu.prompts <- mmlu.files[grepl("prompts", mmlu.files)]
