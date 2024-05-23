@@ -26,7 +26,6 @@ collect.scores <- function(dataset){
   scores
 }
 
-
 plot.unique <- function(unique){
    box::use(ggplot2[...])
    data.frame(unique = unique, id = 1:length(unique)) |>
@@ -143,4 +142,11 @@ p <- cowplot::plot_grid(p.full, p.sub, align = "v", nrow = 2)
 outpath <- gpath("plots/mmlu_efa.png")
 ggplot2::ggsave(outpath, p, width = 8, height = 8)
 gprint("💾 Saved plot to {outpath}")
+
+# subset data
+data.sub <- Reduce(rowmerge, data.list[keepers])
+outpath <- gpath("data/mmlu_sub.csv")
+out <- list(data = data.sub, scores.sub = scores.sub, scores = scores)
+saveRDS(out, outpath)
+gprint("🏁 Saved subset data to {outpath}")
 
