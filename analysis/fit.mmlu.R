@@ -41,3 +41,10 @@ mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*_preproc.rds", full.name
 scores.list <- lapply(mmlu.files, collect.scores)
 scores <- Reduce(rowmerge, scores.list)
 
+# exploratory factor analysis to determine unique subtests
+cor(scores) |>
+   corrplot::corrplot(method="color", type="upper", tl.pos="n", tl.cex=0.5, order="hclust")
+fa.mmlu <- do.fa(scores, 1)
+unique <- sort(fa.mmlu$uniquenesses, decreasing=T)
+plot.unique(unique)
+keepers <- names(unique[unique > 0.1])
