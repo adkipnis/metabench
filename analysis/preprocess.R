@@ -109,11 +109,14 @@ if (!all(colnames(data) == items$item)){
 
 # =============================================================================
 # outlier removal
-scores <- rowSums(data)
-threshold <- as.numeric(quantile(scores, probs=c(0.001)))
-n <- nrow(data)
-data <- data[!(scores <= threshold),]
-gprint("🧹 Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold}).")
+# if benchmark name starts with mmlu, skip this step
+if (!startsWith(BM, "mmlu")) {
+   scores <- rowSums(data)
+   threshold <- as.numeric(quantile(scores, probs=c(0.001)))
+   n <- nrow(data)
+   data <- data[!(scores <= threshold),]
+   gprint("🧹 Removed {n - nrow(data)} tail outliers (lowest 0.1% of score, threshold: {threshold}).")
+}
 
 # =============================================================================
 # item analysis
