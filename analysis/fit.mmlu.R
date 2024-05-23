@@ -5,7 +5,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[mkdir, parse.args, gprint, gpath, rowmerge, do.fa, mytheme])
+box::use(./utils[gprint, gpath, df2data, rowmerge, do.fa, mytheme])
 here::i_am("analysis/fit.mmlu.R")
 set.seed(1)
 
