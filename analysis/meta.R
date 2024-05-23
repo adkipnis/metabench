@@ -77,9 +77,13 @@ construct.covmat <- function(thetas){
 }
 
 do.fa <- function(covmat, nfactors){
-   res <- psych::fa(covmat, nfactors = nfactors, rotate="oblimin", fm = "ml",
-            covar = T, n.obs = n.obs.min)
-   eval.fa.fit(res)
+   res <- psych::fa(covmat,
+                    nfactors = nfactors,
+                    rotate="oblimin",
+                    fm = "minres",
+                    covar = T,
+                    n.obs = n.obs.min)
+   evaluate.fa.fit(res)
    res
 }
 
