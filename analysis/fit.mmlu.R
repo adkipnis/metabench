@@ -9,3 +9,28 @@ box::use(./utils[mkdir, parse.args, gprint, gpath, rowmerge, do.fa, mytheme])
 here::i_am("analysis/fit.mmlu.R")
 set.seed(1)
 
+# =============================================================================
+# helper functions
+
+collect.scores <- function(datapath){
+   all <- readRDS(datapath)
+   scores <- data.frame(all$scores)
+   benchmark <- gsub("mmlu_", "", gsub("_preproc.rds", "", basename(datapath)))
+   colnames(scores) <- benchmark
+   rownames(scores) <- rownames(all$data)
+   scores
+}
+
+plot.unique <- function(unique){
+   box::use(ggplot2[...])
+   data.frame(unique = unique, id = 1:length(unique)) |>
+      ggplot(aes(x=id, y=unique)) +
+         geom_bar(stat="identity", fill="white", color="black") +
+         xlab("Test ID (sorted)") +
+         ylab("Uniqueness") +
+         ggtitle("Unique variance of MMLU subtests") +
+         mytheme()
+}
+
+
+
