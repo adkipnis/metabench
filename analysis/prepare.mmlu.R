@@ -21,6 +21,13 @@ collect.data <- function(datapath){
   data
 }
 
+collect.prompts <- function(datapath){
+   items <- readr::read_csv(datapath, show_col_types = F)
+   benchmark <- gsub("mmlu_", "", gsub("_prompts.csv", "", basename(datapath)))
+   items$item <- paste0(benchmark, ".", items$item)
+   items
+}
+
 collect.scores <- function(dataset){
   scores <- data.frame(rowSums(dataset))
   colnames(scores) <- gsub("\\..*", "", colnames(dataset)[1])
@@ -113,10 +120,12 @@ evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO")
 # prepare data
 gprint("🚰 Loading  MMLU data...")
 mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*csv", full.names=T)
-mmlu.files <- mmlu.files[!grepl("prompts", mmlu.files)]
-mmlu.names <- gsub("mmlu_", "", gsub(".csv", "", basename(mmlu.files)))
-data.list <- lapply(mmlu.files, collect.data)
-names(data.list) <- mmlu.names
+mmlu.data <- mmlu.files[!grepl("prompts", mmlu.files)]
+mmlu.prompts <- mmlu.files[grepl("prompts", mmlu.files)]
+mmlu.names <- gsub("mmlu_", "", gsub(".csv", "", basename(mmlu.data)))
+data.list <- lapply(mmlu.data, collect.data)
+prompt.list <- lapply(mmlu.prompts, collect.prompts)
+names(prompt.list) <- names(data.list) <- mmlu.names
 scores <- Reduce(rowmerge, lapply(data.list, collect.scores))
 
 # exploratory factor analysis
@@ -146,8 +155,10 @@ gprint("💾 Saved plot to {outpath}")
 
 # subset data
 data.sub <- Reduce(rowmerge, data.list[keepers])
-outpath <- gpath("data/mmlu_sub.csv")
-out <- list(data = data.sub, scores.sub = scores.sub, scores = scores)
+prompts.sub <- Reduce(rbind, prompt.list[keepers])
+outpath <- gpath("data/mmlu_sub.rds")
+out <- list(data = data.sub, prompts = prompts.sub,
+            scores = scores, scores.sub = scores.sub)
 saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
 
