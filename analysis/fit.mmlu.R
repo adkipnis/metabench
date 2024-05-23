@@ -72,6 +72,23 @@ plot.scores <- function(df.scores, text = ""){
    mytheme()
 }
 
+plot.perc <- function(df.scores, text = ""){
+  box::use(ggplot2[...], latex2exp[TeX])
+  # get 0.9 of x range and 0.1 of y range
+  x.label <- 0.9 * diff(range(df.scores$F1.perc)) + min(df.scores$F1.perc)
+  y.label <- 0.1 * diff(range(df.scores$points.perc)) + min(df.scores$points.perc)
+  ggplot(df.scores, aes(x = F1.perc, y = points.perc)) +
+   geom_point(alpha = 0.5) +
+   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+  labs(
+      x = TeX("% $\\theta$"),
+      y = "% Full score",
+      title = "Percentile comparison"
+   ) +
+   mytheme()
+}
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading  MMLU data...")
