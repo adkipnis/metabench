@@ -9,6 +9,7 @@ box::use(./utils[mkdir, gprint, gpath, df2data, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
 mkdir(gpath("plots"))
 set.seed(1)
+SHOW <- F
 
 # =============================================================================
 # helper functions
@@ -99,15 +100,16 @@ plot.perc <- function(df.scores, text = ""){
 evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO"){
   df.scores <- predict.scores(scores, fa.res, full.points)
   r <- cor(df.scores$points, df.scores$F1, method = "spearman")
-  gprint("Spearman correlation points x F1: {round(r, 2)}")
+  gprint("\n")
+  gprint("📊 Evaluating score prediction...")
+  gprint("- Spearman correlation (total score x theta): {round(r, 3)}")
   summary <- df.scores |> 
     dplyr::summarise(
     RMSE = sqrt(mean((points - p)^2)),
     MAE = mean(abs(points - p))
   )
-  gprint("Predicting benchmark points from latent ability...
-         - RMSE: {round(summary$RMSE, 3)},
-         - MAE: {round(summary$MAE, 3)}")
+  gprint("- RMSE: {round(summary$RMSE, 3)}")
+  gprint("- MAE: {round(summary$MAE, 3)}")
   cowplot::plot_grid(
     plot.scores(df.scores, text = glue::glue("RMSE = {round(summary$RMSE, 2)}\nMAE = {round(summary$MAE, 2)}")),
     plot.perc(df.scores, text = glue::glue("r = {round(r,2)}")),
@@ -129,18 +131,20 @@ names(prompt.list) <- names(data.list) <- mmlu.names
 scores <- Reduce(rowmerge, lapply(data.list, collect.scores))
 
 # exploratory factor analysis
-cor(scores) |>
-   corrplot::corrplot(method = "color",
-                      order="hclust",
-                      tl.cex = 0.3,
-                      tl.col = "black",
-                      col.lim = c(0,1))
+if (SHOW){
+  cor(scores) |>
+    corrplot::corrplot(method = "color",
+                       order="hclust",
+                       tl.cex = 0.3,
+                       tl.col = "black",
+                       col.lim = c(0,1))
+}
 fa.mmlu <- do.fa(scores, 1)
 p.full <- evaluate.scores(scores, fa.mmlu)
 
 # determine unique contribution of subtests
 unique <- sort(fa.mmlu$uniquenesses, decreasing=T)
-plot.unique(unique)
+if (SHOW) plot.unique(unique)
 keepers <- names(unique[1:30]) # keep first n
 # keepers <- names(unique[unique > 0.1]) # alternatively: keep most informative
 scores.sub <- scores[keepers]
