@@ -28,24 +28,24 @@ get.item.difficulty <- function(data, n_options = 4) {
   n_total <- nrow(data)
   n_correct <- colSums(data)
   guess_coeff <- (n_options - 1) / n_options
-  p <- n_correct * guess_coeff / n_total
-  return(p)
+  n_correct * guess_coeff / n_total
 }
 
-get.item.discrimination <- function(data, d) {
+get.item.discrimination <- function(data, scores) {
   # item discrimination (point-biserial correlation)
-  # m_c = mean score of the group that answered the item correctly
+  # m1 = mean score of the group that answered the item correctly
   # m = mean score of the entire group
-  # sd = standard deviation of the entire group
-  # d = item difficulty
-  # rpbis = (m_c - m)/sd * sqrt(d * (1 - d))
-  scores <- rowSums(data)
-  n_correct <- colSums(data)
+  # s = empirical standard deviation of the entire group score
+  # n1, n0 = sizes of the groups who answered the item correctly resp. incorr.
+  # n = total group size
+  # rpbis = (m1 - m)/s * sqrt(n1 * n0 / (n*(n-1)))
+  n1 <- colSums(data) # how many subjects answered this item correctly
   m <- mean(scores)
-  m_c <- colSums(data * scores) / n_correct
+  m1 <- colSums(data * scores) / n1 # mean scores of correct subjects
   s <- sd(scores)
-  rpbis <- (m_c - m) / s * sqrt(d * (1 - d))
-  return(rpbis)
+  n <- nrow(data)
+  n0 <- n - n1
+  (m1 - m) / s * sqrt(n1 * n0 / (n * (n-1)))
 }
 
 plot.items <- function(items, den = T, outpath = NULL) {
