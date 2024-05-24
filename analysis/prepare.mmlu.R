@@ -9,6 +9,7 @@ box::use(./utils[mkdir, gprint, gpath, df2data, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
 mkdir(gpath("plots"))
 set.seed(1)
+GOAL <- 1500L
 SHOW <- F
 
 # =============================================================================
@@ -189,8 +190,8 @@ gprint("\n\nReduced dataset from {n.data(data.list)} to {n.items} items.")
 
 # evolutionary alogorithm to further reduce number of items
 subsample.res <- list(data.list = data.list[keepers])
-gprint("Starting evolutionary subsampling until at most 3000 items remain...")
-while (n.items > 3000L){
+gprint("Starting evolutionary subsampling until at most {GOAL} items remain...")
+while (n.items > GOAL){
   subsample.res <- find.best.subset(subsample.res$data.list, iters = 30)
   n.items <- n.data(subsample.res$data.list)
 }
