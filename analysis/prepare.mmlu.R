@@ -121,6 +121,23 @@ evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO",
     nrow = 1)
 }
 
+subsample <- function(dataset, percentage){
+   n <- ncol(dataset)
+   k <- round(n * percentage)
+   indices <- sort(sample(1:n, k))
+   dataset[, indices]
+}
+
+subsample.wrapper <- function(data.list, percentage = 0.95){
+   subsample.p <- function(d) subsample(d, percentage)
+   data.list.sample <- lapply(data.list, subsample.p)
+   scores.sample <- Reduce(rowmerge, lapply(data.list.sample, collect.scores))
+   fa.mmlu.sample <- do.fa(scores.sample, 1, verbose = F)
+   sfs.sample <- evaluate.scores(scores.sample, fa.mmlu.sample,
+                           full.points = rowSums(scores), justsummary = T)
+   list(data.list = data.list.sample, scores = scores.sample,
+        fa = fa.mmlu.sample, sfs = sfs.sample)
+}
 
 # =============================================================================
 # prepare data
