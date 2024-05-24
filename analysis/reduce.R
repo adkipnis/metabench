@@ -16,7 +16,7 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
-   defaults = c("gsm8k", "3PLu", "MAP", 0.0),
+   defaults = c("mmlu_sub", "3PL", "MAP", 0.0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "3PLu", "4PL"),
