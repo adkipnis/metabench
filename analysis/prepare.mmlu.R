@@ -139,6 +139,18 @@ subsample.wrapper <- function(data.list, percentage = 0.95){
         fa = fa.mmlu.sample, sfs = sfs.sample)
 }
 
+find.best.subset <- function(data.list, iters){
+   sample.list <- list()
+   for (i in 1:iters){
+      sample.list[[i]] <- subsample.wrapper(data.list)
+   }
+   i <- which.min(sapply(sample.list, function(s) s$sfs$RMSE))
+   out <- sample.list[[i]]
+   gprint("Best RMSE: {round(out$sfs$RMSE, 3)}")
+   gprint("Reduced dataset to {n.data(out$data.list)} items.")
+   out
+}
+
 # =============================================================================
 # prepare data
 gprint("🚰 Loading MMLU data...")
