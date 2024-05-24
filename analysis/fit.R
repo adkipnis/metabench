@@ -7,7 +7,7 @@ box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(names = c("BM"),
            defaults = c("hellaswag"),
            legal = list(
-             BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande"))
+             BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande"))
            )
 here::i_am("analysis/fit.R")
 mkdir("analysis/models")
