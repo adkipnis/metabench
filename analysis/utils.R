@@ -72,9 +72,10 @@ get.theta <- function(model, method="MAP", resp = NULL) {
 }
 
 #" @export
-do.fa <- function(raw, nfactors){
-   gprint("\n")
-   gprint("Starting factor analysis...")
+do.fa <- function(raw, nfactors, verbose = T){
+   if (verbose){
+      gprint("\n\nStarting factor analysis...")
+   }
    res <- psych::fa(
       raw,
       nfactors = nfactors,
@@ -82,15 +83,16 @@ do.fa <- function(raw, nfactors){
       fm = "minres",
       n.obs = nrow(raw),
    )
-   gprint("\n")
-   evaluate.fa.fit(res)
+   if (verbose){
+      gprint("\n")
+      evaluate.fa.fit(res)
+   }
    res
 }
 
 #" @export
 do.fa.cov <- function(covmat, nfactors, n.obs){
-   gprint("\n")
-   gprint("Starting factor analysis...")
+   gprint("\n\nStarting factor analysis...")
    res <- psych::fa(covmat,
                     nfactors = nfactors,
                     rotate = "oblimin",
@@ -110,8 +112,7 @@ evaluate.fa.fit <- function(res.fa){
    gprint("RMSEA: {round(res.fa$RMSEA[1], 3)} (< 0.05: good, 0.05 - 0.08: reasonable, > 0.10: poor)")
    gprint("Corrected RMSR: {round(res.fa$crms, 3)} (< 0.08: good)")
    gprint("CFI: {round(res.fa$CFI, 3)} (> 0.95: good)")
-   gprint("TLI: {round(res.fa$TLI, 3)} (> 0.95: good)")
-   gprint("\n")
+   gprint("TLI: {round(res.fa$TLI, 3)} (> 0.95: good)\n\n")
 }
 
 #" @export
