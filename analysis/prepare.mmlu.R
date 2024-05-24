@@ -182,10 +182,23 @@ keepers <- names(unique[1:30]) # keep first n
 # keepers <- names(unique[unique > 0.1]) # alternatively: keep most informative
 scores.sub <- scores[keepers]
 fa.mmlu.sub <- do.fa(scores.sub, 1)
-p.sub <- evaluate.scores(scores.sub, fa.mmlu.sub, full.points = rowSums(scores), labels = c("C", "D"))
+p.sub <- evaluate.scores(scores.sub, fa.mmlu.sub, full.points = rowSums(scores),
+                         labels = c("C", "D"))
+n.items <- n.data(data.list[keepers])
+gprint("\n\nReduced dataset from {n.data(data.list)} to {n.items} items.")
+
+# evolutionary alogorithm to further reduce number of items
+subsample.res <- list(data.list = data.list[keepers])
+gprint("Starting evolutionary subsampling until at most 3000 items remain...")
+while (n.items > 3000L){
+  subsample.res <- find.best.subset(subsample.res$data.list, iters = 30)
+  n.items <- n.data(subsample.res$data.list)
+}
+p.sample <- evaluate.scores(subsample.res$scores, subsample.res$fa,
+                            full.points = rowSums(scores), labels = c("E", "F"))
 
 # save plot
-p <- cowplot::plot_grid(p.full, p.sub, align = "v", nrow = 2)
+p <- cowplot::plot_grid(p.full, p.sub, p.sample, align = "v", nrow = 3)
 outpath <- gpath("plots/mmlu_efa.png")
 ggplot2::ggsave(outpath, p, width = 8, height = 8)
 gprint("💾 Saved plot to {outpath}")
