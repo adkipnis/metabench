@@ -91,16 +91,20 @@ do.fa <- function(raw, nfactors, verbose = T){
 }
 
 #" @export
-do.fa.cov <- function(covmat, nfactors, n.obs){
-   gprint("\n\nStarting factor analysis...")
+do.fa.cov <- function(covmat, nfactors, n.obs, verbose = T){
+   if (verbose){
+      gprint("\n\nStarting factor analysis...")
+   }
    res <- psych::fa(covmat,
                     nfactors = nfactors,
                     rotate = "oblimin",
                     fm = "minres",
                     covar = T,
                     n.obs = n.obs)
-   gprint("\n")
-   evaluate.fa.fit(res)
+   if (verbose){
+      gprint("\n")
+      evaluate.fa.fit(res)
+   }
    res
 }
 
