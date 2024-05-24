@@ -35,6 +35,10 @@ collect.scores <- function(dataset){
   scores
 }
 
+n.data <- function(data.list){
+  sum(sapply(data.list, function(d) ncol(d)))
+}
+
 plot.unique <- function(unique){
    box::use(ggplot2[...])
    data.frame(unique = unique, id = 1:length(unique)) |>
