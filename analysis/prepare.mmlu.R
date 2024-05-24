@@ -204,8 +204,9 @@ ggplot2::ggsave(outpath, p, width = 8, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
-data.sub <- Reduce(rowmerge, data.list[keepers])
-prompts.sub <- Reduce(rbind, prompt.list[keepers])
+data.sub <- Reduce(rowmerge, subsample.res$data.list)
+prompts.sub <- Reduce(rbind, prompt.list[keepers]) |> 
+   dplyr::filter(item %in% colnames(data.sub))
 outpath <- gpath("data/mmlu_sub.rds")
 out <- list(data = data.sub, prompts = prompts.sub,
             scores = scores, scores.sub = scores.sub)
