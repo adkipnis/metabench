@@ -101,22 +101,22 @@ plot.perc <- function(df.scores, text = ""){
    mytheme()
 }
 
-evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO"){
+evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO", justsummary = F){
   df.scores <- predict.scores(scores, fa.res, full.points)
-  r <- cor(df.scores$points, df.scores$F1, method = "spearman")
-  gprint("\n")
-  gprint("📊 Evaluating score prediction...")
-  gprint("- Spearman correlation (total score x theta): {round(r, 3)}")
   summary <- df.scores |> 
     dplyr::summarise(
     RMSE = sqrt(mean((points - p)^2)),
-    MAE = mean(abs(points - p))
+    MAE = mean(abs(points - p)),
+    r = cor(points, F1, method = "spearman")
   )
+  if (justsummary) return(summary)
+  gprint("\n\n📊 Evaluating score prediction...")
+  gprint("- Spearman correlation (total score x theta): {round(summary$r, 3)}")
   gprint("- RMSE: {round(summary$RMSE, 3)}")
   gprint("- MAE: {round(summary$MAE, 3)}")
   cowplot::plot_grid(
     plot.scores(df.scores, text = glue::glue("RMSE = {round(summary$RMSE, 2)}\nMAE = {round(summary$MAE, 2)}")),
-    plot.perc(df.scores, text = glue::glue("r = {round(r,2)}")),
+    plot.perc(df.scores, text = glue::glue("r = {round(summary$r, 2)}")),
     labels = labels,
     nrow = 1)
 }
