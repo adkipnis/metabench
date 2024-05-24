@@ -4,7 +4,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme])
+box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, do.fa, do.fa.cov])
 Saveplots <- T
 mkdir("plots")
 here::i_am("analysis/meta.R")
@@ -54,7 +54,7 @@ merge.theta <- function(theta.full){
 collect.scores <- function(benchmark){
    datapath <- gpath("data/{benchmark}_preproc.rds")
    all <- readRDS(datapath)
-   scores <- data.frame(all$scores.norm)
+   scores <- data.frame(100 * all$scores.norm)
    colnames(scores) <- benchmark
    rownames(scores) <- rownames(all$data)
    scores
@@ -74,24 +74,6 @@ construct.covmat <- function(thetas){
   # make symmetric
   covmat <- covmat + t(covmat) - diag(diag(covmat))
   covmat
-}
-
-do.fa <- function(covmat, nfactors){
-   res <- psych::fa(covmat,
-                    nfactors = nfactors,
-                    rotate="oblimin",
-                    fm = "minres",
-                    covar = T,
-                    n.obs = n.obs.min)
-   evaluate.fa.fit(res)
-   res
-}
-
-evaluate.fa.fit <- function(res.fa){
-   gprint("RMSEA: {round(res.fa$RMSEA[1], 2)} (< 0.05: good, 0.05 - 0.08: reasonable, > 0.10: poor)")
-   gprint("Corrected RMSR: {round(res.fa$crms, 2)} (< 0.08: good)")
-   gprint("CFI: {round(res.fa$CFI, 2)} (> 0.95: good)")
-   gprint("TLI: {round(res.fa$TLI, 2)} (> 0.95: good)")
 }
 
 fit.score <- function(scores.partial, res.fa){
@@ -118,37 +100,37 @@ plot.score.pred <- function(scores.partial){
    ggplot(scores.partial, aes(x=grand, y=p)) +
       geom_point(alpha=0.3) +
       geom_abline(intercept=0, slope=1, color="red") +
-      xlim(0.1, 0.9) + ylim(0.1, 0.9) +
       labs(title="Score prediction from latent factors",
            x="Total Score (norm.)", y="Predicted") +
       mytheme()
 }
 
 # =============================================================================
-# start with mmlu
-benchmarks <- add.mmlu()
-thetas.mmlu <- lapply(names(benchmarks), collect.theta)
-thetas.mmlu <- merge.theta(thetas.mmlu)
-covmat.mmlu <- cov(thetas.mmlu)
-n.obs.min <- nrow(thetas.mmlu)
-
-# exploratory factor analysis
-res.fa.1.mmlu <- do.fa(covmat.mmlu, 1)
-res.fa.2.mmlu <- do.fa(covmat.mmlu, 2)
-res.fa.3.mmlu <- do.fa(covmat.mmlu, 3)
-res.fa <- res.fa.2.mmlu
-res.fa$loadings
-psych::fa.diagram(res.fa)
-res.fs <- psych::factor.scores(thetas.mmlu, res.fa)
-
-# =============================================================================
-# collect theta estimates and construct covariance matrix
+# get ceiling
 benchmarks <- list(arc="4PL",
                    gsm8k="3PLu",
                    hellaswag="3PL",
+                   mmlu_sub="3PL",
                    truthfulqa="3PL",
                    winogrande="3PL")
+scores.full <- lapply(names(benchmarks), collect.scores)
+scores.partial <- merge.theta(scores.full)
+# n.obs <- min(sapply(scores.full, function(s) nrow(s)))
 
+covmat.score <- construct.covmat(scores.full)
+cov2cor(covmat.score)|>
+  corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
+fa.score.1 <- do.fa(scores.partial, 1)
+fa.score.2 <- do.fa(scores.partial, 2)
+fa.score.3 <- do.fa(scores.partial, 3)
+#fa.score.1 <- do.fa.cov(covmat.score, 1, n.obs = n.obs)
+#fa.score.2 <- do.fa.cov(covmat.score, 2, n.obs = n.obs)
+fa.score <- fa.score.2
+psych::fa.diagram(fa.score)
+fa.score$loadings
+
+# =============================================================================
+# collect theta estimates and construct covariance matrix
 thetas.full <- lapply(names(benchmarks), collect.theta)
 thetas.partial <- merge.theta(thetas.full)
 covmat.theta <- construct.covmat(thetas.full)
@@ -156,40 +138,25 @@ n.obs.min <- min(sapply(thetas.full, function(t) nrow(t)))
 
 # plot correlation matrix
 cov2cor(covmat.theta)|>
-   corrplot::corrplot(method="color", type="upper", tl.pos="n", tl.cex=0.5)
+   corrplot::corrplot(method="color", type="upper", tl.cex=0.5)
 
 # exploratory factor analysis
-res.fa.1 <- do.fa(covmat.theta, 1)
-res.fa.2 <- do.fa(covmat.theta, 2)
-res.fa.3 <- do.fa(covmat.theta, 3)
-res.fa <- res.fa.2
-res.fa$loadings
-psych::fa.diagram(res.fa)
-
-# estimate factor scores
-thetas.partial <- merge.theta(thetas.full)
-res.fs <- psych::factor.scores(thetas.partial, res.fa)
-
+fa.theta.1 <- do.fa(thetas.partial, 1)
+fa.theta.2 <- do.fa(thetas.partial, 2)
+fa.theta <- fa.theta.1
+psych::fa.diagram(fa.theta)
+fa.theta$loadings
+fs <- psych::factor.scores(thetas.partial, fa.theta)
+plot(sort(fa.theta$uniquenesses, decreasing = T))
 
 # =============================================================================
 # check relation to grand sum
-scores.full <- lapply(names(benchmarks), collect.scores)
-scores.partial <- merge.theta(scores.full)
 scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
-scores.partial <- rowmerge(scores.partial, res.fs$scores)
-scores.partial <- fit.score(scores.partial, res.fa)
+scores.partial <- rowmerge(scores.partial, fs$scores)
+scores.partial <- fit.score(scores.partial, fa.theta)
 
 # evaluate grand sum prediction from factor scores
 evaluate.score.pred(scores.partial)
 
-# efa on scores
-res.fa.score <- psych::fa(scores.partial,
-          nfactors = 1,
-          fm = "minres")
-evaluate.fa.fit(res.fa.score)
-res.fa.score$loadings
-psych::fa.diagram(res.fa.score)
-unique <- sort(res.fa.score$uniquenesses, decreasing = T)
-plot(unique)
 # =============================================================================
 # TODO: check stability wrt subtests
