@@ -18,7 +18,7 @@ parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
    defaults = c("gsm8k", "3PLu", "MAP", 0.0),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande"),
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "3PLu", "4PL"),
      METH = c("MAP", "EAPsum"), # for theta estimation
      LAMBDA = seq(0, 1, 0.1) # penalty for subtest size (0 = no penalty)
