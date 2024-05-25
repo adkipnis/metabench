@@ -89,12 +89,14 @@ fit.score <- function(scores.partial, res.fa){
 }
 
 evaluate.score.pred <- function(scores.partial){
-   r <- cor(scores.partial$grand, scores.partial$p)
-   gprint("Correlation between normalized grand sum and predicted grand sum: {round(r, 3)}")
+   r.s <- cor(scores.partial$grand, scores.partial$MR1, method = "spearman")
+   r.p <- cor(scores.partial$grand, scores.partial$p, method = "spearman")
    s <- scores.partial |>
       dplyr::mutate(error = grand - p) |>
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
+   gprint("Spearman corr. Score (norm.) x First Factor: {round(r.s, 3)}")
+   gprint("Spearman corr. Score (norm.) x Predicted: {round(r.p, 3)}")
    gprint("Mean absolute error: {round(s$mae, 3)}, RMSE: {round(s$rmse, 3)}")
    plot.score.pred(scores.partial)
 }
