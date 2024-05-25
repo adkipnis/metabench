@@ -116,7 +116,9 @@ plot.score.pred <- function(scores.partial, text = ""){
 }
 
 # =============================================================================
-# get ceiling
+# get ceiling for score prediction
+
+# load scores
 benchmarks <- list(arc=list(mod="4PL", est="EAPsum"),
                    gsm8k=list(mod="3PLu", est="MAP"),
                    hellaswag=list(mod="3PL", est="EAPsum"),
@@ -126,17 +128,26 @@ benchmarks <- list(arc=list(mod="4PL", est="EAPsum"),
 scores.full <- lapply(names(benchmarks), collect.scores)
 scores.partial <- merge.skill(scores.full)
 
+# plot correlation matrix
 covmat.score <- construct.covmat(scores.full)
 cov2cor(covmat.score)|>
   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
+
+# exploratory factor analysis
 fa.score.1 <- do.fa(scores.partial, 1)
 fa.score.2 <- do.fa(scores.partial, 2)
 fa.score.3 <- do.fa(scores.partial, 3)
-#fa.score.1 <- do.fa.cov(covmat.score, 1, n.obs = n.obs)
-#fa.score.2 <- do.fa.cov(covmat.score, 2, n.obs = n.obs)
 fa.score <- fa.score.2
 psych::fa.diagram(fa.score)
 fa.score$loadings
+fs.score <- psych::factor.scores(scores.partial, fa.score)
+
+# check prediction of grand sum from factor scores
+scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
+pred.base <- rowmerge(scores.partial, fs.score$scores)
+pred.base <- fit.score(pred.base, fa.score)
+p.base <- evaluate.score.pred(pred.base) +
+  ggplot2::ggtitle("Score prediction from factor scores (raw points)")
 
 # =============================================================================
 # collect theta estimates and construct covariance matrix
