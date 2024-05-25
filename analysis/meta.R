@@ -152,14 +152,13 @@ p.base <- evaluate.score.pred(pred.base) +
 # =============================================================================
 # collect theta estimates and construct covariance matrix
 thetas.full <- lapply(names(benchmarks), collect.theta)
-thetas.partial <- merge.theta(thetas.full)
 thetas.partial <- merge.skill(thetas.full)
 covmat.theta <- construct.covmat(thetas.full)
 n.obs.min <- min(sapply(thetas.full, function(t) nrow(t)))
 
 # plot correlation matrix
 cov2cor(covmat.theta)|>
-   corrplot::corrplot(method="color", type="upper", tl.cex=0.5)
+   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
 
 # exploratory factor analysis
 fa.theta.1 <- do.fa(thetas.partial, 1)
@@ -167,17 +166,19 @@ fa.theta.2 <- do.fa(thetas.partial, 2)
 fa.theta <- fa.theta.1
 psych::fa.diagram(fa.theta)
 fa.theta$loadings
-fs <- psych::factor.scores(thetas.partial, fa.theta)
+fs.theta <- psych::factor.scores(thetas.partial, fa.theta)
 plot(sort(fa.theta$uniquenesses, decreasing = T))
 
-# =============================================================================
 # check relation to grand sum
-scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
-scores.partial <- rowmerge(scores.partial, fs$scores)
-scores.partial <- fit.score(scores.partial, fa.theta)
+pred.full <- rowmerge(scores.partial, fs.theta$scores)
+pred.full <- fit.score(pred.full, fa.theta)
 
 # evaluate grand sum prediction from factor scores
-evaluate.score.pred(scores.partial)
+p.full <- evaluate.score.pred(pred.full) + 
+  ggplot2::ggtitle("Score prediction from factor scores (IRT, full)")
+
+
+cowplot::plot_grid(p.base, p.full, ncol = 1, labels = "AUTO")
 
 # =============================================================================
 # TODO: check stability wrt subtests
