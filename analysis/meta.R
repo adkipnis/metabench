@@ -4,7 +4,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, do.fa, do.fa.cov])
+box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, get.theta, do.fa, do.fa.cov])
 Saveplots <- T
 mkdir("plots")
 here::i_am("analysis/meta.R")
@@ -32,9 +32,13 @@ rowmerge <- function(df1, df2){
 collect.theta <- function(benchmark){
    fitpath <- gpath("analysis/models/{benchmark}-all.rds")
    results <- readRDS(fitpath)
-   modeltype <- benchmarks[[benchmark]]
-   # TODO: choose EAPsum for some
-   theta <- results[[modeltype]]$theta
+   modeltype <- benchmarks[[benchmark]]$mod
+   theta.type <- benchmarks[[benchmark]]$est
+   if (theta.type == "MAP"){
+      theta <- results[[modeltype]]$theta
+   } else {
+      theta <- get.theta(results[[modeltype]]$model, theta.type)
+   }
    datapath <- gpath("data/{benchmark}_preproc.rds")
    names <- rownames(readRDS(datapath)$data)
    theta <- as.data.frame(theta)
@@ -107,12 +111,12 @@ plot.score.pred <- function(scores.partial){
 
 # =============================================================================
 # get ceiling
-benchmarks <- list(arc="4PL",
-                   gsm8k="3PLu",
-                   hellaswag="3PL",
-                   mmlu_sub="3PL",
-                   truthfulqa="3PL",
-                   winogrande="3PL")
+benchmarks <- list(arc=list(mod="4PL", est="EAPsum"),
+                   gsm8k=list(mod="3PLu", est="MAP"),
+                   hellaswag=list(mod="3PL", est="EAPsum"),
+                   mmlu_sub=list(mod="3PL", est="EAPsum"),
+                   truthfulqa=list(mod="3PL", est="EAPsum"),
+                   winogrande=list(mod="3PL", est="EAPsum"))
 scores.full <- lapply(names(benchmarks), collect.scores)
 scores.partial <- merge.theta(scores.full)
 # n.obs <- min(sapply(scores.full, function(s) nrow(s)))
