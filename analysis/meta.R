@@ -47,12 +47,12 @@ collect.theta <- function(benchmark){
    theta
 }
 
-merge.theta <- function(theta.full){
-   theta.reduced <- theta.full[[1]]
-   for (i in 2:length(theta.full)){
-      theta.reduced <- rowmerge(theta.reduced, theta.full[[i]])
+merge.skill <- function(skill.full){
+   skill.reduced <- skill.full[[1]]
+   for (i in 2:length(skill.full)){
+      skill.reduced <- rowmerge(skill.reduced, skill.full[[i]])
    }
-   theta.reduced
+   skill.reduced
 }
 
 collect.scores <- function(benchmark){
@@ -118,8 +118,7 @@ benchmarks <- list(arc=list(mod="4PL", est="EAPsum"),
                    truthfulqa=list(mod="3PL", est="EAPsum"),
                    winogrande=list(mod="3PL", est="EAPsum"))
 scores.full <- lapply(names(benchmarks), collect.scores)
-scores.partial <- merge.theta(scores.full)
-# n.obs <- min(sapply(scores.full, function(s) nrow(s)))
+scores.partial <- merge.skill(scores.full)
 
 covmat.score <- construct.covmat(scores.full)
 cov2cor(covmat.score)|>
@@ -137,6 +136,7 @@ fa.score$loadings
 # collect theta estimates and construct covariance matrix
 thetas.full <- lapply(names(benchmarks), collect.theta)
 thetas.partial <- merge.theta(thetas.full)
+thetas.partial <- merge.skill(thetas.full)
 covmat.theta <- construct.covmat(thetas.full)
 n.obs.min <- min(sapply(thetas.full, function(t) nrow(t)))
 
