@@ -215,8 +215,35 @@ p.full <- evaluate.score.pred(pred.full) +
   ggplot2::ggtitle(glue::glue(
     "Score prediction from factor scores (IRT, n = {numitems.theta$sum})"))
 
+# =============================================================================
+# collect theta estimates from reduced benchmarks
+thetas.sub.full <- lapply(names(benchmarks), function(b) collect.theta(b, full = F))
+thetas.sub.partial <- merge.skill(thetas.sub.full)
+covmat.sub.theta <- construct.covmat(thetas.sub.full)
+numitems.sub <- get.numitems(benchmarks, "reduced")
 
-cowplot::plot_grid(p.base, p.full, ncol = 1, labels = "AUTO")
+# plot correlation matrix
+cov2cor(covmat.sub.theta)|>
+   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
+
+# exploratory factor analysis
+fa.theta.s <- do.fa(thetas.sub.partial, 1)
+psych::fa.diagram(fa.theta.s)
+fa.theta.s$loadings
+fs.theta.s <- psych::factor.scores(thetas.sub.partial, fa.theta.s)
+plot(sort(fa.theta.s$uniquenesses, decreasing = T))
+
+# check relation to grand sum
+pred.sub <- rowmerge(scores.partial, fs.theta.s$scores)
+pred.sub <- fit.score(pred.sub, fa.theta.s)
+
+# evaluate grand sum prediction from factor scores
+p.sub <- evaluate.score.pred(pred.sub) +
+  ggplot2::ggtitle(glue::glue(
+    "Score prediction from factor scores (reduced IRT, n = {numitems.sub$sum})"))
 
 # =============================================================================
-# TODO: check stability wrt subtests
+# summary
+p <- cowplot::plot_grid(p.base, p.full, p.sub,
+                        ncol = 1, labels = "AUTO", align = "v")
+ggplot2::ggsave(gpath("plots/meta-prediction.png"), p, width = 8, height = 12)
