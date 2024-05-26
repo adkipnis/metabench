@@ -173,10 +173,12 @@ plot.items(items.sub, outpath = gpath("plots/pp_{BM}_2.png"))
 # reduce data and save
 data.sub <- data[, items.sub$item]
 gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
-scores <- rowSums(data)
-scores.norm <- scores / ncol(data)
 out <- list(items = items.sub, data = data.sub,
-            scores = scores, scores.norm = scores.norm)
+            scores = rowSums(data.sub),
+            max.points = ncol(data.sub),
+            scores.orig = scores,
+            max.points.orig = ncol(data)
+)
 outpath <- gpath("data/{BM}_preproc.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved to '{outpath}'.")
