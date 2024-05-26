@@ -153,6 +153,30 @@ plot.itemfit <- function(item.fits, fittype) {
           axis.ticks.y = element_blank())
 }
 
+plot.modelcomp <- function(comparisons) {
+  box::use(ggplot2[...], scales[rescale_none])
+  df.comparison <- comparisons |>
+    dplyr::select(AIC, BIC, SABIC, HQ) |>
+    dplyr::mutate(model = rownames(comparisons)) |>
+    tidyr::gather(key = "metric", value = "value", -model)
+
+  ymin <- min(df.comparison$value) - 0.1 * min(df.comparison$value)
+  ymax <- max(df.comparison$value) + 0.1 * max(df.comparison$value)
+  df.comparison |>
+    ggplot(aes(x = model, y = value)) +
+    facet_wrap(~metric) +
+    geom_bar(stat="identity", fill = "lightgrey", color = "black") +
+    scale_y_continuous(limits = c(ymin, ymax), oob = rescale_none) +
+    geom_text(data = df.comparison |>
+                dplyr::group_by(metric) |>
+                dplyr::filter(value == min(value)),
+              aes(label = "."), vjust = -0.5) +
+    labs(
+      x = "model",
+      y = "value"
+    ) +
+    mytheme()
+}
 
 # =============================================================================
 # load fit results
