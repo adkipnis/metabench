@@ -65,7 +65,8 @@ merge.skill <- function(skill.full){
 collect.scores <- function(benchmark){
    datapath <- gpath("data/{benchmark}_preproc.rds")
    all <- readRDS(datapath)
-   scores <- data.frame(100 * all$scores.norm)
+   scores.norm <- all$scores.orig/all$max.points.orig
+   scores <- data.frame(100 * scores.norm)
    colnames(scores) <- benchmark
    rownames(scores) <- rownames(all$data)
    scores
