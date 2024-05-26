@@ -157,7 +157,7 @@ plot.score.pred <- function(scores.partial, text = ""){
 benchmarks <- list(arc=list(mod="4PL", est="EAPsum"),
                    gsm8k=list(mod="3PLu", est="EAPsum"),
                    hellaswag=list(mod="3PL", est="MAP"),
-                   #mmlu_sub=list(mod="3PLu", est="EAPsum"),
+                   mmlu_sub=list(mod="3PLu", est="EAPsum"),
                    truthfulqa=list(mod="3PL", est="EAPsum"),
                    winogrande=list(mod="3PL", est="EAPsum"))
 scores.full <- lapply(names(benchmarks), collect.scores)
@@ -231,7 +231,6 @@ fa.theta.s <- do.fa(thetas.sub.partial, 1)
 psych::fa.diagram(fa.theta.s)
 fa.theta.s$loadings
 fs.theta.s <- psych::factor.scores(thetas.sub.partial, fa.theta.s)
-plot(sort(fa.theta.s$uniquenesses, decreasing = T))
 
 # check relation to grand sum
 pred.sub <- rowmerge(scores.partial, fs.theta.s$scores)
