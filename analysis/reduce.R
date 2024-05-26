@@ -16,7 +16,7 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
-   defaults = c("mmlu_sub", "3PL", "MAP", 0.0),
+   defaults = c("hellaswag", "3PL", "MAP", 0.0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "3PLu", "4PL"),
@@ -484,14 +484,14 @@ compare.score.stats(sfs, final$sfs)
 gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
 
 out <- list(
-   items.sub = merge.params(final$items, final$model),
-   model.sub = final$model,
-   theta.sub = final$theta,
+   items = merge.params(final$items, final$model),
+   model = final$model,
+   theta = final$theta,
    info.items = info.items,
    hyperparams = hyperparams,
    opt.results = opt.results,
-   fit.full = sfs,
-   fit.sub = final$sfs
+   sfs.full = sfs,
+   sfs.sub = final$sfs
 )
 
 outpath <- gpath("analysis/reduced/{BM}-{MOD}-{LAMBDA}.rds")
