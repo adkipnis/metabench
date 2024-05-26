@@ -107,13 +107,17 @@ if (BM == "mmlu_sub"){
   all <- readRDS(datapath)
   data <- all$data
   items <- all$prompts
+  items$item.orig <- items$item
+  items$item <- colnames(data) <- 1:ncol(data)
   scores <- rowSums(all$scores)
+  max.points.orig <- 7987L
 } else {
   df <- readr::read_csv(gpath("data/{BM}.csv"), show_col_types = F)
   data <- df2data(df)
   rm(df)
   items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F) 
   scores <- rowSums(data)
+  max.points.orig <- ncol(data)
 }
 
 # check if data and items conform
@@ -177,7 +181,7 @@ out <- list(items = items.sub, data = data.sub,
             scores = rowSums(data.sub),
             max.points = ncol(data.sub),
             scores.orig = scores,
-            max.points.orig = ncol(data)
+            max.points.orig = max.points.orig 
 )
 outpath <- gpath("data/{BM}_preproc.rds")
 saveRDS(out, outpath)
