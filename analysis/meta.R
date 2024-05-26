@@ -116,7 +116,7 @@ construct.covmat <- function(thetas){
 }
 
 fit.score <- function(scores.partial, res.fa){
-   pred.names <- colnames(scores.partial)[(length(benchmarks)+2):ncol(scores.partial)]
+   pred.names <- colnames(scores.partial)[grepl("\\d$", colnames(scores.partial))]
    formula <- paste0("grand ~ ", paste0("s(", pred.names, ")", collapse=" + "))
    mod.score <- mgcv::gam(as.formula(formula), data = scores.partial)
    scores.partial$p <- predict(mod.score)
