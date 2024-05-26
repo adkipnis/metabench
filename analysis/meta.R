@@ -72,6 +72,33 @@ collect.scores <- function(benchmark){
    scores
 }
 
+collect.numitems <- function(benchmark, type) {
+   if (type == "original"){
+      datapath <- gpath("data/{benchmark}_preproc.rds")
+      all <- readRDS(datapath)
+      numitems <- all$max.points.orig
+   } else if (type == "preprocessed"){
+     datapath <- gpath("data/{benchmark}_preproc.rds")
+     all <- readRDS(datapath)
+     numitems <- ncol(all$data)
+   } else if (type == "reduced") {
+      model.type <- benchmarks[[benchmark]]$mod
+      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.rds")
+      results <- readRDS(fitpath)
+      numitems <- nrow(results$items)
+   }
+   numitems
+}
+
+get.numitems <- function(benchmarks, type){
+   fun <- function(b) collect.numitems(b, type)
+   numitems <- lapply(names(benchmarks), fun)
+   names(numitems) <- names(benchmarks)
+   numitems <- as.data.frame(numitems)
+   numitems$sum <- sum(numitems)
+   numitems
+}
+
 construct.covmat <- function(thetas){
   # construct covariance matrix from list of thetas
   n <- length(thetas)
