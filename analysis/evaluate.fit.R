@@ -66,23 +66,7 @@ plot.theta.dists <- function(results){
 
 }
 
-plot.theta <- function(results, outpath = NULL){
-   p <- cowplot::plot_grid(
-      plot.theta.dists(results),
-      plot.theta.ests(results),
-      nrow = 2, align = "v"
-   )
-
-   # save or print
-   if (!is.null(outpath)) {
-      ggplot2::ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Theta plot saved to {outpath}")
-   } else {
-      print(p)
-   }
-}
-
-plot.parameters <- function(results, outpath = NULL){
+plot.parameters <- function(results){
    box::use(ggplot2[...], latex2exp[TeX])
    coefs <- lapply(results, function(result){
          mirt::coef(result$model, simplify = T, rotate = "none")$items
@@ -91,7 +75,7 @@ plot.parameters <- function(results, outpath = NULL){
       coefs[[i]] <- data.frame(coefs[[i]])
       coefs[[i]]$itemtype <- names(results)[i]
    }
-   p <- do.call(rbind, coefs) |>
+   do.call(rbind, coefs) |>
       ggplot(aes(x = d, y = a1)) +
       geom_point(alpha = 0.5) +
       facet_wrap(~itemtype) +
@@ -101,14 +85,6 @@ plot.parameters <- function(results, outpath = NULL){
          y = "loading"
       ) +
       mytheme()
-
-   # save or print
-   if (!is.null(outpath)) {
-      ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Parameter plot saved to {outpath}")
-   } else {
-      print(p)
-   }
 }
 
 compare.models <- function(results) {
@@ -154,36 +130,27 @@ wrap.itemfits <- function(results){
    item.fits
 }
 
-plot.itemfit <- function(item.fits, outpath = NULL) {
-   box::use(ggplot2[...])
-   subroutine <- function(fittype){
-      item.fits |> 
-         ggplot(aes(x = get(fittype), y = item)) +
-         facet_wrap(~itemtype) +
-         geom_point(alpha = 0.25) +
-         scale_x_continuous(limits = c(0, 2)) +
-         geom_vline(xintercept = 0.5, color = "gray", linetype = "dashed") +
-         geom_vline(xintercept = 1.5, color = "gray", linetype = "dashed") +
-         labs(
-            x = fittype,
-            y = "index"
-         ) +
-         mytheme() +
-         theme(axis.text.y = element_blank(),
-               axis.ticks.y = element_blank())
-   }
-
-   infits <- subroutine("infit")
-   outfits <- subroutine("outfit")
-   p <- cowplot::plot_grid(infits, outfits, nrow = 1)
-
-   # save or print
-   if (!is.null(outpath)) {
-      ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Item fit plot saved to {outpath}")
-   } else {
-      print(p)
-   }
+plot.itemfit <- function(item.fits, fittype) {
+  box::use(ggplot2[...])
+  # TODO: add text info
+  # summary <- item.fits |>
+  #   dplyr::group_by(itemtype) |>
+  #   dplyr::summarise(percentage = 100 * sum(outlier) / dplyr::n())
+  #
+  item.fits |> 
+    ggplot(aes(x = get(fittype), y = item)) +
+    facet_wrap(~itemtype) +
+    geom_point(alpha = 0.25) +
+    scale_x_continuous(limits = c(0, 2)) +
+    geom_vline(xintercept = 0.5, color = "gray", linetype = "dashed") +
+    geom_vline(xintercept = 1.5, color = "gray", linetype = "dashed") +
+    labs(
+       x = fittype,
+       y = "index"
+    ) +
+    mytheme() +
+    theme(axis.text.y = element_blank(),
+          axis.ticks.y = element_blank())
 }
 
 
