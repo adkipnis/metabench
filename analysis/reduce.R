@@ -439,6 +439,7 @@ datapath <- gpath("data/{BM}_preproc.rds")
 full <- readRDS(datapath)
 data <- full$data
 items <- full$items
+items$item <- as.numeric(items$item)
 scores <- full$scores
 rm(full)
 
