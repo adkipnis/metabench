@@ -1,6 +1,7 @@
 # Evaluate the performance of the IRT models on the given benchmark
-#   1. Model comparisons (AIC, Chi-Square)
+#   1. Theta and parameter distributions
 #   2. Item fits (Infit, Outfit)
+#   3. Model comparisons (AIC, Chi-Square)
 #
 # usage: Rscript evaluate.fit.R {benchmark}
 
