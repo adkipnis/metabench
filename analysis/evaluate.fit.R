@@ -185,16 +185,32 @@ path <- gpath("analysis/models/{BM}-all.rds")
 results <- readRDS(path)
 
 # plot theta and params
-plot.theta(results, gpath("plots/{BM}-theta.png"))
-plot.parameters(results, gpath("plots/{BM}-params.png"))
+p.theta <- cowplot::plot_grid(
+  plot.theta.dists(results),
+  plot.theta.ests(results),
+  nrow = 2, align = "v"
+)
+p.params <- plot.parameters(results)
+
+# analyze item fits
+item.fits <- wrap.itemfits(results)
+saveRDS(item.fits, gpath("analysis/itemfits/{BM}.rds"))
+
+# plot item fits
+p.itemfit <- cowplot::plot_grid(
+  plot.itemfit(item.fits, "infit"),
+  plot.itemfit(item.fits, "outfit"),
+  nrow = 2, align = "v"
+)
 
 # compare models
 comparisons <- compare.models(results)
 print(comparisons)
+p.comp <- plot.modelcomp(comparisons)
 summarize.comparisons(comparisons)
 
-# analyze item fits
-item.fits <- wrap.itemfits(results)
-plot.itemfit(item.fits, gpath("plots/{BM}-itemfits.png"))
-saveRDS(item.fits, gpath("analysis/itemfits/{BM}.rds"))
+# save plots
+p <- cowplot::plot_grid(p.theta, p.params, p.itemfit, p.comp, nrow = 2, ncol = 2, labels = "AUTO")
+ggplot2::ggsave(gpath("plots/{BM}-fit.png"), p, width = 16, height = 16)
+
 
