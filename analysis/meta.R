@@ -155,13 +155,14 @@ plot.score.pred <- function(scores.partial, text = ""){
 
 # load scores
 benchmarks <- list(arc=list(mod="4PL", est="EAPsum"),
-                   gsm8k=list(mod="3PLu", est="MAP"),
-                   hellaswag=list(mod="3PL", est="EAPsum"),
-                   mmlu_sub=list(mod="3PL", est="EAPsum"),
+                   gsm8k=list(mod="3PLu", est="EAPsum"),
+                   hellaswag=list(mod="3PL", est="MAP"),
+                   #mmlu_sub=list(mod="3PLu", est="EAPsum"),
                    truthfulqa=list(mod="3PL", est="EAPsum"),
                    winogrande=list(mod="3PL", est="EAPsum"))
 scores.full <- lapply(names(benchmarks), collect.scores)
 scores.partial <- merge.skill(scores.full)
+numitems.orig <- get.numitems(benchmarks, "original")
 
 # plot correlation matrix
 covmat.score <- construct.covmat(scores.full)
@@ -171,7 +172,7 @@ cov2cor(covmat.score)|>
 # exploratory factor analysis
 fa.score.1 <- do.fa(scores.partial, 1)
 fa.score.2 <- do.fa(scores.partial, 2)
-fa.score.3 <- do.fa(scores.partial, 3)
+fa.score.3 <- do.fa(scores.partial, 3, verbose = F)
 fa.score <- fa.score.2
 psych::fa.diagram(fa.score)
 fa.score$loadings
@@ -182,14 +183,15 @@ scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
 pred.base <- rowmerge(scores.partial, fs.score$scores)
 pred.base <- fit.score(pred.base, fa.score)
 p.base <- evaluate.score.pred(pred.base) +
-  ggplot2::ggtitle("Score prediction from factor scores (raw points)")
+  ggplot2::ggtitle(glue::glue(
+    "Score prediction from factor scores (raw points, n = {numitems.orig$sum})"))
 
 # =============================================================================
 # collect theta estimates and construct covariance matrix
 thetas.full <- lapply(names(benchmarks), collect.theta)
 thetas.partial <- merge.skill(thetas.full)
+numitems.theta <- get.numitems(benchmarks, "preprocessed")
 covmat.theta <- construct.covmat(thetas.full)
-n.obs.min <- min(sapply(thetas.full, function(t) nrow(t)))
 
 # plot correlation matrix
 cov2cor(covmat.theta)|>
@@ -209,8 +211,9 @@ pred.full <- rowmerge(scores.partial, fs.theta$scores)
 pred.full <- fit.score(pred.full, fa.theta)
 
 # evaluate grand sum prediction from factor scores
-p.full <- evaluate.score.pred(pred.full) + 
-  ggplot2::ggtitle("Score prediction from factor scores (IRT, full)")
+p.full <- evaluate.score.pred(pred.full) +
+  ggplot2::ggtitle(glue::glue(
+    "Score prediction from factor scores (IRT, n = {numitems.theta$sum})"))
 
 
 cowplot::plot_grid(p.base, p.full, ncol = 1, labels = "AUTO")
