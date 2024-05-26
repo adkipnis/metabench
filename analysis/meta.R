@@ -29,15 +29,22 @@ rowmerge <- function(df1, df2){
      tibble::column_to_rownames("Row.names")
 }
 
-collect.theta <- function(benchmark){
-   fitpath <- gpath("analysis/models/{benchmark}-all.rds")
-   results <- readRDS(fitpath)
-   modeltype <- benchmarks[[benchmark]]$mod
+collect.theta <- function(benchmark, full=T){
+   model.type <- benchmarks[[benchmark]]$mod
    theta.type <- benchmarks[[benchmark]]$est
-   if (theta.type == "MAP"){
-      theta <- results[[modeltype]]$theta
-   } else {
-      theta <- get.theta(results[[modeltype]]$model, theta.type)
+   if (full) {
+         fitpath <- gpath("analysis/models/{benchmark}-all.rds")
+         results <- readRDS(fitpath)
+         model <- results[[model.type]]$model
+         theta <- results[[model.type]]$theta
+      } else {
+         fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.rds")
+         results <- readRDS(fitpath)
+         model <- results$model
+         theta <- results$theta
+   }
+   if (theta.type != "MAP"){
+      theta <- get.theta(model, theta.type)
    }
    datapath <- gpath("data/{benchmark}_preproc.rds")
    names <- rownames(readRDS(datapath)$data)
