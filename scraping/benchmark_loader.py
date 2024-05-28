@@ -87,9 +87,11 @@ class BenchmarkLoader:
         
     
     def _fallbackSibling(self, info: DatasetInfo, benchmark: str) -> str:
-        assert hasattr(info, 'siblings'), f'🔎 No siblings found for {info.id}.'
+        assert hasattr(info, 'siblings'), f'🚨 No siblings found for {info.id}.'
         fnames = [s.rfilename for s in info.siblings if benchmark in s.rfilename]
-        assert len(fnames) == 1, f'🔎 {len(fnames)} fitting siblings found for {benchmark}.'
+        assert len(fnames) > 0, f'🚨 No fitting sibling found for {benchmark}.'
+        if len(fnames) > 1:
+            print(f'🔎 {len(fnames)} fitting siblings found for {benchmark}.')
         print(f'🎉 Fallback sibling found for {info.id}')
         return fnames[0]
     
