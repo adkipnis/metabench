@@ -51,6 +51,18 @@ df2data <- function(df) {
 }
 
 #" @export
+prop.indices <- function(scores, p = 0.1) {
+   # sample indices proportional to distribution
+   n <- length(scores)
+   k <- round(n * p)
+   pmf <- stats::density(scores)
+   pmf$y <- pmf$y / sum(pmf$y)
+   x.values <- findInterval(scores, pmf$x)
+   sample(1:n, k, prob = pmf$y[x.values])
+}
+
+
+#" @export
 run.mirt <- function(data, itemtype, large=F){
   mirt::mirt(data, 1, itemtype=itemtype,
                method="EM",
