@@ -44,74 +44,77 @@ plot.unique <- function(unique){
          ggtitle("Unique variance of MMLU subtests") +
          mytheme()
 }
-
-predict.scores <- function(scores, fa.res, full.points = NULL){
-  fs <- psych::factor.scores(scores, fa.res, method = "Bartlett")$scores
+#
+make.score.df <- function(scores, fa.res, means){
+  fs <- psych::factor.scores(scores, fa.res)$scores
   colnames(fs) <- paste0("F", 1:ncol(fs))
-  if (is.null(full.points)){
-     full.points <- rowSums(scores)
+  data.frame(fs, means)
+}
+
+train.scores <- function(df.scores){
+  pred.names <- colnames(df.scores)[-ncol(df.scores)]
+  formula <- glue::glue("means ~ {paste0('s(', pred.names, ')', collapse=' + ')}")
+  mgcv::gam(as.formula(formula), data = df.scores)
+}
+
+predict.scores <- function(df.scores, mod.score){
+   df.scores$p <- predict(mod.score, df.scores)
+   df.scores |>
+      dplyr::mutate(error = means - p,
+                    p.rank = rank(p),
+                    p.perc = 100* p.rank / max(p.rank),
+                    means.rank = rank(means),
+                    means.perc = 100 * means.rank / max(means.rank),
+                    error.perc = means.perc - p.perc)
+}
+
+evaluate.prediction <- function(df.scores){
+  df.scores |> 
+    dplyr::summarise(
+      RMSE = sqrt(mean((error.perc)^2)),
+      MAE = mean(abs(error.perc)),
+      r = cor(means, p, method = "spearman")
+    )
+}
+
+evaluate.scores <- function(scores.train, scores.test, fa.train){
+  df.train <- make.score.df(scores.train, fa.train, means.train)
+  df.test <- make.score.df(scores.test, fa.train, means.test)
+  mod.score <- train.scores(df.train)
+  df.train <- predict.scores(df.train, mod.score)
+  df.test <- predict.scores(df.test, mod.score)
+  sfs.train <- evaluate.prediction(df.train)
+  sfs.test <- evaluate.prediction(df.test)
+  list(sfs.train = sfs.train, sfs.test = sfs.test,
+       df.train = df.train, df.test = df.test)
+}
+
+plot.perc <- function(df.scores, sfs = NULL){
+  text <- ''
+  if (!is.null(sfs)){
+    text <- text <- glue::glue(
+      "RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}\nr = {round(sfs$r, 2)}")
   }
-  df.scores <- data.frame(points = full.points, fs)
-  formula <- paste0("points ~ ", paste0("s(", colnames(fs), ")", collapse=" + "))
-  mod.score <- mgcv::gam(as.formula(formula), data = df.scores)
-  df.scores$p <- predict(mod.score)
-  df.scores |>
-     dplyr::mutate(error = points - p,
-                   F1.rank = rank(F1),
-                   points.rank = rank(points),
-                   F1.perc = F1.rank / max(F1.rank),
-                   points.perc = points.rank / max(points.rank))
-}
-
-plot.scores <- function(df.scores, text = ""){
-  box::use(ggplot2[...], latex2exp[TeX])
-  x.label <- 0.9 * diff(range(df.scores$F1)) + min(df.scores$F1)
-  y.label <- 0.1 * diff(range(df.scores$points)) + min(df.scores$points)
-  ggplot(df.scores, aes(x = F1, y = points)) +
-   geom_point(alpha = 0.5) +
-   geom_line(aes(y = p), color = "red") +
-   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
-   labs(
-      x = TeX("$\\theta$"),
-      y = "Full score",
-      title = "FA Theta vs. Score"
-   ) +
-   mytheme()
-}
-
-plot.perc <- function(df.scores, text = ""){
   box::use(ggplot2[...], latex2exp[TeX])
   # get 0.9 of x range and 0.1 of y range
-  x.label <- 0.9 * diff(range(df.scores$F1.perc)) + min(df.scores$F1.perc)
-  y.label <- 0.1 * diff(range(df.scores$points.perc)) + min(df.scores$points.perc)
-  ggplot(df.scores, aes(x = F1.perc, y = points.perc)) +
+  x.label <- 0.9 * diff(range(df.scores$p.perc)) + min(df.scores$p.perc)
+  y.label <- 0.1 * diff(range(df.scores$means.perc)) + min(df.scores$means.perc)
+  ggplot(df.scores, aes(x = p.perc, y = means.perc)) +
    geom_point(alpha = 0.5) +
    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+   annotate("text", x = x.label, y = y.label, label = text, size = 50) +
   labs(
-      x = TeX("% $\\theta$"),
-      y = "% Full score",
-      title = "Percentile comparison"
+      x = "% Predicted",
+      y = "% True",
+      title = "Percentile Comparison"
    ) +
    mytheme()
 }
 
-evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO", justsummary = F){
-  df.scores <- predict.scores(scores, fa.res, full.points)
-  summary <- df.scores |> 
-    dplyr::summarise(
-    RMSE = sqrt(mean((points - p)^2)),
-    MAE = mean(abs(points - p)),
-    r = cor(points, F1, method = "spearman")
-  )
-  if (justsummary) return(summary)
-  gprint("\n\n📊 Evaluating score prediction...")
-  gprint("- Spearman correlation (total score x theta): {round(summary$r, 3)}")
-  gprint("- RMSE: {round(summary$RMSE, 3)}")
-  gprint("- MAE: {round(summary$MAE, 3)}")
+plot.evaluation <- function(df.scores, sfs = NULL, labels = NULL){
   cowplot::plot_grid(
-    plot.scores(df.scores, text = glue::glue("RMSE = {round(summary$RMSE, 2)}\nMAE = {round(summary$MAE, 2)}")),
-    plot.perc(df.scores, text = glue::glue("r = {round(summary$r, 2)}")),
+    # plot.scores(df.scores, sfs),
+    plot.perc(df.scores, sfs),
     labels = labels,
     nrow = 1)
 }
