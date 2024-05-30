@@ -183,16 +183,38 @@ goal <- round(1/4 * nrow(data))
 
 # get baseline RMSE
 fa.base <- do.fa(scores.train, 2, verbose = T)
-# sfs <- evaluate.scores(scores.test, fa.base, means.test)
-# gprint("Baseline RMSE: {round(sfs$RMSE, 2)}")
+out <- evaluate.scores(scores.train, scores.test, fa.base)
+gprint("Baseline RMSE: {round(out$sfs.train$RMSE, 3)} (train), {round(out$sfs.test$RMSE, 3)} (test)")
+p.base <- plot.evaluation(out$df.test, out$sfs.test)
 
 # start subsetting data
 gprint("Starting evolutionary subsampling until at most {goal} items remain...")
-out = subsample.wrapper(data.train, scores.train)
+data.train.sub <- data.train
+data.test.sub <- data.test
+while (ncol(data.train.sub) > goal){
+   subsample.res <- find.best.subset(data.train.sub, data.test.sub, iters = 50)
+   data.train.sub <- subsample.res$data.train
+   data.test.sub <- subsample.res$data.test
+}
 
+# plot final result
+p.final <- plot.evaluation(subsample.res$eval$df.test,
+                           subsample.res$eval$sfs.test)
+# TODO: test on validation set 
 
+# save plot
+p <- cowplot::plot_grid(p.base, p.final, ncol = 2, labels = "AUTO")
+outpath <- gpath("plots/hellaswag-efa.png")
+ggplot2::ggsave(outpath, p, width = 8, height = 8)
+gprint("💾 Saved plot to {outpath}")
 
-# while (ncol(data.sub) > goal){
-#   subsample.res <- find.best.subset(data.sub, scores, iters = 25)
-#   data.sub <- subsample.res$data
-# }
+# subset data
+hs$data <- rbind(data.train.sub, data.test.sub)
+hs$data.val <- data.val[colnames(data.sub)]
+hs$items <- items |> 
+  dplyr::filter(item %in% colnames(data.sub))
+
+# save data
+outpath <- gpath("data/hellaswag-sub.rds")
+saveRDS(hs, outpath)
+gprint("🏁 Saved subset data to {outpath}")
