@@ -293,7 +293,7 @@ class BenchmarkLoader:
                 print(f'🚨 No snapshots found for {benchmark}.')
                 return
             path = self.snapshots[sources[0]]
-            self._processPrompts(path, benchmark, accept_duplicates)
+            self._processPrompts(path, benchmark)
             return
         
         # process
