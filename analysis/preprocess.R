@@ -114,6 +114,16 @@ if (BM != "mmlu"){
   rm(mmlu)
 }
 
+# find all duplicates 
+dups <- which(duplicated(items$prompt)) # indices of non-unique items (only the second occurrance)
+if (length(dups) > 0){
+   gprint("⚠️  Found {length(dups)} duplicate items, removing all but the first...")
+   items <- items[-dups,]
+   data <- data[,items$item]
+}
+scores <- rowSums(data)
+max.points.orig <- ncol(data)
+
 # check if data and items conform
 if (!all(colnames(data) == items$item)){
    stop("❌ Item indices don't match prompts aborting.")
