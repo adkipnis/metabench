@@ -3,7 +3,7 @@
 #SBATCH --job-name=mb-cv-array
 #SBATCH --output=logs/cv.%A_%a.out
 #SBATCH --error=logs/cv.%A_%a.err
-#SBATCH --array=1-5
+#SBATCH --array=1-6
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de
 
@@ -17,7 +17,7 @@
 #SBATCH --nice=1000
 
 source $HOME/.bashrc
-benchmarks=("arc" "gsm8k" "hellaswag" "truthfulqa" "winogrande")
+benchmarks=("arc" "gsm8k" "hellaswag" "mmlu" "truthfulqa" "winogrande")
 task_index=$((SLURM_ARRAY_TASK_ID-1))
 task=${benchmarks[$task_index]}
 echo "Running task $task"
