@@ -152,7 +152,7 @@ class BenchmarkLoader:
         # check if all prompts are unique
         n_unique = len(prompts['prompt'].unique())
         if n_unique != n:
-            print(f'🚨 Warning: Not all prompts are unique for {benchmark}: {n - n_unique} duplicates.')
+            print(f'🚨 Warning: {n - n_unique} duplicate prompts.')
             return False
         prompts.to_csv(prompt_path, index=False)
         if self.verbose > 0:
@@ -294,6 +294,7 @@ class BenchmarkLoader:
                 print(f'🚨 No snapshots found for {benchmark}.')
                 return
             for s in sources:
+                print(f'🔍 Searching for prompts in {s}...')
                 path = self.snapshots[s]
                 done = self._processPrompts(path, benchmark)
                 if done: 
