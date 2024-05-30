@@ -76,3 +76,26 @@ subsample.wrapper <- function(data.train, scores.train){
   list(data = data.sub, fa = fa.sub,
        sfs.train = sfs.train, sfs.test = sfs.test)
 }
+# =============================================================================
+# prepare scores
+benchmarks <- c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
+gprint("🚰 Loading scores...")
+score.list <- lapply(benchmarks, collect.scores)
+scores <- Reduce(rowmerge, score.list)
+means <- rowMeans(scores)
+indices <- prop.indices(means, p = 0.1)
+scores.train <- scores[-indices, ]
+scores.test <- scores[indices, ]
+means.train <- means[-indices]
+means.test <- means[indices]
+
+# prepare hellaswag
+gprint("🚰 Loading HellaSwag...")
+all <- readRDS(gpath("data/hellaswag-preproc-split.rds"))
+nc <- all$max.points.orig
+data <- all$data[rownames(scores), ] # only keep common LLMs
+data.train <- data[-indices, ]
+data.test <- data[indices, ]
+goal <- round(1/4 * nrow(data))
+rm(all)
+
