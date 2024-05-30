@@ -7,9 +7,9 @@
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(
    names = c("BM"),
-   defaults = c("hellaswag"),
+   defaults = c("arc"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande")
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
    )
 )
 here::i_am("analysis/crossvalidate.R")
@@ -85,9 +85,14 @@ cv.wrapper <- function(folds, itemtype) {
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-preproc <- readRDS(gpath("data/{BM}_preproc.rds"))
+if (BM %in% c("hellaswag", "mmlu")){
+   datapath <- gpath("data/{BM}-sub.rds")
+} else {
+   datapath <- gpath("data/{BM}-preproc.rds")
+}
+preproc <- readRDS(datapath)
 data <- preproc$data
-scores <- preproc$scores
+scores <- 100 * preproc$scores.orig / preproc$max.points.orig
 
 # init df.score
 df.score <- data.frame(score = scores) |>
@@ -99,12 +104,10 @@ folds <- caret::createFolds(scores, k = 10, list = T)
 
 # =============================================================================
 # cv models
-cv.2pl <- cv.wrapper(folds, "2PL")
 cv.3pl <- cv.wrapper(folds, "3PL")
 cv.3plu <- cv.wrapper(folds, "3PLu")
 cv.4pl <- cv.wrapper(folds, "4PL")
-cvs <- list(`2PL`=cv.2pl, `3PL`=cv.3pl, `3PLu`=cv.3plu, `4PL`=cv.4pl)
+cvs <- list(`3PL`=cv.3pl, `3PLu`=cv.3plu, `4PL`=cv.4pl)
 outpath <- gpath("analysis/models/{BM}-cv.rds")
 saveRDS(cvs, outpath)
 gprint("💾 Saved to '{outpath}'.")
-
