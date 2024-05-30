@@ -119,35 +119,54 @@ plot.evaluation <- function(df.scores, sfs = NULL, labels = NULL){
     nrow = 1)
 }
 
-subsample <- function(dataset, percentage){
-   n <- ncol(dataset)
-   k <- round(n * percentage)
-   indices <- sort(sample(1:n, k))
-   dataset[, indices]
+subsample <- function(data, p){
+  n <- ncol(data)
+  k <- round(n * p)
+  sort(sample(1:n, k))
 }
 
-subsample.wrapper <- function(data.list, percentage = 0.95){
-   subsample.p <- function(d) subsample(d, percentage)
-   data.list.sample <- lapply(data.list, subsample.p)
-   scores.sample <- Reduce(rowmerge, lapply(data.list.sample, collect.scores))
-   fa.mmlu.sample <- do.fa(scores.sample, 1, verbose = F)
-   sfs.sample <- evaluate.scores(scores.sample, fa.mmlu.sample,
-                           full.points = rowSums(scores), justsummary = T)
-   list(data.list = data.list.sample, scores = scores.sample,
-        fa = fa.mmlu.sample, sfs = sfs.sample)
+apply.subsampling <- function(dl, indices.list){
+  out <- lapply(names(dl), function(n){
+    indices <- indices.list[[n]]
+    dl[[n]][indices]
+  })
+  names(out) <- names(dl)
+  out
 }
 
-find.best.subset <- function(data.list, iters){
-   sample.list <- list()
-   for (i in 1:iters){
-      sample.list[[i]] <- subsample.wrapper(data.list)
-   }
-   i <- which.min(sapply(sample.list, function(s) s$sfs$RMSE))
-   out <- sample.list[[i]]
-   gprint("Best RMSE: {round(out$sfs$RMSE, 3)}")
-   gprint("Reduced dataset to {n.data(out$data.list)} items.")
-   out
+
+subsample.wrapper <- function(dl.train, dl.test){
+   # subsample
+   indices.list <- lapply(dl.train, function(d) subsample(d, KEEPRATE))
+   dl.train.sub <- apply.subsampling(dl.train, indices.list)
+   dl.test.sub <- apply.subsampling(dl.test, indices.list)
+   scores.train.sub <- get.scores(dl.train.sub)
+   scores.test.sub <- get.scores(dl.test.sub)
+
+   # analyze and evaluate
+   fa.sub <- do.fa(scores.train.sub, 2, verbose = F)
+   out <- evaluate.scores(scores.train.sub, scores.test.sub, fa.sub)
+   list(dl.train = dl.train.sub,
+        dl.test = dl.test.sub,
+        fa = fa.sub,
+        eval = out)
 }
+
+find.best.subset <- function(dl.train, dl.test, iters){
+  sample.list <- list()
+  for (i in 1:iters){
+    sample.list[[i]] <- subsample.wrapper(dl.train, dl.test)
+  }
+  mae.list <- sapply(sample.list, function(s) s$eval$sfs.test$MAE)
+  i <- which.min(mae.list)
+  j <- which.max(mae.list)
+  best <- sample.list[[i]]
+  worst <- sample.list[[j]]
+  gprint("Test MAE (Range): {round(mae.list[i], 3)} -- {round(mae.list[j], 3)}")
+  gprint("Reduced dataset to {n.data(best$dl.train)} items.")
+  best
+}
+
 
 # =============================================================================
 # prepare data
