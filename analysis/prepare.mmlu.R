@@ -171,18 +171,24 @@ find.best.subset <- function(dl.train, dl.test, iters){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading MMLU data...")
-mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*csv", full.names=T)
-mmlu.data <- mmlu.files[!grepl("prompts", mmlu.files)]
-mmlu.prompts <- mmlu.files[grepl("prompts", mmlu.files)]
-mmlu.names <- gsub("mmlu_", "", gsub(".csv", "", basename(mmlu.data)))
-data.list <- lapply(mmlu.data, collect.data)
-prompt.list <- lapply(mmlu.prompts, collect.prompts)
-names(prompt.list) <- names(data.list) <- mmlu.names
-scores <- Reduce(rowmerge, lapply(data.list, collect.scores))
+mmlu <- readRDS(gpath("data/mmlu-preproc-split.rds"))
+data <- mmlu$data
+indices <- prop.indices(mmlu$scores.orig, p = 0.1)
+data.train <- data[-indices, ]
+data.test <- data[indices, ]
+goal <- round(1/4 * nrow(data))
+data.list.train <- df2list(data.train)
+data.list.test <- df2list(data.test)
+scores.train <- get.scores(data.list.train)
+scores.test <- get.scores(data.list.test)
+means.train <- rowMeans(scores.train)
+means.test <- rowMeans(scores.test)
 
 # exploratory factor analysis
 if (SHOW){
-  cor(scores) |>
+  df2list(data) |>
+    get.scores() |>
+    cor() |>
     corrplot::corrplot(method = "color",
                        order="hclust",
                        tl.cex = 0.3,
