@@ -129,8 +129,8 @@ items$exclude[items$diff > upper_bound] <- T
 gprint("{sum(items$exclude) - d.tmp} additional items are too easy.")
 d.tmp <- sum(items$exclude)
 
-# 2. item discrimination shouldn't be negative
-items$exclude[items$disc < 0] <- T
+# 2. part-whole correlation with full score should not be ~0
+items$exclude[items$disc < 0.05 & items$disc > -0.05] <- T
 gprint("{sum(items$exclude) - d.tmp} additional items have too low correlation with score.")
 
 # pre-selection summary
