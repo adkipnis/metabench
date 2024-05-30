@@ -54,14 +54,66 @@ evaluate.prediction <- function(df.scores){
     )
 }
 
-
+evaluate.scores <- function(scores.train, scores.test, fa.train){
+  df.train <- make.score.df(scores.train, fa.train, means.train)
+  df.test <- make.score.df(scores.test, fa.train, means.test)
   mod.score <- train.scores(df.train)
   df.train <- predict.scores(df.train, mod.score)
   df.test <- predict.scores(df.test, mod.score)
   sfs.train <- evaluate.prediction(df.train)
   sfs.test <- evaluate.prediction(df.test)
-  list(data = data.sub, fa = fa.sub,
-       sfs.train = sfs.train, sfs.test = sfs.test)
+  list(sfs.train = sfs.train, sfs.test = sfs.test,
+       df.train = df.train, df.test = df.test)
+}
+
+plot.scores <- function(df.scores, sfs = NULL){
+  text <- ''
+  if (!is.null(sfs)){
+    text <- glue::glue("RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}")
+  }
+  box::use(ggplot2[...], latex2exp[TeX])
+  x.label <- 0.9 * diff(range(df.scores$p)) + min(df.scores$p)
+  y.label <- 0.1 * diff(range(df.scores$means)) + min(df.scores$means)
+  ggplot(df.scores, aes(x = p, y = means)) +
+   geom_point(alpha = 0.5) +
+   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+   labs(
+      x = "Predicted",
+      y = "True",
+      title = "Mean Score Reconstruction"
+   ) +
+   mytheme()
+}
+
+plot.perc <- function(df.scores, sfs = NULL){
+  text <- ''
+  if (!is.null(sfs)){
+    text <- glue::glue("r = {round(sfs$r, 2)}")
+  }
+  box::use(ggplot2[...], latex2exp[TeX])
+  # get 0.9 of x range and 0.1 of y range
+  x.label <- 0.9 * diff(range(df.scores$p.perc)) + min(df.scores$p.perc)
+  y.label <- 0.1 * diff(range(df.scores$means.perc)) + min(df.scores$means.perc)
+  ggplot(df.scores, aes(x = p.perc, y = means.perc)) +
+   geom_point(alpha = 0.5) +
+   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+  labs(
+      x = "% Predicted",
+      y = "% True",
+      title = "Percentile Comparison"
+   ) +
+   mytheme()
+}
+
+plot.evaluation <- function(df.scores, sfs = NULL, labels = NULL){
+  cowplot::plot_grid(
+    plot.scores(df.scores, sfs),
+    plot.perc(df.scores, sfs),
+    labels = labels,
+    nrow = 1)
 }
 
 subsample <- function(data, p){
