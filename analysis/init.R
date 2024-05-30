@@ -8,10 +8,41 @@ packages <- c("tibble", "MASS", # base
               "mirt", "caret", "rBayesianOptimization", "psych") # data analysis
 install.packages(setdiff(packages, rownames(installed.packages())), 
                  repos='http://cran.us.r-project.org')
-box::use(./utils)
 # =============================================================================
-# check data health
+# custom utils, args, path
+box::use(./utils[gpath, grint, data2df])
+parse.args(names = c("BM"),
+           defaults = c("all"))
 here::i_am("analysis/init.R")
+
+# =============================================================================
+# helper functions
+check.health <- function(b){
+   gprint("🔍 Checking {b}...")
+   datapath <- gpath("data/{b}.csv")
+   df <- readr::read_csv(datapath, show_col_types = F)
+   data <- df2data(df)
+
+   # check for missing values
+   if (any(is.na(data))) {
+      gprint("❌ data contains missing values!")
+   } else {
+      gprint("✅ data contains {nrow(data)} subjects and {ncol(data)} items")
+   }
+
+   # check if prompts exist
+   promptpath <- gpath("data/{b}_prompts.csv")
+   prompts <- readr::read_csv(promptpath, show_col_types = F)
+   if (any(is.na(prompts))) {
+      gprint("❌ prompts incomplete!")
+   }
+   if (any(prompts$item != colnames(data))) {
+      gprint("❌ prompts do not match items!")
+   }
+}
+
+# =============================================================================
+# benchmarks
 benchmarks <- c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
 mmlu <- c(
     "abstract_algebra",
@@ -73,31 +104,21 @@ mmlu <- c(
     "world_religions"
   )
 benchmarks <- c(benchmarks, paste0("mmlu_", mmlu))
-
+# check if BM is valid
 # =============================================================================
 # check data health
 
-for (b in benchmarks) {
-   print(glue::glue("🔍 Checking {b}..."))
-   datapath <- here::here("data", glue::glue("{b}.csv"))
-   df <- readr::read_csv(datapath, show_col_types = F)
-   data <- utils$df2data(df)
-
-   # check for missing values
-   if (any(is.na(data))) {
-      print(glue::glue("❌ data contains missing values!"))
-   } else {
-      print(glue::glue("✅ data contains {nrow(data)} subjects and {ncol(data)} items"))
+if (BM == "all") {
+   for (b in benchmarks) {
+      check.health(b)
    }
-
-   # check if prompts exist
-   promptpath <- here::here("data", glue::glue("{b}_prompts.csv"))
-   prompts <- readr::read_csv(promptpath, show_col_types = F)
-   if (any(is.na(prompts))) {
-      print(glue::glue("❌ prompts incomplete!"))
+} else {
+   # check if BM is valid
+   if (!(BM %in% benchmarks)) {
+      gprint("❌ {BM} is not a valid benchmark!")
+      gprint("🔍 Valid benchmarks are: {benchmarks}")
+      stop()
    }
-   if (any(prompts$item != colnames(data))) {
-      print(glue::glue("❌ prompts do not match items!"))
-   }
+   check.health(BM)
 }
 
