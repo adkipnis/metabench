@@ -15,8 +15,6 @@ collect.scores <- function(benchmark){
    scores.norm
 }
 
-
-
 subset.data <- function(benchmark){
    all <- readRDS(gpath("data/{benchmark}-preproc.rds"))
    data <- all$data
@@ -33,7 +31,7 @@ subset.data <- function(benchmark){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading scores...")
-benchmarks <- c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
+benchmarks <- c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
 score.list <- lapply(benchmarks, collect.scores)
 scores.partial <- Reduce(rowmerge, score.list)
 scores.partial$mean <- rowMeans(scores.partial)
