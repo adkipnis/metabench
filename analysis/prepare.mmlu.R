@@ -195,44 +195,45 @@ if (SHOW){
                        tl.col = "black",
                        col.lim = c(0,1))
 }
-fa.mmlu <- do.fa(scores, 1)
-p.full <- evaluate.scores(scores, fa.mmlu)
 
-# determine unique contribution of subtests
-unique <- sort(fa.mmlu$uniquenesses, decreasing=T)
-if (SHOW) plot.unique(unique)
-keepers <- names(unique[1:30]) # keep first n
-# keepers <- names(unique[unique > 0.1]) # alternatively: keep most informative
-scores.sub <- scores[keepers]
-fa.mmlu.sub <- do.fa(scores.sub, 1)
-p.sub <- evaluate.scores(scores.sub, fa.mmlu.sub, full.points = rowSums(scores),
-                         labels = c("C", "D"))
-n.items <- n.data(data.list[keepers])
-gprint("\n\nReduced dataset from {n.data(data.list)} to {n.items} items.")
+# get baseline RMSE
+fa.base <- do.fa(scores.train, 1, verbose = T)
+out <- evaluate.scores(scores.train, scores.test, fa.base)
+gprint("Baseline MAE: {round(out$sfs.train$MAE, 3)} (train), {round(out$sfs.test$MAE, 3)} (test)")
+p.base <- plot.evaluation(out$df.test, out$sfs.test)
 
 # evolutionary algorithm to further reduce number of items
-subsample.res <- list(data.list = data.list[keepers])
-gprint("Starting evolutionary subsampling until at most {GOAL} items remain...")
-while (n.items > GOAL){
-  subsample.res <- find.best.subset(subsample.res$data.list, iters = 30)
-  n.items <- n.data(subsample.res$data.list)
+gprint("Starting evolutionary subsampling until at most {goal} items remain...")
+dl.train.sub <- data.list.train
+dl.test.sub <- data.list.test
+while (n.data(dl.train.sub) > goal){
+   subsample.res <- find.best.subset(dl.train.sub, dl.test.sub, iters = 5)
+   dl.train.sub <- subsample.res$dl.train
+   dl.test.sub <- subsample.res$dl.test
 }
-p.sample <- evaluate.scores(subsample.res$scores, subsample.res$fa,
-                            full.points = rowSums(scores), labels = c("E", "F"))
+
+# plot final result
+p.final <- plot.evaluation(subsample.res$eval$df.test,
+                           subsample.res$eval$sfs.test)
+# TODO: test on validation set 
 
 # save plot
-p <- cowplot::plot_grid(p.full, p.sub, p.sample, align = "v", nrow = 3)
-outpath <- gpath("plots/mmlu_efa.png")
+p <- cowplot::plot_grid(p.base, p.final, ncol = 2, labels = "AUTO")
+outpath <- gpath("plots/mmlu-efa.png")
 ggplot2::ggsave(outpath, p, width = 8, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
-data.sub <- Reduce(rowmerge, subsample.res$data.list)
-prompts.sub <- Reduce(rbind, prompt.list[keepers]) |> 
-   dplyr::filter(item %in% colnames(data.sub))
-outpath <- gpath("data/mmlu_sub.rds")
-out <- list(data = data.sub, prompts = prompts.sub,
-            scores = scores, scores.sub = scores.sub)
-saveRDS(out, outpath)
+data.train.sub <- Reduce(rowmerge, dl.train.sub)
+data.test.sub <- Reduce(rowmerge, dl.test.sub)
+mmlu$data <- rbind(data.train.sub, data.test.sub)
+mmlu$data.val <- mmlu$data.val[colnames(mmlu$data)]
+mmlu$items <- mmlu$items |> 
+  dplyr::filter(item %in% colnames(mmlu$data))
+
+# save data
+outpath <- gpath("data/mmlu-sub.rds")
+saveRDS(mmlu, outpath)
 gprint("🏁 Saved subset data to {outpath}")
+
 
