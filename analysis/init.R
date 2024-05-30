@@ -22,10 +22,12 @@ check.health <- function(b){
    datapath <- gpath("data/{b}.csv")
    df <- readr::read_csv(datapath, show_col_types = F)
    data <- df2data(df)
+   out = T
 
    # check for missing values
    if (any(is.na(data))) {
       gprint("❌ data contains missing values!")
+      out = F
    } else {
       gprint("✅ data contains {nrow(data)} subjects and {ncol(data)} items")
    }
@@ -35,13 +37,17 @@ check.health <- function(b){
    prompts <- readr::read_csv(promptpath, show_col_types = F)
    if (any(is.na(prompts))) {
       gprint("❌ prompts incomplete!")
+      out = F
    }
    if (any(prompts$item != colnames(data))) {
       gprint("❌ prompts do not match items!")
+      out = F
    }
    if (length(unique(prompts$prompt)) != nrow(prompts)) {
       gprint("❌ not all prompts unique: {nrow(prompts) - length(unique(prompts$prompt))} duplicates!")
+      out = F
    }
+   out
 }
 
 # =============================================================================
@@ -107,14 +113,15 @@ mmlu <- c(
     "world_religions"
   )
 benchmarks <- c(benchmarks, paste0("mmlu_", mmlu))
-# check if BM is valid
+
 # =============================================================================
 # check data health
 
 if (BM == "all") {
-   for (b in benchmarks) {
-      check.health(b)
-   }
+   healthy <- sapply(benchmarks, check.health)
+   critical <- benchmarks[!healthy]
+   gprint("\n\nUnhealthy benchmarks: {paste(critical, collapse = ', ')}")
+
 } else {
    # check if BM is valid
    if (!(BM %in% benchmarks)) {
@@ -122,6 +129,6 @@ if (BM == "all") {
       gprint("🔍 Valid benchmarks are: {benchmarks}")
       stop()
    }
-   check.health(BM)
+   health <- check.health(BM)
 }
 
