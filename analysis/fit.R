@@ -5,7 +5,7 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(names = c("BM"),
-           defaults = c("hellaswag"),
+           defaults = c("arc"),
            legal = list(
              BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"))
            )
@@ -28,7 +28,7 @@ wrapper <- function(itemtype, large=F, save=F){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-if (BM in c("hellaswag", "mmlu")){
+if (BM %in% c("hellaswag", "mmlu")){
    datapath <- gpath("data/{BM}-sub.rds")
 } else {
    datapath <- gpath("data/{BM}-preproc.rds")
