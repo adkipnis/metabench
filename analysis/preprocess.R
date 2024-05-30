@@ -7,11 +7,11 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, mytheme])
+box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, rowmerge, mytheme])
 parse.args(names = c("BM"),
-           defaults = c("arc"),
+           defaults = c("mmlu"),
            legal = list(
-             BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande")
+             BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
             )
 )
 here::i_am("analysis/preprocess.R")
@@ -20,6 +20,35 @@ set.seed(1)
 
 # =============================================================================
 # helper functions
+collect.mmlu.scenario <- function(datapath){
+  df <- readr::read_csv(datapath, show_col_types = F)
+  scenario <- df2data(df)
+  benchmark <- gsub("mmlu_", "", gsub(".csv", "", basename(datapath)))
+  colnames(scenario) <- paste0(benchmark, ".", colnames(scenario))
+  scenario
+}
+
+collect.mmlu.items <- function(datapath){
+  items <- readr::read_csv(datapath, show_col_types = F)
+  benchmark <- gsub("mmlu_", "", gsub("_prompts.csv", "", basename(datapath)))
+  items$item <- paste0(benchmark, ".", items$item)
+  items
+}
+
+collect.mmlu <- function(){
+  mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*csv", full.names=T)
+  mmlu.data <- mmlu.files[!grepl("prompts", mmlu.files)]
+  mmlu.prompts <- mmlu.files[grepl("prompts", mmlu.files)]
+  mmlu.names <- gsub("mmlu_", "", gsub(".csv", "", basename(mmlu.data)))
+  gprint("Fetching all MMLU scenarios...")
+  data.list <- lapply(mmlu.data, collect.mmlu.scenario)
+  item.list <- lapply(mmlu.prompts, collect.mmlu.items)
+  names(item.list) <- names(data.list) <- mmlu.names
+  gprint("Merging MMLU data...")
+  data <- Reduce(rowmerge, data.list)
+  items <- Reduce(rbind, item.list)
+  list(data = data, items = items)
+}
 
 get.item.difficulty <- function(data, n_options = 4) {
   # item difficulty (corrected for guessing)
@@ -73,22 +102,16 @@ plot.items <- function(items, den = T) {
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-if (BM == "mmlu_sub"){
-  datapath <- gpath("data/{BM}.rds")
-  all <- readRDS(datapath)
-  data <- all$data
-  items <- all$prompts
-  items$item.orig <- items$item
-  items$item <- colnames(data) <- 1:ncol(data)
-  scores <- rowSums(all$scores)
-  max.points.orig <- 7987L
-} else {
+if (BM != "mmlu"){
   df <- readr::read_csv(gpath("data/{BM}.csv"), show_col_types = F)
   data <- df2data(df)
   rm(df)
   items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F) 
-  scores <- rowSums(data)
-  max.points.orig <- ncol(data)
+} else {
+  mmlu <- collect.mmlu()
+  data <- mmlu$data
+  items <- mmlu$items
+  rm(mmlu)
 }
 
 # check if data and items conform
@@ -140,19 +163,19 @@ n_remaining <- nrow(items) - n_excluded
 gprint("Excluding {p_excluded}% items, {n_remaining} remain...")
 isr <- n_remaining / nrow(data) 
 if (isr <= 1/4){
-  gprint("✅ Item to subject ratio is {round(isr, 2)}.")
+  gprint("✅ Item to subject ratio is {round(isr, 2)}")
 } else {
   gprint("⚠️  Item to subject ratio is {round(isr, 2)}, further reduction is needed.")
 }
+items.sub <- items[!items$exclude, ]
+data.sub <- data[, items.sub$item]
 
 # plots (after)
-items.sub <- items[!items$exclude, ]
 p.post <- plot.items(items.sub)
 p <- cowplot::plot_grid(p.pre, p.post, ncol = 2, labels = "AUTO")
 ggplot2::ggsave(gpath("plots/{BM}-preproc.png"), p, width = 10, height = 5)
 
 # reduce data and save
-data.sub <- data[, items.sub$item]
 gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
 out <- list(items = items.sub,
             data = data.sub,
