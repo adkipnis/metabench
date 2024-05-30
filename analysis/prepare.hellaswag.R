@@ -39,10 +39,10 @@ predict.scores <- function(df.scores, mod.score){
    df.scores$p <- predict(mod.score, df.scores)
    df.scores |>
       dplyr::mutate(error = means - p,
-                F1.rank = rank(F1),
-                means.rank = rank(means),
-                F1.perc = F1.rank / max(F1.rank),
-                means.perc = means.rank / max(means.rank))
+                    p.rank = rank(p),
+                    p.perc = p.rank / max(p.rank),
+                    means.rank = rank(means),
+                    means.perc = means.rank / max(means.rank))
 }
 
 evaluate.prediction <- function(df.scores){
@@ -50,7 +50,7 @@ evaluate.prediction <- function(df.scores){
     dplyr::summarise(
       RMSE = sqrt(mean((means - p)^2)),
       MAE = mean(abs(means - p)),
-      r = cor(means, F1, method = "spearman")
+      r = cor(means, p, method = "spearman")
     )
 }
 
