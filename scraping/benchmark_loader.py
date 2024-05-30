@@ -4,6 +4,7 @@ import multiprocessing as mp
 from typing import List, Tuple
 from huggingface_hub import snapshot_download, HfApi
 from huggingface_hub.hf_api import DatasetInfo
+import numpy as np
 import pandas as pd
 
 
@@ -291,7 +292,9 @@ class BenchmarkLoader:
             _, failed = self._getBlacklist(benchmark)
             sources = [s for s in sources
                        if (s not in failed and s in self.snapshots)]
-            sources = sources[:5]
+            # randomly sample 5 sources
+            indices = np.random.choice(len(sources), 5, replace=False)
+            sources = [sources[i] for i in indices]
             if len(sources) == 0:
                 print(f'🚨 No snapshots found for {benchmark}.')
                 return
