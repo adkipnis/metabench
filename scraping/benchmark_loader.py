@@ -264,11 +264,11 @@ class BenchmarkLoader:
             self.df = self.df.dropna(subset=[benchmark])
         else:
             self.df = self.df.dropna(subset=['mmlu'])
-        sources = self._removeRedundant(benchmark)
         self._getSnapshotDirs(benchmark)
         
         # download 
         if download:
+            sources = self._removeRedundant(benchmark)
             with mp.Pool(self.num_cores) as pool:
                 for s in sources:
                     pool.apply_async(self.downloadDataset, args=(s, benchmark))
@@ -280,6 +280,9 @@ class BenchmarkLoader:
         # prompts
         if prompts:
             # find first source that is in self.snapshots
+            sources = self.df['name'].values.tolist()
+            _, failed = self._getBlacklist(benchmark)
+            sources = [s for s in sources if s not in failed]
             source = next((s for s in sources if s in self.snapshots), None)
             if source is None:
                 print(f'🚨 No snapshots found for {benchmark}.')
@@ -288,6 +291,7 @@ class BenchmarkLoader:
             return
         
         # process
+        sources = self._removeRedundant(benchmark)
         if self.num_cores == 1:
             for s in sources:
                 self.processDataset(s, benchmark)
