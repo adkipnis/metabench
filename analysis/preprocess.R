@@ -119,20 +119,31 @@ p.pre <- plot.items(items, den = F)
 # 0. item answers must vary
 items$exclude <- F
 items$exclude[items$sd <= 0.01] <- T
+gprint("{sum(items$exclude)} items have too little variance.")
+d.tmp <- sum(items$exclude)
 
 # 1. items should not be too easy 
 guess_coeff <- 3/4
 upper_bound <- 0.95 * guess_coeff
 items$exclude[items$diff > upper_bound] <- T
+gprint("{sum(items$exclude) - d.tmp} additional items are too easy.")
+d.tmp <- sum(items$exclude)
 
 # 2. item discrimination shouldn't be negative
 items$exclude[items$disc < 0] <- T
+gprint("{sum(items$exclude) - d.tmp} additional items have too low correlation with score.")
 
 # pre-selection summary
 n_excluded <- sum(items$exclude)
 p_excluded <- round(100 * n_excluded / nrow(items), 2)
 n_remaining <- nrow(items) - n_excluded
-gprint("1️⃣  Excluding {p_excluded}% items, {n_remaining} remain...")
+gprint("Excluding {p_excluded}% items, {n_remaining} remain...")
+isr <- n_remaining / nrow(data) 
+if (isr <= 1/4){
+  gprint("✅ Item to subject ratio is {round(isr, 2)}.")
+} else {
+  gprint("⚠️  Item to subject ratio is {round(isr, 2)}, further reduction is needed.")
+}
 
 # plots (after)
 items.sub <- items[!items$exclude, ]
