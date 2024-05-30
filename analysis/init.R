@@ -10,7 +10,7 @@ install.packages(setdiff(packages, rownames(installed.packages())),
                  repos='http://cran.us.r-project.org')
 # =============================================================================
 # custom utils, args, path
-box::use(./utils[gpath, grint, data2df])
+box::use(./utils[gpath, gprint, df2data])
 parse.args(names = c("BM"),
            defaults = c("all"))
 here::i_am("analysis/init.R")
