@@ -41,16 +41,17 @@ predict.scores <- function(df.scores, mod.score){
    df.scores |>
       dplyr::mutate(error = means - p,
                     p.rank = rank(p),
-                    p.perc = p.rank / max(p.rank),
+                    p.perc = 100* p.rank / max(p.rank),
                     means.rank = rank(means),
-                    means.perc = means.rank / max(means.rank))
+                    means.perc = 100 * means.rank / max(means.rank),
+                    error.perc = means.perc - p.perc)
 }
 
 evaluate.prediction <- function(df.scores){
   df.scores |> 
     dplyr::summarise(
-      RMSE = sqrt(mean((means - p)^2)),
-      MAE = mean(abs(means - p)),
+      RMSE = sqrt(mean((error.perc)^2)),
+      MAE = mean(abs(error.perc)),
       r = cor(means, p, method = "spearman")
     )
 }
@@ -67,31 +68,32 @@ evaluate.scores <- function(scores.train, scores.test, fa.train){
        df.train = df.train, df.test = df.test)
 }
 
-plot.scores <- function(df.scores, sfs = NULL){
-  text <- ''
-  if (!is.null(sfs)){
-    text <- glue::glue("RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}")
-  }
-  box::use(ggplot2[...], latex2exp[TeX])
-  x.label <- 0.9 * diff(range(df.scores$p)) + min(df.scores$p)
-  y.label <- 0.1 * diff(range(df.scores$means)) + min(df.scores$means)
-  ggplot(df.scores, aes(x = p, y = means)) +
-   geom_point(alpha = 0.5) +
-   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-   coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
-   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
-   labs(
-      x = "Predicted",
-      y = "True",
-      title = "Mean Score Reconstruction"
-   ) +
-   mytheme()
-}
+# plot.scores <- function(df.scores, sfs = NULL){
+#   text <- ''
+#   if (!is.null(sfs)){
+#     text <- glue::glue("RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}")
+#   }
+#   box::use(ggplot2[...], latex2exp[TeX])
+#   x.label <- 0.9 * diff(range(df.scores$p)) + min(df.scores$p)
+#   y.label <- 0.1 * diff(range(df.scores$means)) + min(df.scores$means)
+#   ggplot(df.scores, aes(x = p, y = means)) +
+#    geom_point(alpha = 0.5) +
+#    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+#    coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+#    annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+#    labs(
+#       x = "Predicted",
+#       y = "True",
+#       title = "Mean Score Reconstruction"
+#    ) +
+#    mytheme()
+# }
 
 plot.perc <- function(df.scores, sfs = NULL){
   text <- ''
   if (!is.null(sfs)){
-    text <- glue::glue("r = {round(sfs$r, 2)}")
+    text <- text <- glue::glue(
+      "RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}\nr = {round(sfs$r, 2)}")
   }
   box::use(ggplot2[...], latex2exp[TeX])
   # get 0.9 of x range and 0.1 of y range
@@ -111,7 +113,7 @@ plot.perc <- function(df.scores, sfs = NULL){
 
 plot.evaluation <- function(df.scores, sfs = NULL, labels = NULL){
   cowplot::plot_grid(
-    plot.scores(df.scores, sfs),
+    # plot.scores(df.scores, sfs),
     plot.perc(df.scores, sfs),
     labels = labels,
     nrow = 1)
@@ -149,12 +151,12 @@ find.best.subset <- function(data.train, data.test, iters){
   for (i in 1:iters){
     sample.list[[i]] <- subsample.wrapper(data.train, data.test)
   }
-  rmse.list <- sapply(sample.list, function(s) s$eval$sfs.test$RMSE)
-  i <- which.min(rmse.list)
-  j <- which.max(rmse.list)
+  mae.list <- sapply(sample.list, function(s) s$eval$sfs.test$MAE)
+  i <- which.min(mae.list)
+  j <- which.max(mae.list)
   best <- sample.list[[i]]
   worst <- sample.list[[j]]
-  gprint("Test RMSE (Range): {round(rmse.list[i], 3)} -- {round(rmse.list[j], 3)}")
+  gprint("Test MAE (Range): {round(mae.list[i], 3)} -- {round(mae.list[j], 3)}")
   gprint("Reduced dataset to {ncol(best$data.train)} items.")
   best
 }
@@ -184,7 +186,7 @@ goal <- round(1/4 * nrow(data))
 # get baseline RMSE
 fa.base <- do.fa(scores.train, 2, verbose = T)
 out <- evaluate.scores(scores.train, scores.test, fa.base)
-gprint("Baseline RMSE: {round(out$sfs.train$RMSE, 3)} (train), {round(out$sfs.test$RMSE, 3)} (test)")
+gprint("Baseline MAE: {round(out$sfs.train$MAE, 3)} (train), {round(out$sfs.test$MAE, 3)} (test)")
 p.base <- plot.evaluation(out$df.test, out$sfs.test)
 
 # start subsetting data
