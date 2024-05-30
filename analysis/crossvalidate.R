@@ -88,7 +88,7 @@ gprint("🚰 Loading preprocessed {BM} data...")
 if (BM %in% c("hellaswag", "mmlu")){
    datapath <- gpath("data/{BM}-sub.rds")
 } else {
-   datapath <- gpath("data/{BM}-preproc.rds")
+   datapath <- gpath("data/{BM}-preproc-split.rds")
 }
 preproc <- readRDS(datapath)
 data <- preproc$data
