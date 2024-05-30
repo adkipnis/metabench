@@ -6,7 +6,8 @@ packages <- c("tibble", "MASS", # base
               "readr", "here", "glue", "box", "latex2exp", # utilities
               "tidyr", "dplyr", "ggplot2", "cowplot", "corrplot", # tidyverse/plots
               "mirt", "caret", "rBayesianOptimization", "psych") # data analysis
-install.packages(setdiff(packages, rownames(installed.packages())))
+install.packages(setdiff(packages, rownames(installed.packages())), 
+                 repos='http://cran.us.r-project.org')
 box::use(./utils)
 # =============================================================================
 # check data health
