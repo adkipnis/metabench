@@ -5,8 +5,7 @@
 packages <- c("tibble", "MASS", # base
               "readr", "here", "glue", "box", "latex2exp", # utilities
               "tidyr", "dplyr", "ggplot2", "cowplot", "corrplot", # tidyverse/plots
-              "mirt", "caret", "rBayesianOptimization", "psych",
-              "mirCAT") # data analysis
+              "mirt", "caret", "rBayesianOptimization", "psych", "catR") # data analysis
 install.packages(setdiff(packages, rownames(installed.packages())))
 box::use(./utils)
 # =============================================================================
