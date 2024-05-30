@@ -138,7 +138,7 @@ class BenchmarkLoader:
             f.write(source + '\n')
    
 
-    def _processPrompts(self, path: str, benchmark: str) -> bool:
+    def _processPrompts(self, path: str, benchmark: str, accept_duplicates: bool = False) -> bool:
         try:
             raw = pd.read_parquet(path, engine='fastparquet')
         except:
@@ -153,7 +153,8 @@ class BenchmarkLoader:
         n_unique = len(prompts['prompt'].unique())
         if n_unique != n:
             print(f'🚨 Warning: {n - n_unique} duplicate prompts.')
-            return False
+            if not accept_duplicates:
+                return False
         prompts.to_csv(prompt_path, index=False)
         if self.verbose > 0:
             print(f'📜 Dumped {benchmark} prompts to csv.')
@@ -290,13 +291,15 @@ class BenchmarkLoader:
             _, failed = self._getBlacklist(benchmark)
             sources = [s for s in sources
                        if (s not in failed and s in self.snapshots)]
+            sources = sources[:5]
             if len(sources) == 0:
                 print(f'🚨 No snapshots found for {benchmark}.')
                 return
             for s in sources:
                 print(f'🔍 Searching for prompts in {s}...')
                 path = self.snapshots[s]
-                done = self._processPrompts(path, benchmark)
+                accept_duplicates = s == sources[-1] # accept duplicates for last source
+                done = self._processPrompts(path, benchmark, accept_duplicates)
                 if done: 
                     break
             return
