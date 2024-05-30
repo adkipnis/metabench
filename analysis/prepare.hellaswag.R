@@ -54,3 +54,25 @@ evaluate.prediction <- function(df.scores){
     )
 }
 
+subsample <- function(data, p = 0.95){
+  n <- ncol(data)
+  k <- round(n * p)
+  indices <- sort(sample(1:n, k))
+  data[, indices]
+}
+
+subsample.wrapper <- function(data.train, scores.train){
+  data.sub <- subsample(data.train, 0.95)
+  scores.sub <- scores.train
+  scores.sub$hellaswag <- rowSums(data.sub)/nc * 100
+  fa.sub <- do.fa(scores.sub, 2, verbose = F)
+  df.train <- make.score.df(scores.sub, fa.sub, means.train)
+  df.test <- make.score.df(scores.test, fa.sub, means.test)
+  mod.score <- train.scores(df.train)
+  df.train <- predict.scores(df.train, mod.score)
+  df.test <- predict.scores(df.test, mod.score)
+  sfs.train <- evaluate.prediction(df.train)
+  sfs.test <- evaluate.prediction(df.test)
+  list(data = data.sub, fa = fa.sub,
+       sfs.train = sfs.train, sfs.test = sfs.test)
+}
