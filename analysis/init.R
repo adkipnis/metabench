@@ -39,6 +39,9 @@ check.health <- function(b){
    if (any(prompts$item != colnames(data))) {
       gprint("❌ prompts do not match items!")
    }
+   if (length(unique(prompts$prompt)) != nrow(prompts)) {
+      gprint("❌ not all prompts unique: {nrow(prompts) - length(unique(prompts$prompt))} duplicates!")
+   }
 }
 
 # =============================================================================
