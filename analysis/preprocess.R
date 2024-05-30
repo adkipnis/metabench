@@ -9,13 +9,13 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, mytheme])
 parse.args(names = c("BM"),
-           defaults = c("mmlu_sub"),
+           defaults = c("arc"),
            legal = list(
              BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande")
             )
 )
 here::i_am("analysis/preprocess.R")
-mkdir(gpath("plots"))
+mkdir("plots")
 set.seed(1)
 
 # =============================================================================
@@ -48,7 +48,7 @@ get.item.discrimination <- function(data, scores) {
   (m1 - m) / s * sqrt(n1 * n0 / (n * (n-1)))
 }
 
-plot.items <- function(items, den = T, outpath = NULL) {
+plot.items <- function(items, den = T) {
    box::use(ggplot2[...], cowplot[plot_grid])
    hist1 <- ggplot(items, aes(diff)) +
       geom_histogram(bins = 100, fill="lightgrey", color="black") +
@@ -66,38 +66,9 @@ plot.items <- function(items, den = T, outpath = NULL) {
       scatter <- scatter +
          geom_density_2d(color = "red", linewidth = 1)
    }
-
-   # position three plots in a single column
-   p <- plot_grid(hist1, hist2, scatter, ncol = 1)
-
-   # save or print
-   if (!is.null(outpath)) {
-      ggsave(outpath, p, width = 8, height = 8)
-   } else {
-      print(p)
-   }
+   plot_grid(hist1, hist2, scatter, ncol = 1)
 }
 
-rejection.prob <- function(items, pmf) {
-   x.values <- findInterval(items$diff, pmf$x)
-   pmf$y[x.values] * (1 - items$disc) # reduce probability for high discrimination
-}
-
-rejection.sampling <- function(items, max_reject = 100) {
-  # create pmf for equally spaced bins
-  pmf <- density(items$diff, from = 0, to = 1, n = 100)
-  pmf$y <- pmf$y / max(pmf$y)
-  items$reject <- rejection.prob(items, pmf)
-  items$exclude <- items$reject > runif(nrow(items))
-  # if too many items are rejected, keep the rest
-  if (sum(items$exclude) > max_reject) {
-     n_too_many <- sum(items$exclude) - max_reject
-     indices <- sample(which(items$exclude), n_too_many)
-     items$exclude[indices] <- F
-  }
-  items <- items[!items$exclude, ]
-  return(items)
-}
 
 # =============================================================================
 # prepare data
@@ -124,6 +95,7 @@ if (BM == "mmlu_sub"){
 if (!all(colnames(data) == items$item)){
    stop("❌ Item indices don't match prompts aborting.")
 }
+gprint("# LLMs: {nrow(data)}, # items: {ncol(data)}.")
 
 # =============================================================================
 # outlier removal
@@ -139,7 +111,7 @@ gprint("⚙️  Starting item analysis...")
 items$sd <- apply(data, 2, sd)
 items$diff <- get.item.difficulty(data)
 items$disc <- get.item.discrimination(data, scores)
-plot.items(items, den = F, outpath = gpath("plots/pp_{BM}_0.png"))
+p.pre <- plot.items(items, den = F)
 
 # =============================================================================
 # item pre-selection
@@ -164,25 +136,18 @@ gprint("1️⃣  Excluding {p_excluded}% items, {n_remaining} remain...")
 
 # plots (after)
 items.sub <- items[!items$exclude, ]
-plot.items(items.sub, outpath = gpath("plots/pp_{BM}_1.png"))
-
-# optionally do rejection sampling for item pre-selection
-n_max <- nrow(data)/4 # aspire an item to subject ratio of at max 1:4
-if (n_remaining > n_max) gprint("2️⃣  Starting rejection sampling...")
-while (nrow(items.sub) > n_max) {
-  items.sub <- rejection.sampling(items.sub)
-}
-plot.items(items.sub, outpath = gpath("plots/pp_{BM}_2.png"))
+p.post <- plot.items(items.sub)
+p <- cowplot::plot_grid(p.pre, p.post, ncol = 2, labels = "AUTO")
+ggplot2::ggsave(gpath("plots/{BM}-preproc.png"), p, width = 10, height = 5)
 
 # reduce data and save
 data.sub <- data[, items.sub$item]
 gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
-out <- list(items = items.sub, data = data.sub,
-            scores = rowSums(data.sub),
-            max.points = ncol(data.sub),
+out <- list(items = items.sub,
+            data = data.sub,
             scores.orig = scores,
             max.points.orig = max.points.orig 
 )
-outpath <- gpath("data/{BM}_preproc.rds")
+outpath <- gpath("data/{BM}-preproc.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved to '{outpath}'.")
