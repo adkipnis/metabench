@@ -1,16 +1,17 @@
-# Jointly fit MMLU single model on all subtests 
-# 1. Perform exploratory FA on scores and discard non-unique subtests
-# 2. Fit IRT model on remaining subtests
+# Further reduce MMLU to at max 1/4 of the number of LLMs
+# 0. Perform exploratory FA on scores and discard non-unique subtests
+# 1. Drop a random subset of MMLU items per scenario and recalculate the scores
+# 2. Perform exploratory factor analysis on the scores
+# 3. Try to predict the the normalized full score using the latent factor
 # usage: Rscript prepare.mmlu.R
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[mkdir, gprint, gpath, df2data, rowmerge, do.fa, mytheme])
+box::use(./utils[mkdir, gprint, gpath, prop.indices, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
-mkdir(gpath("plots"))
 set.seed(1)
-GOAL <- 1500L
 SHOW <- F
+KEEPRATE <- 0.98
 
 # =============================================================================
 # helper functions
