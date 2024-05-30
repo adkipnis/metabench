@@ -76,6 +76,23 @@ subsample.wrapper <- function(data.train, scores.train){
   list(data = data.sub, fa = fa.sub,
        sfs.train = sfs.train, sfs.test = sfs.test)
 }
+
+#
+# find.best.subset <- function(data, scores, iters){
+#   sample.list <- list()
+#
+#   for (i in 1:iters){
+#     sample.list[[i]] <- subsample.wrapper(data[indices,],
+#                                           scores.train,
+#                                           means[indices])
+#   }
+#   i <- which.min(sapply(sample.list, function(s) s$sfs$RMSE))
+#   out <- sample.list[[i]]
+#   gprint("Best RMSE: {round(out$sfs$RMSE, 3)}")
+#   gprint("Reduced dataset to {ncol(out$data)} items.")
+#   out
+# }
+
 # =============================================================================
 # prepare scores
 benchmarks <- c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
@@ -99,3 +116,18 @@ data.test <- data[indices, ]
 goal <- round(1/4 * nrow(data))
 rm(all)
 
+# get baseline RMSE
+fa.base <- do.fa(scores.train, 2, verbose = T)
+# sfs <- evaluate.scores(scores.test, fa.base, means.test)
+# gprint("Baseline RMSE: {round(sfs$RMSE, 2)}")
+
+# start subsetting data
+gprint("Starting evolutionary subsampling until at most {goal} items remain...")
+out = subsample.wrapper(data.train, scores.train)
+
+
+
+# while (ncol(data.sub) > goal){
+#   subsample.res <- find.best.subset(data.sub, scores, iters = 25)
+#   data.sub <- subsample.res$data
+# }
