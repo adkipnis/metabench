@@ -138,7 +138,7 @@ class BenchmarkLoader:
             f.write(source + '\n')
    
 
-    def _processPrompts(self, path: str, benchmark: str) -> None:
+    def _processPrompts(self, path: str, benchmark: str) -> bool:
         try:
             raw = pd.read_parquet(path, engine='fastparquet')
         except:
@@ -149,9 +149,15 @@ class BenchmarkLoader:
         prompt_path = os.path.join(self.output_dir, f'{prefix}{benchmark}_prompts.csv')
         prompts = pd.DataFrame({'item': range(1, n+1),
                                 'prompt': raw['full_prompt']})
+        # check if all prompts are unique
+        n_unique = len(prompts['prompt'].unique())
+        if n_unique != n:
+            print(f'🚨 Warning: Not all prompts are unique for {benchmark}: {n - n_unique} duplicates.')
+            return False
         prompts.to_csv(prompt_path, index=False)
         if self.verbose > 0:
             print(f'📜 Dumped {benchmark} prompts to csv.')
+        return True
         
 
     def _processParquet(self, path: str, source: str, benchmark: str) -> pd.DataFrame:
@@ -282,13 +288,16 @@ class BenchmarkLoader:
             # find first source that is in self.snapshots
             sources = self.df['name'].values.tolist()
             _, failed = self._getBlacklist(benchmark)
-            sources = [s for s in sources if s not in failed]
-            source = next((s for s in sources if s in self.snapshots), None)
-            if source is None:
+            sources = [s for s in sources
+                       if (s not in failed and s in self.snapshots)]
+            if len(sources) == 0:
                 print(f'🚨 No snapshots found for {benchmark}.')
                 return
-            path = self.snapshots[source]
-            self._processPrompts(path, benchmark)
+            for s in sources:
+                path = self.snapshots[s]
+                done = self._processPrompts(path, benchmark)
+                if done: 
+                    break
             return
         
         # process
