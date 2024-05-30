@@ -212,11 +212,12 @@ gprint("💾 Saved plot to {outpath}")
 
 # subset data
 hs$data <- rbind(data.train.sub, data.test.sub)
-hs$data.val <- data.val[colnames(data.sub)]
-hs$items <- items |> 
-  dplyr::filter(item %in% colnames(data.sub))
+hs$data.val <- hs$data.val[colnames(hs$data)]
+hs$items <- hs$items |> 
+  dplyr::filter(item %in% colnames(hs$data))
 
 # save data
 outpath <- gpath("data/hellaswag-sub.rds")
 saveRDS(hs, outpath)
 gprint("🏁 Saved subset data to {outpath}")
+
