@@ -4,8 +4,9 @@
 */.DS_Store
 .Rproj.user
 analysis/models*
-data
-plots
+analysis/archive
 analysis/itemfits
 analysis/reduced
+data
+plots
 *_old
