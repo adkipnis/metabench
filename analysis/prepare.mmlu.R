@@ -119,8 +119,8 @@ plot.evaluation <- function(df.scores, sfs = NULL, labels = NULL){
     nrow = 1)
 }
 
-subsample <- function(data, p){
-  n <- ncol(data)
+subsample <- function(dl, p){
+  n <- n.data(dl)
   k <- round(n * p)
   sort(sample(1:n, k))
 }
