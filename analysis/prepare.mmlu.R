@@ -11,7 +11,7 @@ box::use(./utils[mkdir, gprint, gpath, prop.indices, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
 set.seed(1)
 SHOW <- F
-KEEPRATE <- 0.98
+KEEPRATE <- 0.95
 
 # =============================================================================
 # helper functions
@@ -119,8 +119,8 @@ plot.evaluation <- function(df.scores, sfs = NULL, labels = NULL){
     nrow = 1)
 }
 
-subsample <- function(dl, p){
-  n <- n.data(dl)
+subsample <- function(data, p){
+  n <- ncol(data)
   k <- round(n * p)
   sort(sample(1:n, k))
 }
