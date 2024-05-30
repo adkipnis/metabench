@@ -188,7 +188,7 @@ p.sub <- evaluate.scores(scores.sub, fa.mmlu.sub, full.points = rowSums(scores),
 n.items <- n.data(data.list[keepers])
 gprint("\n\nReduced dataset from {n.data(data.list)} to {n.items} items.")
 
-# evolutionary alogorithm to further reduce number of items
+# evolutionary algorithm to further reduce number of items
 subsample.res <- list(data.list = data.list[keepers])
 gprint("Starting evolutionary subsampling until at most {GOAL} items remain...")
 while (n.items > GOAL){
