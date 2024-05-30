@@ -1,9 +1,11 @@
 */.RData
 */.Rhistory
 */tempCodeRunnerFile.r
+*/.DS_Store
 .Rproj.user
 analysis/models*
 data
 plots
 analysis/itemfits
 analysis/reduced
+*_old
