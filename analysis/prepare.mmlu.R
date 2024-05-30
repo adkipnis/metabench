@@ -16,25 +16,18 @@ KEEPRATE <- 0.98
 # =============================================================================
 # helper functions
 
-collect.data <- function(datapath){
-  df <- readr::read_csv(datapath, show_col_types = F)
-  data <- df2data(df)
-  benchmark <- gsub("mmlu_", "", gsub(".csv", "", basename(datapath)))
-  colnames(data) <- paste0(benchmark, ".", colnames(data))
-  data
+df2list <- function(df){
+  scenarios <- unique(gsub("\\..*", "", colnames(df)))
+  data.list <- lapply(scenarios, function(s) df[, grepl(s, colnames(df))])
+  names(data.list) <- scenarios
+  data.list
 }
 
-collect.prompts <- function(datapath){
-   items <- readr::read_csv(datapath, show_col_types = F)
-   benchmark <- gsub("mmlu_", "", gsub("_prompts.csv", "", basename(datapath)))
-   items$item <- paste0(benchmark, ".", items$item)
-   items
-}
-
-collect.scores <- function(dataset){
-  scores <- data.frame(rowSums(dataset))
-  colnames(scores) <- gsub("\\..*", "", colnames(dataset)[1])
-  scores
+get.scores <- function(data.list){
+  scores.list <- lapply(data.list, function(d) data.frame(rowSums(d)))
+  scores.df <- invisible(Reduce(rowmerge, scores.list))
+  colnames(scores.df) <- names(scores.list)
+  scores.df
 }
 
 n.data <- function(data.list){
