@@ -1,4 +1,4 @@
-# full IRT fitting (2pl, 3pl, 3plu, 4pl) of preprocessed data
+# full IRT fitting (3pl, 3plu, 4pl) of preprocessed data
 # usage: Rscript fit.R {benchmark}
 
 # =============================================================================
@@ -7,7 +7,7 @@ box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(names = c("BM"),
            defaults = c("hellaswag"),
            legal = list(
-             BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande"))
+             BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"))
            )
 here::i_am("analysis/fit.R")
 mkdir("analysis/models")
@@ -28,16 +28,21 @@ wrapper <- function(itemtype, large=F, save=F){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-data <- readRDS(gpath("data/{BM}_preproc.rds"))$data
+if (BM in c("hellaswag", "mmlu")){
+   datapath <- gpath("data/{BM}-sub.rds")
+} else {
+   datapath <- gpath("data/{BM}-preproc.rds")
+}
+data <- readRDS(datapath)$data
 internaldat <- mirt::mirt(data, 1, large='return')
 
 #===============================================================================
 # fit models
-fit.2pl <- wrapper("2PL", internaldat)
 fit.3pl <- wrapper("3PL", internaldat)
 fit.3plu <- wrapper("3PLu", internaldat)
 fit.4pl <- wrapper("4PL", internaldat)
-fits <- list(`2PL`=fit.2pl, `3PL`=fit.3pl, `3PLu`=fit.3plu, `4PL`=fit.4pl)
+
+fits <- list(`3PL`=fit.3pl, `3PLu`=fit.3plu, `4PL`=fit.4pl)
 outpath <- gpath("analysis/models/{BM}-all.rds")
 saveRDS(fits, outpath)
 gprint("💾 Saved to '{outpath}'.")
