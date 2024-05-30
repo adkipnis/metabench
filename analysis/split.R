@@ -2,7 +2,7 @@
 # usage: Rscript split.R
 
 # =============================================================================
-box::use(./utils[gprint, gpath, prop.indices])
+box::use(./utils[gprint, gpath, rowmerge, prop.indices])
 here::i_am("analysis/split.R")
 set.seed(1)
 
