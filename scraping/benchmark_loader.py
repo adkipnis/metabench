@@ -287,7 +287,8 @@ class BenchmarkLoader:
             if source is None:
                 print(f'🚨 No snapshots found for {benchmark}.')
                 return
-            self._processPrompts(source, benchmark)
+            path = self.snapshots[source]
+            self._processPrompts(path, benchmark)
             return
         
         # process
