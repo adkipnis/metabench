@@ -28,3 +28,29 @@ make.score.df <- function(scores, fa.res, means){
   colnames(fs) <- paste0("F", 1:ncol(fs))
   data.frame(fs, means)
 }
+
+train.scores <- function(df.scores){
+  pred.names <- colnames(df.scores)[-ncol(df.scores)]
+  formula <- glue::glue("means ~ {paste0('s(', pred.names, ')', collapse=' + ')}")
+  mgcv::gam(as.formula(formula), data = df.scores)
+}
+
+predict.scores <- function(df.scores, mod.score){
+   df.scores$p <- predict(mod.score, df.scores)
+   df.scores |>
+      dplyr::mutate(error = means - p,
+                F1.rank = rank(F1),
+                means.rank = rank(means),
+                F1.perc = F1.rank / max(F1.rank),
+                means.perc = means.rank / max(means.rank))
+}
+
+evaluate.prediction <- function(df.scores){
+  df.scores |> 
+    dplyr::summarise(
+      RMSE = sqrt(mean((means - p)^2)),
+      MAE = mean(abs(means - p)),
+      r = cor(means, F1, method = "spearman")
+    )
+}
+
