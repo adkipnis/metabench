@@ -68,8 +68,8 @@ run.mirt <- function(data, itemtype, large=F){
                method="EM",
                density="Davidian-4",
                large=large,
-               TOL=1e-4,
-               technical=list(NCYCLES=3000))
+               TOL=1e-5,
+               technical=list(NCYCLES=5000))
 }
 
 #" @export
