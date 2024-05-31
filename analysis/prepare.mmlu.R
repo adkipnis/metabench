@@ -142,26 +142,27 @@ plot.perc <- function(df.scores, sfs = NULL, suffix = ""){
     mytheme()
 }
 
-subsample <- function(data, remove = 10){
-  n <- ncol(data)
-  k <- n - remove
-  sort(sample(1:n, k, replace = F))
+subsample <- function(dl, remove = 20){
+  n <- n.data(dl)
+  sort(sample(1:n, remove, replace = F))
 }
-
-apply.subsampling <- function(dl, indices.list){
-  out <- lapply(names(dl), function(n){
-    indices <- indices.list[[n]]
-    dl[[n]][indices]
-  })
-  names(out) <- names(dl)
-  out
+ 
+apply.subsampling <- function(dl, indices, starting.indices){
+  scen.indices <- c()
+  for (i in indices){
+    j <- which(i < starting.indices)[1] - 1
+    k <- i - starting.indices[j] + 1
+    dl[[j]] <- dl[[j]][,-k]
+  }
+  dl
 }
 
 subsample.wrapper <- function(dl.train, dl.test){
    # subsample
-   indices.list <- lapply(dl.train, subsample)
-   dl.train.sub <- apply.subsampling(dl.train, indices.list)
-   dl.test.sub <- apply.subsampling(dl.test, indices.list)
+   indices <- subsample(data.list.train)
+   starting.indices <- cumsum(sapply(dl.train, ncol)) - ncol(dl.train[[1]]) + 1
+   dl.train.sub <- apply.subsampling(dl.train, indices, starting.indices)
+   dl.test.sub <- apply.subsampling(dl.test, indices, starting.indices)
    scores.train.sub <- get.scores(dl.train.sub)
    scores.test.sub <- get.scores(dl.test.sub)
 
