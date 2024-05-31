@@ -16,7 +16,7 @@ predict.scores <- function(df.scores, mod.score){
    df.scores |>
       dplyr::mutate(error = means - p,
                     p.rank = rank(p),
-                    p.perc = 100* p.rank / max(p.rank),
+                    p.perc = 100 * p.rank / max(p.rank),
                     means.rank = rank(means),
                     means.perc = 100 * means.rank / max(means.rank),
                     error.perc = means.perc - p.perc)
@@ -25,7 +25,16 @@ predict.scores <- function(df.scores, mod.score){
 evaluate.prediction <- function(df.scores){
   df.scores |> 
     dplyr::summarise(
-      RMSE = sqrt(mean((error.perc)^2)),
+      RMSE = sqrt(mean(error^2)),
+      MAE = mean(abs(error)),
+      SSE = sum(error^2)
+    )
+}
+
+evaluate.percentiles <- function(df.scores){
+  df.scores |> 
+    dplyr::summarise(
+      RMSE = sqrt(mean(error.perc^2)),
       MAE = mean(abs(error.perc)),
       r = cor(means, p, method = "spearman")
     )
