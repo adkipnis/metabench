@@ -190,10 +190,11 @@ out <- list(data.train = rbind(data.train.sub, data.test.sub),
             scores.train = hs$scores.train, 
             scores.test = hs$scores.test,
             max.points.orig = hs$max.points.orig,
-            items = hs$items |> dplyr::filter(item %in% colnames(data.train.sub)))
+            items = hs$items |> dplyr::filter(item %in% colnames(data.train.sub)),
+            plot = p)
 
 # save data
 outpath <- gpath("data/hellaswag-sub.rds")
-saveRDS(hs, outpath)
+saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
 
