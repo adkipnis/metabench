@@ -168,3 +168,39 @@ if (METHOD == "EAPsum"){
 }
 df.score <- cv.collect(cvs)
 
+# evaluate
+sfs <- evaluate.fit(df.score)
+print(sfs)
+p.ts <- cowplot::plot_grid(
+  plot.theta.score(df.score, "3PL"),
+  plot.theta.score(df.score, "3PLu"),
+  plot.theta.score(df.score, "4PL"),
+  nrow = 1)
+
+p.pc <- cowplot::plot_grid(
+  plot.perc(df.score, "3PL"),
+  plot.perc(df.score, "3PLu"),
+  plot.perc(df.score, "4PL"),
+  nrow = 1)
+
+p.ps <- cowplot::plot_grid(
+  plot.score(df.score, "3PL"),
+  plot.score(df.score, "3PLu"),
+  plot.score(df.score, "4PL"),
+  nrow = 1)
+
+p.er <- cowplot::plot_grid(
+  plot.error(df.score, "3PL"),
+  plot.error(df.score, "3PLu"),
+  plot.error(df.score, "4PL"),
+  nrow = 1, align = "h")
+
+p <- cowplot::plot_grid(
+  p.ts, p.pc, p.ps, p.er, ncol = 1
+)
+
+# save
+outpath <- gpath("plots/{BM}-cv-{METHOD}.png")
+ggplot2::ggsave(outpath, p, width = 16, height = 16)
+gprint("💾 Saved plot to {outpath}")
+
