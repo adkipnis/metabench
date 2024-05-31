@@ -51,10 +51,14 @@ evaluate.scores <- function(scores.train, scores.test){
   df.train <- predict.scores(df.train, mod.score)
   df.test <- predict.scores(df.test, mod.score)
  
+  # evaluate and save
   sfs.train <- evaluate.prediction(df.train)
   sfs.test <- evaluate.prediction(df.test)
-  list(sfs.train = sfs.train, sfs.test = sfs.test,
-       df.train = df.train, df.test = df.test)
+  list(mod.score = mod.score,
+    sfs.train = sfs.train,
+    sfs.test = sfs.test,
+    df.train = df.train,
+    df.test = df.test)
 }
 
 # plot.scores <- function(df.scores, sfs = NULL){
