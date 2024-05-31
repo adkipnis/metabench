@@ -233,7 +233,7 @@ p.final <- cowplot::plot_grid(
   nrow = 1, labels = "AUTO"
 )
 outpath <- gpath("plots/mmlu-reduced.png")
-ggplot2::ggsave(outpath, p.final, width = 8, height = 8)
+ggplot2::ggsave(outpath, p.final, width = 30, height = 10)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
