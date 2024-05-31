@@ -142,10 +142,10 @@ plot.perc <- function(df.scores, sfs = NULL, suffix = ""){
     mytheme()
 }
 
-subsample <- function(data, p){
+subsample <- function(data, remove = 10){
   n <- ncol(data)
-  k <- round(n * p)
-  sort(sample(1:n, k))
+  k <- n - remove
+  sort(sample(1:n, k, replace = F))
 }
 
 apply.subsampling <- function(dl, indices.list){
@@ -156,7 +156,6 @@ apply.subsampling <- function(dl, indices.list){
   names(out) <- names(dl)
   out
 }
-
 
 subsample.wrapper <- function(dl.train, dl.test){
    # subsample
