@@ -185,10 +185,11 @@ ggplot2::ggsave(outpath, p, width = 18, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
-out <- list(data.train = rbind(data.train.sub, data.test.sub),
-            data.test = hs$data.test[colnames(data.train.sub)],
-            scores.train = hs$scores.train, 
-            scores.test = hs$scores.test,
+data.sub <- rbind(data.train.sub, data.test.sub) 
+out <- list(data.train = data.sub,
+            data.test = hs$data.test[colnames(data.sub)],
+            scores.train = scores.train[rownames(data.sub)],
+            scores.test = scores.test,
             max.points.orig = hs$max.points.orig,
             items = hs$items |> dplyr::filter(item %in% colnames(data.train.sub)),
             plot = p)
