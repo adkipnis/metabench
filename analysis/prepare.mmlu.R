@@ -210,7 +210,7 @@ gprint("Starting evolutionary subsampling until at most {goal} items remain...")
 dl.train.sub <- data.list.train
 dl.test.sub <- data.list.test
 while (n.data(dl.train.sub) > goal){
-   subsample.res <- find.best.subset(dl.train.sub, dl.test.sub, iters = 5)
+   subsample.res <- find.best.subset(dl.train.sub, dl.test.sub, iters = 50)
    dl.train.sub <- subsample.res$dl.train
    dl.test.sub <- subsample.res$dl.test
 }
