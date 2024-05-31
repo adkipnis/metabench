@@ -192,8 +192,9 @@ find.best.subset <- function(dl.train, dl.test, iters){
 # prepare data
 gprint("🚰 Loading MMLU data...")
 mmlu <- readRDS(gpath("data/mmlu-preproc-split.rds"))
-data <- mmlu$data
-indices <- prop.indices(mmlu$scores.orig, p = 0.1)
+data <- mmlu$data.train
+nc <- mmlu$max.points.orig
+indices <- caret::createDataPartition(mmlu$scores.train, p = 0.1, list = F)
 data.train <- data[-indices, ]
 data.test <- data[indices, ]
 goal <- round(1/4 * nrow(data))
@@ -201,8 +202,6 @@ data.list.train <- df2list(data.train)
 data.list.test <- df2list(data.test)
 scores.train <- get.scores(data.list.train)
 scores.test <- get.scores(data.list.test)
-means.train <- rowMeans(scores.train)
-means.test <- rowMeans(scores.test)
 
 # exploratory factor analysis
 if (SHOW){
