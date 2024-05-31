@@ -25,6 +25,8 @@ subset.data <- function(benchmark){
                scores.train = scores[-indices],
                scores.test = scores[indices],
                max.points.orig = all$max.points.orig)
+   na.count <- sapply(out, function(x) sum(is.na(x)))
+   if (any(na.count > 0)) gprint("⚠️ Incomplete data produced: {na.count}")
    saveRDS(out, gpath("data/{benchmark}-preproc-split.rds"))
    gprint("💾 Split off validation set from {b}.")
 }
