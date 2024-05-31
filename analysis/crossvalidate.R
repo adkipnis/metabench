@@ -7,7 +7,7 @@
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(
    names = c("BM"),
-   defaults = c("arc"),
+   defaults = c("winogrande"),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
    )
@@ -70,7 +70,7 @@ cv.2pl <- cross.validate("2PL")
 cv.3pl <- cross.validate("3PL")
 cv.3plu <- cross.validate("3PLu")
 cv.4pl <- cross.validate("4PL")
-cvs <- list(`3PL`=cv.3pl, `3PLu`=cv.3plu, `4PL`=cv.4pl)
+cvs <- list(`2PL`=cv.2pl, `3PL`=cv.3pl, `3PLu`=cv.3plu, `4PL`=cv.4pl)
 outpath <- gpath("analysis/models/{BM}-cv.rds")
 saveRDS(cvs, outpath)
 gprint("💾 Saved to '{outpath}'.")
