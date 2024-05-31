@@ -35,7 +35,7 @@ cv.collect <- function(results) {
   dfs
 }
 
-refit <- function(result, data.test){
+refit <- function(result, data.train, data.test){
   # load data
   model <- result$model
   df <- result$df
@@ -43,8 +43,10 @@ refit <- function(result, data.test){
   test <- df |> dplyr::filter(set == "test")
   
   # refit theta
-  train$theta <- get.theta(model, method = "EAPsum")[,1]
-  test$theta <- get.theta(model, method = "EAPsum", resp = data.test)[,1]
+  if (METHOD != "MAP"){
+    train$theta <- get.theta(model, method = METHOD, resp = data.train)[,1]
+    test$theta <- get.theta(model, method = METHOD, resp = data.test)[,1]
+  }
   
   # refit gam
   mod.score <- mgcv::gam(score ~ s(theta), data = train)
@@ -59,14 +61,20 @@ refit <- function(result, data.test){
 }
 
 refit.wrapper <- function(cvs){
-  gprint("Refitting theta using EAPsum...")
-  data.test <- readRDS(gpath("data/{BM}-preproc-split.rds"))$data.test
+  gprint("Refitting theta using {METHOD}...")
+  if (BM %in% c("hellaswag", "mmlu")){
+    datapath <- gpath("data/{BM}-sub.rds")
+  } else {
+    datapath <- gpath("data/{BM}-preproc-split.rds")
+  }  
+  all <- readRDS(datapath)
+  data.train <- all$data.train
+  data.test <- all$data.test
   cvs.re <- list()
   for (i in 1:length(cvs)){
     tryCatch({
-      cvs.re[[i]] <- refit(cvs[[i]], data.test)
+      cvs.re[[i]] <- refit(cvs[[i]], data.train, data.test)
     }, error = function(e){
-      gprint("Could not refit {names(cvs)[i]}")
     })
   }
   names(cvs.re) <- names(cvs)
