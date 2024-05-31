@@ -99,34 +99,47 @@ evaluate.scores <- function(scores.train, scores.test){
        df.test = df.test)
 }
 
-plot.perc <- function(df.scores, sfs = NULL){
+plot.prediction <- function(df.scores, sfs = NULL, suffix = ""){
+  text <- ''
+  if (!is.null(sfs)){
+    text <- text <- glue::glue(
+      "RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}")
+  }
+  box::use(ggplot2[...], latex2exp[TeX])
+  x.label <- 0.9 * diff(range(df.scores$means)) + min(df.scores$means)
+  y.label <- 0.1 * diff(range(df.scores$p)) + min(df.scores$p)
+  ggplot(df.scores, aes(x = means, y = p)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+    coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+    labs(
+      x = "True",
+      y = "Predicted",
+      title = glue::glue("Score Reconstruction {suffix}")
+    ) +
+    mytheme()
+}
+
+plot.perc <- function(df.scores, sfs = NULL, suffix = ""){
   text <- ''
   if (!is.null(sfs)){
     text <- text <- glue::glue(
       "RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}\nr = {round(sfs$r, 2)}")
   }
   box::use(ggplot2[...], latex2exp[TeX])
-  # get 0.9 of x range and 0.1 of y range
-  x.label <- 0.9 * diff(range(df.scores$p.perc)) + min(df.scores$p.perc)
-  y.label <- 0.1 * diff(range(df.scores$means.perc)) + min(df.scores$means.perc)
-  ggplot(df.scores, aes(x = p.perc, y = means.perc)) +
-   geom_point(alpha = 0.5) +
-   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-   annotate("text", x = x.label, y = y.label, label = text, size = 50) +
-  labs(
-      x = "% Predicted",
-      y = "% True",
-      title = "Percentile Comparison"
-   ) +
-   mytheme()
-}
-
-plot.evaluation <- function(df.scores, sfs = NULL, labels = NULL){
-  cowplot::plot_grid(
-    # plot.scores(df.scores, sfs),
-    plot.perc(df.scores, sfs),
-    labels = labels,
-    nrow = 1)
+  x.label <- 0.9 * diff(range(df.scores$means.perc)) + min(df.scores$means.perc)
+  y.label <- 0.1 * diff(range(df.scores$p.perc)) + min(df.scores$p.perc)
+  ggplot(df.scores, aes(y = p.perc, x = means.perc)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+    labs(
+      x = "% True",
+      y = "% Predicted",
+      title = glue::glue("Percentile Comparison {suffix}")
+    ) +
+    mytheme()
 }
 
 subsample <- function(data, p){
