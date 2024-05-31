@@ -2,7 +2,7 @@
 # usage: Rscript split.R
 
 # =============================================================================
-box::use(./utils[gprint, gpath, rowmerge, prop.indices])
+box::use(./utils[gprint, gpath, rowmerge])
 here::i_am("analysis/split.R")
 set.seed(1)
 
@@ -19,12 +19,14 @@ subset.data <- function(benchmark){
    all <- readRDS(gpath("data/{benchmark}-preproc.rds"))
    data <- all$data
    scores <- all$scores.orig
-   indices <- rownames(data) %in% llms.val
-   all$data <- data[!indices, ]
-   all$data.val <- data[indices, ]
-   all$scores.orig <- all$scores.orig[!indices]
-   all$scores.orig.val <- all$scores.orig[indices]
-   saveRDS(all, gpath("data/{benchmark}-preproc-split.rds"))
+   indices <- which(rownames(data) %in% llms.val)
+   out <- list(data.train = data[-indices, ],
+               data.test = data[indices, ],
+               scores.train = scores[-indices],
+               scores.test = scores[indices],
+               max.points.orig = all$max.points.orig)
+   saveRDS(out, gpath("data/{benchmark}-preproc-split.rds"))
+   gprint("💾 Split off validation set from {b}.")
 }
 
 
@@ -38,10 +40,9 @@ scores.partial$mean <- rowMeans(scores.partial)
 
 # select indices for validation set
 gprint("🎲 Selecting validation indices...")
-indices <- prop.indices(scores.partial$mean)
+indices <- caret::createDataPartition(scores.partial$mean, p = 0.1, list = F)
 llms.val <- rownames(scores.partial)[indices]
 llms.rest <- rownames(scores.partial)[-indices]
 
 # subset data
-invisible(lapply(benchmarks, subset.data))
-gprint("💾 Split off the same {length(llms.val)} models from each preprocessed dataset.")
+for (b in benchmarks) subset.data(b)
