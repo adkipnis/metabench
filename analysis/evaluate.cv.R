@@ -34,64 +34,29 @@ cv.collect <- function(results) {
   dfs
 }
 
-spearmanize <- function(df.score) {
-   gprint("Calculating Spearman correlation between theta and score...")
-   df.score |>
+evaluate.fit <- function(df.score) {
+   df.score |> 
       dplyr::group_by(type, set) |>
       dplyr::summarize(
-            spearman = cor(theta, score, method = "spearman"),
+            rmse = sqrt(mean(error^2)),
+            mae = mean(abs(error)),
+            r = cor(theta, score, method = "spearman"),
             .groups = 'drop')
 }
 
-plot.score <- function(df.score, limits, outpath = NULL){
    box::use(ggplot2[...])
-   p <- df.score |> 
-      ggplot(aes(x = score, y = p, color = set)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
                      linetype = "dashed") +
-         facet_wrap(~type, scales = "free") +
-         scale_x_continuous(limits = limits) +
-         scale_y_continuous(limits = limits) +
-         scale_color_manual(values = c("train" = "gray", "test" = "orange")) +
          labs(
-            title = glue::glue("{BM} Score Reconstruction"),
-            x = "true",
-            y = "predicted",
-            color = "Set"
             ) +
          mytheme()
-   # save or print
-   if (!is.null(outpath)) {
-      ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Score reconstruction saved to {outpath}")
-   } else {
-      print(p)
-   }
 }
 
-plot.error <- function(df.score, outpath=NULL){
-   box::use(ggplot2[...])
-   p <- df.score |> 
-      dplyr::mutate(error = abs(p - score)) |>
-      ggplot(aes(x = type, y = error, fill = set)) +
-         geom_boxplot() +
-         scale_fill_manual(values = c("train" = "gray", "test" = "orange")) +
          labs(
-            title = glue::glue("{BM} Error Distribution"),
-            x = "type",
-            y = "absolute error",
-            fill = "set"
             ) +
          mytheme()
-   # save or print
-   if (!is.null(outpath)) {
-      ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 CV error distribution saved to {outpath}")
-   } else {
-      print(p)
-   }
 }
 
 # =============================================================================
@@ -99,7 +64,4 @@ plot.error <- function(df.score, outpath=NULL){
 cvpath <- gpath("analysis/models/{BM}-cv.rds")
 cvs <- readRDS(cvpath)
 df.score <- cv.collect(cvs)
-print(spearmanize(df.score))
-plot.score(df.score, c(0, 100), gpath("plots/{BM}-score-predicted.png"))
-plot.error(df.score, gpath("plots/{BM}-score-error.png"))
 
