@@ -11,12 +11,6 @@ set.seed(1)
 
 # =============================================================================
 # helper functions
-train.scores <- function(df.scores){
-  pred.names <- colnames(df.scores)[-ncol(df.scores)]
-  formula <- glue::glue("means ~ {paste0('s(', pred.names, ')', collapse=' + ')}")
-  mgcv::gam(as.formula(formula), data = df.scores)
-}
-
 predict.scores <- function(df.scores, mod.score){
    df.scores$p <- predict(mod.score, df.scores)
    df.scores |>
