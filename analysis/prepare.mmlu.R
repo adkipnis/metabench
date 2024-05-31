@@ -11,7 +11,6 @@ box::use(./utils[mkdir, gprint, gpath, prop.indices, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
 set.seed(1)
 SHOW <- F
-KEEPRATE <- 0.95
 
 # =============================================================================
 # helper functions
@@ -24,9 +23,13 @@ df2list <- function(df){
 }
 
 get.scores <- function(data.list){
-  scores.list <- lapply(data.list, function(d) data.frame(rowSums(d)))
-  scores.df <- invisible(Reduce(rowmerge, scores.list))
-  colnames(scores.df) <- names(scores.list)
+  scores.list <- lapply(names(data.list), function(n){
+    out <- data.frame(rowSums(data.list[[n]]))
+    colnames(out) <- n
+    out
+    })
+  scores.df <- Reduce(rowmerge, scores.list)
+  colnames(scores.df) <- names(data.list)
   scores.df
 }
 
