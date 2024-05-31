@@ -179,14 +179,19 @@ df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
 sfs.val <- evaluate.prediction(df.val)
 p.val <- plot.prediction(df.val, sfs.val, "(Validation)")
 
+# plot final result
+p <- cowplot::plot_grid(p.train, p.test, p.val, nrow = 1, labels = "AUTO")
+outpath <- gpath("plots/hellaswag-reduced.png")
 ggplot2::ggsave(outpath, p, width = 8, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
-hs$data <- rbind(data.train.sub, data.test.sub)
-hs$data.val <- hs$data.val[colnames(hs$data)]
-hs$items <- hs$items |> 
-  dplyr::filter(item %in% colnames(hs$data))
+out <- list(data.train = rbind(data.train.sub, data.test.sub),
+            data.test = hs$data.test[colnames(data.train.sub)],
+            scores.train = hs$scores.train, 
+            scores.test = hs$scores.test,
+            max.points.orig = hs$max.points.orig,
+            items = hs$items |> dplyr::filter(item %in% colnames(data.train.sub)))
 
 # save data
 outpath <- gpath("data/hellaswag-sub.rds")
