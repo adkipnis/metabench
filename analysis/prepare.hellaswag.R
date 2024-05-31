@@ -40,12 +40,17 @@ evaluate.percentiles <- function(df.scores){
     )
 }
 
-evaluate.scores <- function(scores.train, scores.test, fa.train){
-  df.train <- make.score.df(scores.train, fa.train, means.train)
-  df.test <- make.score.df(scores.test, fa.train, means.test)
-  mod.score <- train.scores(df.train)
+evaluate.scores <- function(scores.train, scores.test){
+  # prepare data
+  df.train <- data.frame(sub.score = scores.train, means = means.train)
+  df.test <- data.frame(sub.score = scores.test, means = means.test)
+ 
+  # train GAM and predict scores from latent factors
+  # mod.score <- lm(means ~ ., data = df.train)
+  mod.score <- mgcv::gam(means ~ s(sub.score), data = df.train)
   df.train <- predict.scores(df.train, mod.score)
   df.test <- predict.scores(df.test, mod.score)
+ 
   sfs.train <- evaluate.prediction(df.train)
   sfs.test <- evaluate.prediction(df.test)
   list(sfs.train = sfs.train, sfs.test = sfs.test,
