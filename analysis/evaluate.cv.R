@@ -34,6 +34,29 @@ cv.collect <- function(results) {
   dfs
 }
 
+refit <- function(result, data.test){
+  # load data
+  model <- result$model
+  df <- result$df
+  train <- df |> dplyr::filter(set == "train")
+  test <- df |> dplyr::filter(set == "test")
+  
+  # refit theta
+  train$theta <- get.theta(model, method = "EAPsum")[,1]
+  test$theta <- get.theta(model, method = "EAPsum", resp = data.test)[,1]
+  
+  # refit gam
+  mod.score <- mgcv::gam(score ~ s(theta), data = train)
+  train$p <- predict(mod.score, train)
+  test$p <- predict(mod.score, test)
+  
+  # export
+  result$df <- rbind(train, test) |>
+    dplyr::mutate(rank.theta = rank(theta),
+                  perc.theta = rank.theta/max(rank.theta))
+  result
+}
+
 evaluate.fit <- function(df.score) {
    df.score |> 
       dplyr::group_by(type, set) |>
