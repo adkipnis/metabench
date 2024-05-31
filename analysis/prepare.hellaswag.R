@@ -141,25 +141,12 @@ find.best.subset <- function(data.train, data.test, iters){
 }
 
 # =============================================================================
-# prepare scores
-benchmarks <- c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
-gprint("🚰 Loading scores...")
-score.list <- lapply(benchmarks, collect.scores)
-scores <- Reduce(rowmerge, score.list)
-means <- rowMeans(scores)
-indices <- prop.indices(means, p = 0.1)
-scores.train <- scores[-indices, ]
-scores.test <- scores[indices, ]
-means.train <- means[-indices]
-means.test <- means[indices]
-
 # prepare hellaswag
 gprint("🚰 Loading HellaSwag...")
 hs <- readRDS(gpath("data/hellaswag-preproc-split.rds"))
-nc <- hs$max.points.orig
-data <- hs$data[rownames(scores), ] # only keep common LLMs
-data.train <- data[-indices, ]
-data.test <- data[indices, ]
+data <- hs$data.train
+nc <- ncol(data)
+scores <- rowSums(data) / nc * 100
 goal <- round(1/4 * nrow(data))
 
 # get baseline RMSE
