@@ -168,7 +168,6 @@ while (ncol(data.train.sub) > goal){
 p.train <- plot.prediction(subsample.res$eval$df.train, subsample.res$eval$sfs.train, "(Train)")
 p.test <- plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Test)")
 
-
 # check with validation set
 data.val <- hs$data.test
 scores.val <- rowSums(data.val) / nc * 100

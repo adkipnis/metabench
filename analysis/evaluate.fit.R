@@ -12,7 +12,7 @@ parse.args(
    names = c("BM"),
    defaults = c("gsm8k"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande")
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
    )
 )
 here::i_am("analysis/evaluate.fit.R")
