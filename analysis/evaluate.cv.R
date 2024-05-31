@@ -20,20 +20,18 @@ set.seed(1)
 # =============================================================================
 # helper functions  
 cv.extract <- function(results, itemtype) {
-   dfs <- lapply(results[[itemtype]], function(fold) fold$df)
-   for (i in 1:length(dfs)) {
-      dfs[[i]]$type <- itemtype
-      dfs[[i]]$fold <- i
-   }
-   do.call(rbind, dfs)
+   df <- results[[itemtype]]$df
+   df$type <- itemtype
+   df
 }
 
 cv.collect <- function(results) {
-   dfs <- lapply(names(results), function(itemtype) cv.extract(results, itemtype))
-   dfs <- do.call(rbind, dfs)
-   dfs$fold <- as.factor(dfs$fold)
-   dfs$set <- factor(dfs$set, levels = c("train", "test"))
-   dfs
+  dfs <- lapply(names(results), function(itemtype) cv.extract(results, itemtype))
+  names(dfs) <- names(results)
+  dfs <- do.call(rbind, dfs)
+  dfs$set <- factor(dfs$set, levels = c("train", "test"))
+  dfs$error <- dfs$score - dfs$p
+  dfs
 }
 
 spearmanize <- function(df.score) {
