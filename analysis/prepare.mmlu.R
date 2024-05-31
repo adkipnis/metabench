@@ -54,12 +54,6 @@ make.score.df <- function(scores, fa.res, means){
   data.frame(fs, means)
 }
 
-train.scores <- function(df.scores){
-  pred.names <- colnames(df.scores)[-ncol(df.scores)]
-  formula <- glue::glue("means ~ {paste0('s(', pred.names, ')', collapse=' + ')}")
-  mgcv::gam(as.formula(formula), data = df.scores)
-}
-
 predict.scores <- function(df.scores, mod.score){
    df.scores$p <- predict(mod.score, df.scores)
    df.scores |>
@@ -74,22 +68,35 @@ predict.scores <- function(df.scores, mod.score){
 evaluate.prediction <- function(df.scores){
   df.scores |> 
     dplyr::summarise(
-      RMSE = sqrt(mean((error.perc)^2)),
+      RMSE = sqrt(mean(error^2)),
+      MAE = mean(abs(error)),
+      SSE = sum(error^2)
+    )
+}
+
+
+evaluate.percentiles <- function(df.scores){
+  df.scores |> 
+    dplyr::summarise(
+      RMSE = sqrt(mean(error.perc^2)),
       MAE = mean(abs(error.perc)),
       r = cor(means, p, method = "spearman")
     )
 }
 
-evaluate.scores <- function(scores.train, scores.test, fa.train){
-  df.train <- make.score.df(scores.train, fa.train, means.train)
-  df.test <- make.score.df(scores.test, fa.train, means.test)
-  mod.score <- train.scores(df.train)
+evaluate.scores <- function(scores.train, scores.test){
+  df.train <- data.frame(scores.train, means = total.train)
+  df.test <- data.frame(scores.test, means = total.test)
+  mod.score <- lm(means ~ ., data = df.train)
   df.train <- predict.scores(df.train, mod.score)
   df.test <- predict.scores(df.test, mod.score)
   sfs.train <- evaluate.prediction(df.train)
   sfs.test <- evaluate.prediction(df.test)
-  list(sfs.train = sfs.train, sfs.test = sfs.test,
-       df.train = df.train, df.test = df.test)
+  list(mod.score = mod.score,
+       sfs.train = sfs.train,
+       sfs.test = sfs.test,
+       df.train = df.train,
+       df.test = df.test)
 }
 
 plot.perc <- function(df.scores, sfs = NULL){
