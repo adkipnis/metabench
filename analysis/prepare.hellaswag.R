@@ -165,15 +165,20 @@ while (ncol(data.train.sub) > goal){
    data.train.sub <- subsample.res$data.train
    data.test.sub <- subsample.res$data.test
 }
+p.train <- plot.prediction(subsample.res$eval$df.train, subsample.res$eval$sfs.train, "(Train)")
+p.test <- plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Test)")
 
-# plot final result
-p.final <- plot.evaluation(subsample.res$eval$df.test,
-                           subsample.res$eval$sfs.test)
-# TODO: test on validation set 
 
-# save plot
-p <- cowplot::plot_grid(p.base, p.final, ncol = 2, labels = "AUTO")
-outpath <- gpath("plots/hellaswag-efa.png")
+# check with validation set
+data.val <- hs$data.test
+scores.val <- rowSums(data.val) / nc * 100
+data.val.sub <- data.val[colnames(data.train.sub)]
+scores.val.sub <- rowSums(data.val.sub) / nc * 100
+df.val <- data.frame(sub.score = scores.val.sub, means = scores.val)
+df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
+sfs.val <- evaluate.prediction(df.val)
+p.val <- plot.prediction(df.val, sfs.val, "(Validation)")
+
 ggplot2::ggsave(outpath, p, width = 8, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
