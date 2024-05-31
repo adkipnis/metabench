@@ -2,16 +2,17 @@
 #   1. Score Recovery (Train Set)
 #   2. Score Recovery (Test Set)
 #
-# usage: Rscript evaluate.cv.R {benchmark}
+# usage: Rscript evaluate.cv.R {benchmark} {theta-method}
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, mytheme])
+box::use(./utils[parse.args, gprint, gpath, mytheme, get.theta])
 parse.args(
-   names = c("BM"),
-   defaults = c("hellaswag"),
+   names = c("BM", "METHOD"),
+   defaults = c("arc", "EAPsum"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
+     METHOD = c("MAP", "EAPsum")
    )
 )
 here::i_am("analysis/evaluate.cv.R")
@@ -162,5 +163,8 @@ plot.error <- function(df.score, itemtype){
 # load cv results
 cvpath <- gpath("analysis/models/{BM}-cv.rds")
 cvs <- readRDS(cvpath)
+if (METHOD == "EAPsum"){
+  cvs <- refit.wrapper(cvs)
+}
 df.score <- cv.collect(cvs)
 
