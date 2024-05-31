@@ -202,24 +202,8 @@ data.list.train <- df2list(data.train)
 data.list.test <- df2list(data.test)
 scores.train <- get.scores(data.list.train)
 scores.test <- get.scores(data.list.test)
-
-# exploratory factor analysis
-if (SHOW){
-  df2list(data) |>
-    get.scores() |>
-    cor() |>
-    corrplot::corrplot(method = "color",
-                       order="hclust",
-                       tl.cex = 0.3,
-                       tl.col = "black",
-                       col.lim = c(0,1))
-}
-
-# get baseline RMSE
-fa.base <- do.fa(scores.train, 1, verbose = T)
-out <- evaluate.scores(scores.train, scores.test, fa.base)
-gprint("Baseline MAE: {round(out$sfs.train$MAE, 3)} (train), {round(out$sfs.test$MAE, 3)} (test)")
-p.base <- plot.evaluation(out$df.test, out$sfs.test)
+total.train <- rowSums(scores.train) / nc * 100
+total.test <- rowSums(scores.test) / nc * 100
 
 # evolutionary algorithm to further reduce number of items
 gprint("Starting evolutionary subsampling until at most {goal} items remain...")
