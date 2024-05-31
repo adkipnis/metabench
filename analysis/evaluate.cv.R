@@ -57,6 +57,21 @@ refit <- function(result, data.test){
   result
 }
 
+refit.wrapper <- function(cvs){
+  gprint("Refitting theta using EAPsum...")
+  data.test <- readRDS(gpath("data/{BM}-preproc-split.rds"))$data.test
+  cvs.re <- list()
+  for (i in 1:length(cvs)){
+    tryCatch({
+      cvs.re[[i]] <- refit(cvs[[i]], data.test)
+    }, error = function(e){
+      gprint("Could not refit {names(cvs)[i]}")
+    })
+  }
+  names(cvs.re) <- names(cvs)
+  cvs.re[!sapply(cvs.re, is.null)]
+}
+
 evaluate.fit <- function(df.score) {
    df.score |> 
       dplyr::group_by(type, set) |>
