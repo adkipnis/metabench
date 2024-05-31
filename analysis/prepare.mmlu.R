@@ -159,18 +159,16 @@ apply.subsampling <- function(dl, indices.list){
 
 subsample.wrapper <- function(dl.train, dl.test){
    # subsample
-   indices.list <- lapply(dl.train, function(d) subsample(d, KEEPRATE))
+   indices.list <- lapply(dl.train, subsample)
    dl.train.sub <- apply.subsampling(dl.train, indices.list)
    dl.test.sub <- apply.subsampling(dl.test, indices.list)
    scores.train.sub <- get.scores(dl.train.sub)
    scores.test.sub <- get.scores(dl.test.sub)
 
-   # analyze and evaluate
-   fa.sub <- do.fa(scores.train.sub, 2, verbose = F)
-   out <- evaluate.scores(scores.train.sub, scores.test.sub, fa.sub)
+   # evaluate
+   out <- evaluate.scores(scores.train.sub, scores.test.sub)
    list(dl.train = dl.train.sub,
         dl.test = dl.test.sub,
-        fa = fa.sub,
         eval = out)
 }
 
