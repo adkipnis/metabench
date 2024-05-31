@@ -149,11 +149,12 @@ nc <- ncol(data)
 scores <- rowSums(data) / nc * 100
 goal <- round(1/4 * nrow(data))
 
-# get baseline RMSE
-fa.base <- do.fa(scores.train, 2, verbose = T)
-out <- evaluate.scores(scores.train, scores.test, fa.base)
-gprint("Baseline MAE: {round(out$sfs.train$MAE, 3)} (train), {round(out$sfs.test$MAE, 3)} (test)")
-p.base <- plot.evaluation(out$df.test, out$sfs.test)
+# separate train:test split
+indices <- caret::createDataPartition(scores, p = 0.1, list = F)
+data.train <- data[-indices,]
+data.test <- data[indices,]
+means.train <- scores.train <- scores[-indices]
+means.test <- scores.test <- scores[indices]
 
 # start subsetting data
 gprint("Starting evolutionary subsampling until at most {goal} items remain...")
