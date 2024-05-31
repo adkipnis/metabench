@@ -237,14 +237,17 @@ ggplot2::ggsave(outpath, p.final, width = 18, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
-data.train.sub <- Reduce(rowmerge, dl.train.sub)
-data.test.sub <- Reduce(rowmerge, dl.test.sub)
-mmlu$data <- rbind(data.train.sub, data.test.sub)
-mmlu$data.val <- mmlu$data.val[colnames(mmlu$data)]
-mmlu$items <- mmlu$items |> 
-  dplyr::filter(item %in% colnames(mmlu$data))
+data.train.sub <- rbind(Reduce(rowmerge, dl.train.sub),
+                        Reduce(rowmerge, dl.test.sub))
+out <- list(data.train = data.train.sub,
+            data.test = mmlu$data.test[colnames(data.train.sub)],
+            scores.train = mmlu$scores.train, 
+            scores.test = mmlu$scores.test,
+            max.points.orig = mmlu$max.points.orig,
+            items = mmlu$items |> dplyr::filter(item %in% colnames(data.train.sub)),
+            plot = p.final)
 
 # save data
 outpath <- gpath("data/mmlu-sub.rds")
-saveRDS(mmlu, outpath)
+saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
