@@ -59,10 +59,10 @@ if (BM %in% c("hellaswag", "mmlu")){
    datapath <- gpath("data/{BM}-preproc-split.rds")
 }
 preproc <- readRDS(datapath)
-data.train <- preproc$data
-data.val <- preproc$data.val
-scores.train <- 100 * preproc$scores.orig / preproc$max.points.orig
-scores.val <- 100 * preproc$scores.orig.val / preproc$max.points.orig
+data.train <- preproc$data.train
+data.test <- preproc$data.test
+scores.train <- 100 * preproc$scores.train / preproc$max.points.orig
+scores.test <- 100 * preproc$scores.test / preproc$max.points.orig
 
 # =============================================================================
 # cv models
