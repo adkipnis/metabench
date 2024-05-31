@@ -177,12 +177,12 @@ find.best.subset <- function(dl.train, dl.test, iters){
   for (i in 1:iters){
     sample.list[[i]] <- subsample.wrapper(dl.train, dl.test)
   }
-  mae.list <- sapply(sample.list, function(s) s$eval$sfs.test$MAE)
-  i <- which.min(mae.list)
-  j <- which.max(mae.list)
+  err.list <- sapply(sample.list, function(s) s$eval$sfs.test$SSE)
+  i <- which.min(err.list)
+  j <- which.max(err.list)
   best <- sample.list[[i]]
   worst <- sample.list[[j]]
-  gprint("Test MAE (Range): {round(mae.list[i], 3)} -- {round(mae.list[j], 3)}")
+  gprint("Test SSE (Range): {round(err.list[i], 3)} -- {round(err.list[j], 3)}")
   gprint("Reduced dataset to {n.data(best$dl.train)} items.")
   best
 }
