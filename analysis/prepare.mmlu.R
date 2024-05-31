@@ -241,7 +241,7 @@ data.train.sub <- rbind(Reduce(rowmerge, dl.train.sub),
                         Reduce(rowmerge, dl.test.sub))
 out <- list(data.train = data.train.sub,
             data.test = mmlu$data.test[colnames(data.train.sub)],
-            scores.train = mmlu$scores.train[rownames(data.train.sub),], 
+            scores.train = mmlu$scores.train[rownames(data.train.sub)],
             scores.test = mmlu$scores.test,
             max.points.orig = mmlu$max.points.orig,
             items = mmlu$items |> dplyr::filter(item %in% colnames(data.train.sub)),
