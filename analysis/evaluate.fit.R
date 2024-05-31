@@ -28,11 +28,13 @@ plot.theta.ests <- function(results){
    n <- length(results)
    thetas <- list()
    for (i in 1:n) {
-      thetas[[i]] <- data.frame(results[[i]]$theta)
+      thetas[[i]] <- data.frame(results[[i]]$df$theta)
       thetas[[i]]$itemtype <- names(results)[i]
    }
-   do.call(rbind, thetas) |>
-      ggplot(aes(x = F1)) +
+   thetas <- do.call(rbind, thetas)
+   colnames(thetas)[1] <- "theta"
+   thetas |>
+      ggplot(aes(x = theta)) +
       geom_density() +
       facet_wrap(~itemtype, ncol = n) +
       labs(
@@ -63,7 +65,6 @@ plot.theta.dists <- function(results){
          y = TeX("$f(\\theta)$"),
          ) +
       mytheme()
-
 }
 
 plot.parameters <- function(results){
@@ -110,7 +111,8 @@ summarize.comparisons <- function(comparisons) {
 
 get.itemfit <- function(result){
    model <- result$model
-   theta <- result$theta
+   df <- result$df |> dplyr::filter(set == "train")
+   theta <- as.matrix(df$theta)
    itemtype <- model@Model[["itemtype"]][1]
    item.fit <- mirt::itemfit(model, fit_stats = 'infit', Theta = theta) |>
       dplyr::mutate(outlier = infit <= 0.5 |
@@ -181,7 +183,7 @@ plot.modelcomp <- function(comparisons) {
 # =============================================================================
 # load fit results
 gprint("🚰 Loading {BM} fits...")
-path <- gpath("analysis/models/{BM}-all.rds")
+path <- gpath("analysis/models/{BM}-cv.rds")
 results <- readRDS(path)
 
 # plot theta and params
