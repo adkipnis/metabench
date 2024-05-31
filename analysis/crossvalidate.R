@@ -7,7 +7,7 @@
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(
    names = c("BM"),
-   defaults = c("winogrande"),
+   defaults = c("hellaswag"),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
    )
@@ -46,7 +46,7 @@ cross.validate <- function(itemtype){
   # collaps both dataframes
   df.train$set <- "train"
   df.test$set <- "test"
-  list(df = rbind(df.train, df.test), model = model)
+  list(df = rbind(df.train, df.test), model = model, mod.score = mod.score)
 }
 
 
