@@ -111,23 +111,17 @@ subsample <- function(data, remove = 10){
 }
 
 subsample.wrapper <- function(data.train, data.test){
-   # subsample
-   sample.indices <- subsample(data.train, KEEPRATE)
-   data.train.sub <- data.train[, sample.indices]
-   data.test.sub <- data.test[, sample.indices]
-
-   # adjust scores (use global variable)
-   scores.train.sub <- scores.train
-   scores.train.sub$hellaswag <- rowSums(data.train.sub)/nc * 100
-   scores.test.sub <- scores.test
-   scores.test.sub$hellaswag <- rowSums(data.test.sub)/ nc * 100
+   # subsample and g
+   indices <- subsample(data.train)
+   data.train.sub <- data.train[,indices]
+   data.test.sub <- data.test[,indices]
+   scores.train.sub <- rowSums(data.train.sub) / nc * 100
+   scores.test.sub <- rowSums(data.test.sub) / nc * 100
 
    # analyze and evaluate
-   fa.sub <- do.fa(scores.train.sub, 2, verbose = F)
-   out <- evaluate.scores(scores.train.sub, scores.test.sub, fa.sub)
+   out <- evaluate.scores(scores.train.sub, scores.test.sub)
    list(data.train = data.train.sub,
         data.test = data.test.sub,
-        fa = fa.sub,
         eval = out)
 }
 
@@ -136,12 +130,12 @@ find.best.subset <- function(data.train, data.test, iters){
   for (i in 1:iters){
     sample.list[[i]] <- subsample.wrapper(data.train, data.test)
   }
-  mae.list <- sapply(sample.list, function(s) s$eval$sfs.test$MAE)
-  i <- which.min(mae.list)
-  j <- which.max(mae.list)
+  err.list <- sapply(sample.list, function(s) s$eval$sfs.test$SSE)
+  i <- which.min(err.list)
+  j <- which.max(err.list)
   best <- sample.list[[i]]
   worst <- sample.list[[j]]
-  gprint("Test MAE (Range): {round(mae.list[i], 3)} -- {round(mae.list[j], 3)}")
+  gprint("Test SSE (Range): {round(err.list[i], 3)} -- {round(err.list[j], 3)}")
   gprint("Reduced dataset to {ncol(best$data.train)} items.")
   best
 }
