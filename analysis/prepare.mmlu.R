@@ -215,15 +215,24 @@ while (n.data(dl.train.sub) > goal){
    dl.test.sub <- subsample.res$dl.test
 }
 
-# plot final result
-p.final <- plot.evaluation(subsample.res$eval$df.test,
-                           subsample.res$eval$sfs.test)
-# TODO: test on validation set 
+# check with validation set
+data.val <- mmlu$data.test
+data.list.val <- df2list(data.val)
+scores.val <- get.scores(data.list.val)
+total.val <- rowSums(scores.val) / nc * 100
+df.val <- data.frame(scores.val, means = total.val)
+df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
+sfs.val <- evaluate.prediction(df.val)
 
-# save plot
-p <- cowplot::plot_grid(p.base, p.final, ncol = 2, labels = "AUTO")
-outpath <- gpath("plots/mmlu-efa.png")
-ggplot2::ggsave(outpath, p, width = 8, height = 8)
+# plot final result
+p.final <- cowplot::plot_grid(
+  plot.prediction(subsample.res$eval$df.train, subsample.res$eval$sfs.train, "(Train)"),
+  plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Test)"),
+  plot.prediction(df.val, sfs.val, "(Validation)"),
+  nrow = 1, labels = "AUTO"
+)
+outpath <- gpath("plots/mmlu-reduced.png")
+ggplot2::ggsave(outpath, p.final, width = 8, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
@@ -238,5 +247,3 @@ mmlu$items <- mmlu$items |>
 outpath <- gpath("data/mmlu-sub.rds")
 saveRDS(mmlu, outpath)
 gprint("🏁 Saved subset data to {outpath}")
-
-
