@@ -16,7 +16,7 @@
 #SBATCH --nice=1000
 
 source $HOME/.bashrc
-benchmarks=("arc" "gsm8k" "hellaswag" "truthfulqa")
+benchmarks=("arc" "gsm8k" "hellaswag" "mmlu" "truthfulqa" "winogrande")
 
 for b in "${benchmarks[@]}"; do
 	echo "Evaluating $b"
