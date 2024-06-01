@@ -10,7 +10,6 @@
 box::use(./utils[mkdir, gprint, gpath, prop.indices, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
 set.seed(1)
-SHOW <- F
 
 # =============================================================================
 # helper functions
@@ -142,7 +141,7 @@ plot.perc <- function(df.scores, sfs = NULL, suffix = ""){
     mytheme()
 }
 
-subsample <- function(data, remove = 20){
+subsample <- function(data, remove = 100){
   n <- ncol(data)
   sort(sample(1:n, remove, replace = F))
 }
@@ -210,10 +209,11 @@ while (ncol(data.train.sub) > goal){
 
 # check with validation set
 data.val <- mmlu$data.test
-data.list.val <- df2list(data.val)
-scores.val <- get.scores(data.list.val)
+scores.val <- get.scores(df2list(data.val))
 total.val <- rowSums(scores.val) / nc * 100
-df.val <- data.frame(scores.val, means = total.val)
+data.val.sub <- mmlu$data.test[colnames(data.train.sub)]
+scores.val.sub <- get.scores(df2list(data.val.sub))
+df.val <- data.frame(scores.val.sub, means = total.val)
 df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
 sfs.val <- evaluate.prediction(df.val)
 
@@ -231,7 +231,7 @@ gprint("💾 Saved plot to {outpath}")
 # subset data
 data.sub <- rbind(data.train.sub, data.test.sub)
 out <- list(data.train = data.train.sub,
-            data.test = mmlu$data.test[colnames(data.train.sub)],
+            data.test = data.val.sub,
             scores.train = mmlu$scores.train[rownames(data.train.sub)],
             scores.test = mmlu$scores.test,
             max.points.orig = mmlu$max.points.orig,
