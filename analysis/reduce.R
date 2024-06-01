@@ -389,22 +389,30 @@ evaluate.subtest.params <- function(model.sub, theta.sub){
    printorsave(p, outsuffix)
 }
 
-hyperparam.wrapper <- function(hyperparams, plot=T){
+hyperparam.wrapper <- function(hyperparams, internal=T){
    # 1. create subtest
    info.quantiles <- get.info.quantiles(info.items, steps=hyperparams$n_quant)
    subtest <- create.subtest(data.train, items, info.quantiles, hyperparams)
    data.train.sub <- subtest$data
    data.test.sub <- data.test[colnames(data.train.sub)]
    items.sub <- subtest$items
-   if (plot) evaluate.selection(theta, info.quantiles, info.items, items, items.sub)
+   
+   # fail gracefully if the set becomes too
+   if (ncol(data.frame(data.train.sub)) < 10){
+     return(list(sfs = data.frame(rmse = 9999), items = items.sub))
+   }
+   
+   # if (!internal) evaluate.selection(theta, info.quantiles, info.items, items, items.sub)
 
    # 2. fit subtest
-   model.sub <- run.mirt(data.train.sub, MOD, tol = 1e-4, ncycles=1000)
-   theta.train.sub <- get.theta(model.sub, method=METH)
+   ncycles <- ifelse(internal, 1000, 5000)
+   tol <- ifelse(internal, 1e-4, 1e-5)
+   model.sub <- run.mirt(data.train.sub, MOD, tol = tol, ncycles=ncycles)
+   theta.train.sub <- get.theta(model.sub, method=METH, resp=data.train.sub)
    theta.test.sub <- get.theta(model.sub, method=METH, resp=data.test.sub)
 
    # 3. evaluate subtest
-   if (plot) evaluate.subtest.params(model.sub, theta.train.sub)
+   # if (!internal) evaluate.subtest.params(model.sub, theta.train.sub)
    score.table.sub <- get.score.table(theta.train.sub, theta.test.sub, scores.train, scores.test)
    sfs.sub <- score.stats(score.table.sub)
      
@@ -420,10 +428,10 @@ optimize.hyperparameters <- function(){
    box::use(rBayesianOptimization[...])
    objective <- function(n_max, threshold, n_quant) {
      hyperparams <- list(n_max=n_max, threshold=threshold, n_quant=n_quant)
-     res <- hyperparam.wrapper(hyperparams, plot=F)
+     res <- hyperparam.wrapper(hyperparams, internal=T)
      sfs <- res$sfs
-     score <- sfs$ub + as.numeric(LAMBDA) * nrow(res$items) # minimize this
-     list(Score = -score, Pred = res$items.sub)
+     score <- sfs$rmse + as.numeric(LAMBDA) * nrow(res$items) # minimize this
+     list(Score = -score, Pred = 0)
   }
   BayesianOptimization(
    objective,
