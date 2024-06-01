@@ -63,7 +63,7 @@ prop.indices <- function(scores, p = 0.1) {
 
 
 #" @export
-run.mirt <- function(data, itemtype, large=F){
+run.mirt <- function(data, itemtype, large=F, tol=1e-5, ncycles=5000){
   mirt::mirt(data, 1, itemtype=itemtype,
                method="EM",
                density="Davidian-4",
