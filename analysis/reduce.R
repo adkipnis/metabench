@@ -482,10 +482,11 @@ items <- merge(items, summarize.info(info.items), by="item")
 if (LAMBDA == 0){
    gprint("Skipping hyperparameter search (LAMBDA = 0)")
    hyperparams <- list(n_max=7L, threshold=0, n_quant=50)
+   opt.results <- hyperparams
 } else {
    gprint("🔍 Running hyperparameter search...")
-   opt <- optimize.hyperparameters()
-   hyperparams <- as.list(opt$Best_Par)
+   opt.results <- optimize.hyperparameters()
+   hyperparams <- as.list(opt.results$Best_Par)
 }
 final <- hyperparam.wrapper(hyperparams, internal = F)
 compare.score.stats(sfs.base, final$sfs)
@@ -507,6 +508,7 @@ p.testinfo <- cowplot::plot_grid(
                 glue::glue("Reduced Testinfo (n = {nrow(final$items)})")),
   nrow = 1
 )
+# TODO: scatterplot of theta with marginal distributions
 p.estimates <- plot.estimates(final$model, final$theta.train)
 p.misc <- cowplot::plot_grid(
   p.testinfo,
