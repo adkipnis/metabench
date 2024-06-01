@@ -28,7 +28,7 @@ get.scores <- function(data.list){
     colnames(out) <- n
     out
     })
-  scores.df <- Reduce(rowmerge, scores.list)
+  scores.df <- do.call(cbind, scores.list)
   colnames(scores.df) <- names(data.list)
   scores.df
 }
@@ -142,41 +142,33 @@ plot.perc <- function(df.scores, sfs = NULL, suffix = ""){
     mytheme()
 }
 
-subsample <- function(dl, remove = 50){
-  n <- n.data(dl)
+subsample <- function(data, remove = 50){
+  n <- ncol(data)
   sort(sample(1:n, remove, replace = F))
 }
  
-apply.subsampling <- function(dl, indices, starting.indices){
-  scen.indices <- c()
-  for (i in indices){
-    j <- which(i < starting.indices)[1] - 1
-    k <- i - starting.indices[j] + 1
-    dl[[j]] <- dl[[j]][,-k]
-  }
-  dl
-}
 
-subsample.wrapper <- function(dl.train, dl.test){
+subsample.wrapper <- function(data.train, data.test){
    # subsample
-   indices <- subsample(data.list.train)
-   starting.indices <- cumsum(sapply(dl.train, ncol)) - ncol(dl.train[[1]]) + 1
-   dl.train.sub <- apply.subsampling(dl.train, indices, starting.indices)
-   dl.test.sub <- apply.subsampling(dl.test, indices, starting.indices)
+   indices <- subsample(data.train)
+   data.train.sub <- data.train[, -indices]
+   data.test.sub <- data.test[, -indices]
+   dl.train.sub <- df2list(data.train.sub)
+   dl.test.sub <- df2list(data.test.sub)
    scores.train.sub <- get.scores(dl.train.sub)
    scores.test.sub <- get.scores(dl.test.sub)
 
    # evaluate
    out <- evaluate.scores(scores.train.sub, scores.test.sub)
-   list(dl.train = dl.train.sub,
-        dl.test = dl.test.sub,
+   list(data.train = data.train.sub,
+        data.test = data.test.sub,
         eval = out)
 }
 
-find.best.subset <- function(dl.train, dl.test, iters){
+find.best.subset <- function(data.train, data.test, iters){
   sample.list <- list()
   for (i in 1:iters){
-    sample.list[[i]] <- subsample.wrapper(dl.train, dl.test)
+    sample.list[[i]] <- subsample.wrapper(data.train, data.test)
   }
   err.list <- sapply(sample.list, function(s) s$eval$sfs.test$SSE)
   i <- which.min(err.list)
@@ -184,7 +176,7 @@ find.best.subset <- function(dl.train, dl.test, iters){
   best <- sample.list[[i]]
   worst <- sample.list[[j]]
   gprint("Test SSE (Range): {round(err.list[i], 3)} -- {round(err.list[j], 3)}")
-  gprint("Reduced dataset to {n.data(best$dl.train)} items.")
+  gprint("Reduced dataset to {ncol(best$data.train)} items.")
   best
 }
 
@@ -208,12 +200,12 @@ total.test <- rowSums(scores.test) / nc * 100
 
 # evolutionary algorithm to further reduce number of items
 gprint("Starting evolutionary subsampling until at most {goal} items remain...")
-dl.train.sub <- data.list.train
-dl.test.sub <- data.list.test
-while (n.data(dl.train.sub) > goal){
-   subsample.res <- find.best.subset(dl.train.sub, dl.test.sub, iters = 50)
-   dl.train.sub <- subsample.res$dl.train
-   dl.test.sub <- subsample.res$dl.test
+data.train.sub <- data.train
+data.test.sub <- data.test
+while (ncol(data.train.sub) > goal){
+   subsample.res <- find.best.subset(data.train.sub, data.test.sub, iters = 50)
+   data.train.sub <- subsample.res$data.train
+   data.test.sub <- subsample.res$data.test
 }
 
 # check with validation set
@@ -237,8 +229,7 @@ ggplot2::ggsave(outpath, p.final, width = 18, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
-data.train.sub <- rbind(Reduce(rowmerge, dl.train.sub),
-                        Reduce(rowmerge, dl.test.sub))
+data.sub <- rbind(data.train.sub, data.test.sub)
 out <- list(data.train = data.train.sub,
             data.test = mmlu$data.test[colnames(data.train.sub)],
             scores.train = mmlu$scores.train[rownames(data.train.sub)],
