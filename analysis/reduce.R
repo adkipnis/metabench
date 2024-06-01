@@ -29,6 +29,7 @@ here::i_am("analysis/reduce.R")
 mkdir("plots")
 mkdir("analysis/reduced")
 set.seed(1)
+N_ITER <- 15 # for Bayesian Optimization
 
 # =============================================================================
 # helper functions
@@ -439,7 +440,7 @@ optimize.hyperparameters <- function(){
                  threshold = c(0, 2),
                  n_quant = c(25L, 50L)),
    init_points = 5,
-   n_iter = 15,
+   n_iter = N_ITER,
    acq = "ucb", 
    kappa = 2.576,
    eps = 0.0,
