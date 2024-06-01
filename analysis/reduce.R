@@ -456,10 +456,12 @@ items <- merge.params(items, model)
 if (METH == "MAP") {
    theta <- results$df |> dplyr::filter(set == "train") |>
      dplyr::select(theta) |> as.matrix()
-   theta.train <- as.matrix(theta[-indices])
-   theta.test <- as.matrix(theta[indices])
+   colnames(theta) <- "F1"
+   theta.train <- theta[-indices, , drop=F]
+   theta.test <- theta[indices, , drop = F]
    theta.val <- results$df |> dplyr::filter(set == "test") |>
      dplyr::select(theta) |> as.matrix()
+   colnames(theta.val) <- "F1"
 } else {
    theta <- get.theta(model, method=METH)
    # split theta but keep column dims
