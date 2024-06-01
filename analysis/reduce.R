@@ -16,7 +16,7 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
-   defaults = c("hellaswag", "3PL", "MAP", 0.0),
+   defaults = c("arc", "2PL", "MAP", 0.0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "3PLu", "4PL"),
@@ -40,16 +40,6 @@ merge.params <- function(items, model){
       tibble::rownames_to_column(var='item') |>
       dplyr::mutate(item = as.numeric(item)) |>
       dplyr::left_join(items, by="item")
-}
-
-printorsave <- function(p, outsuffix){
-   if (!is.null(outsuffix)) {
-      outpath <- gpath("plots/{BM}-{MOD}-{METH}-{outsuffix}.png")
-      ggplot2::ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Saved plot to {outpath}")
-   } else {
-      print(p)
-   }
 }
 
 # -----------------------------------------------------------------------------
@@ -348,27 +338,6 @@ plot.recovery.a1 <- function(df.comparison){
          mytheme()
 }
 
-# -----------------------------------------------------------------------------
-# hyperparameter search
-
-create.subtest <- function(data, items, info.quantiles, hyper) {
-   index.set <- select.items(items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
-   data.sub <- data[, as.character(index.set$item)]
-   list(data=data.sub, items=index.set)
-}
-
-evaluate.selection <- function(theta, info.quantiles, info.items, items, index.set){
-   # evaluation 0: before fitting
-   ceiling <- max(rowSums(info.items[,-1]))
-   cowplot::plot_grid(
-      plot.theta(theta),
-      plot.quantiles(info.quantiles, theta),
-      plot.expected.testinfo(info.items, items, ceiling, "Full Testinfo"),
-      plot.expected.testinfo(info.items, index.set, ceiling, "Expected Testinfo"),
-      align = "v"
-   )
-}
-
 plot.estimates <- function(model.sub, theta.sub){
    param.compare <- compare.parameters(model, model.sub)
    cowplot::plot_grid(
@@ -378,6 +347,14 @@ plot.estimates <- function(model.sub, theta.sub){
       plot.recovery.a1(param.compare),
       align = "v"
    )
+}
+# -----------------------------------------------------------------------------
+# hyperparameter search
+
+create.subtest <- function(data, items, info.quantiles, hyper) {
+   index.set <- select.items(items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
+   data.sub <- data[, as.character(index.set$item)]
+   list(data=data.sub, items=index.set)
 }
 
 hyperparam.wrapper <- function(hyperparams, internal=T){
@@ -503,6 +480,7 @@ info.items <- info.items |>
 items <- merge(items, summarize.info(info.items), by="item")
 
 # run hyperparameter search using rBayesianOptimization
+gprint("🔍 Searching for optimal hyperparameters...")
 opt.results <- optimize.hyperparameters()
 hyperparams <- as.list(opt.results$Best_Par)
 final <- hyperparam.wrapper(hyperparams, internal = F)
