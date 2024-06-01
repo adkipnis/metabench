@@ -389,33 +389,31 @@ evaluate.subtest.params <- function(model.sub, theta.sub){
    printorsave(p, outsuffix)
 }
 
-evaluate.subtest.score <- function(theta.sub, scores){
-   # evaluation 2: score prediction
-   score.table.sub <- get.score.table(theta.sub, scores)
-   p <- evaluate.score.table(score.table.sub)
-   outsuffix <- ifelse(Saveplots, glue::glue("score-prediction-sub-{LAMBDA}"), NULL)
-   printorsave(p, outsuffix)
-   score.stats(score.table.sub)
-}
-
 hyperparam.wrapper <- function(hyperparams, plot=T){
    # 1. create subtest
    info.quantiles <- get.info.quantiles(info.items, steps=hyperparams$n_quant)
-   subtest <- create.subtest(data, items, info.quantiles, hyperparams)
-   data.sub <- subtest$data
+   subtest <- create.subtest(data.train, items, info.quantiles, hyperparams)
+   data.train.sub <- subtest$data
+   data.test.sub <- data.test[colnames(data.train.sub)]
    items.sub <- subtest$items
    if (plot) evaluate.selection(theta, info.quantiles, info.items, items, items.sub)
 
    # 2. fit subtest
-   model.sub <- run.mirt(data.sub, MOD)
-   theta.sub <- get.theta(model.sub, method=METH)
+   model.sub <- run.mirt(data.train.sub, MOD, tol = 1e-4, ncycles=1000)
+   theta.train.sub <- get.theta(model.sub, method=METH)
+   theta.test.sub <- get.theta(model.sub, method=METH, resp=data.test.sub)
 
    # 3. evaluate subtest
-   if (plot) evaluate.subtest.params(model.sub, theta.sub)
-   sfs.sub <- evaluate.subtest.score(theta.sub, scores)
-
+   if (plot) evaluate.subtest.params(model.sub, theta.train.sub)
+   score.table.sub <- get.score.table(theta.train.sub, theta.test.sub, scores.train, scores.test)
+   sfs.sub <- score.stats(score.table.sub)
+     
    # 4. return results
-   list(items=items.sub, model=model.sub, theta=theta.sub, sfs=sfs.sub)
+   list(items = items.sub,
+        model = model.sub,
+        theta.train = theta.train.sub,
+        theta.test = theta.test.sub,
+        sfs = sfs.sub)
 }
 
 optimize.hyperparameters <- function(){
@@ -425,7 +423,7 @@ optimize.hyperparameters <- function(){
      res <- hyperparam.wrapper(hyperparams, plot=F)
      sfs <- res$sfs
      score <- sfs$ub + as.numeric(LAMBDA) * nrow(res$items) # minimize this
-     list(Score = -score, Pred = sfs$items.sub)
+     list(Score = -score, Pred = res$items.sub)
   }
   BayesianOptimization(
    objective,
