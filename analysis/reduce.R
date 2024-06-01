@@ -75,20 +75,15 @@ get.score.table <- function(theta.train, theta.test, scores.train, scores.test){
 }
 
 score.stats <- function(df.score){
-  out <- df.score |>
+  df.score |>
     dplyr::filter(set == "test") |>
     dplyr::summarise(
       mae = mean(abs(error)),
       ub = mean(abs(error)) + 1.96 * sd(abs(error)),
       rmse = sqrt(mean(error^2)),
-      sse = sum(error^2)
+      sse = sum(error^2),
+      r = cor(theta, score, method = "spearman")
     )
-  gprint("📊 Score error:
-          RMSE: {round(out$rmse, 3)}
-          MAE: {round(out$mae, 3)}
-          MAE + 1.96 SD: {round(out$ub, 3)}
-          SSE: {round(out$sse, 3)}")
-  out
 }
 
 plot.theta.score <- function(df.score){
