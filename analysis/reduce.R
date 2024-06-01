@@ -298,8 +298,7 @@ compare.parameters <- function(model, model.sub){
    get.estimates <- function(model){
       mirt::coef(model, simplify=T, rotate="none")$items |>
          data.frame() |>
-         tibble::rownames_to_column(var='item') |>
-         dplyr::mutate(item = as.numeric(item))
+         tibble::rownames_to_column(var='item')
    }
    estimates <- get.estimates(model)
    estimates.sub <- get.estimates(model.sub)
