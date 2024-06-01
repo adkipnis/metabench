@@ -479,9 +479,14 @@ info.items <- info.items |>
 items <- merge(items, summarize.info(info.items), by="item")
 
 # run hyperparameter search using rBayesianOptimization
-gprint("🔍 Searching for optimal hyperparameters...")
-opt.results <- optimize.hyperparameters()
-hyperparams <- as.list(opt.results$Best_Par)
+if (LAMBDA == 0){
+   gprint("Skipping hyperparameter search (LAMBDA = 0)")
+   hyperparams <- list(n_max=7L, threshold=0, n_quant=50)
+} else {
+   gprint("🔍 Running hyperparameter search...")
+   opt <- optimize.hyperparameters()
+   hyperparams <- as.list(opt$Best_Par)
+}
 final <- hyperparam.wrapper(hyperparams, internal = F)
 compare.score.stats(sfs.base, final$sfs)
 gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
