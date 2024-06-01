@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --job-name=mb-cv-array
-#SBATCH --output=logs/cv.%A_%a.out
-#SBATCH --error=logs/cv.%A_%a.err
-#SBATCH --array=1-4
+#SBATCH --job-name=mb-reduce-array
+#SBATCH --output=logs/re.%A_%a.out
+#SBATCH --error=logs/re.%A_%a.err
+#SBATCH --array=1-6
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de
 
