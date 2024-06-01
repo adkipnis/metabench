@@ -409,6 +409,8 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
         model = model.sub,
         theta.train = theta.train.sub,
         theta.test = theta.test.sub,
+        info.quantiles = info.quantiles,
+        df.score = score.table.sub,
         sfs = sfs.sub)
 }
 
