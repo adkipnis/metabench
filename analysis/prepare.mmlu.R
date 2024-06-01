@@ -21,12 +21,19 @@ df2list <- function(df){
   data.list
 }
 
+score.subroutine <- function(name, data.list){
+  df <- as.data.frame(data.list[[name]])
+  if (ncol(df) > 1){
+    out <- data.frame(rowSums(df))
+  } else {
+    out <- df
+  }
+  colnames(out) <- name
+  out
+}
+
 get.scores <- function(data.list){
-  scores.list <- lapply(names(data.list), function(n){
-    out <- data.frame(rowSums(data.list[[n]]))
-    colnames(out) <- n
-    out
-    })
+  scores.list <- lapply(names(data.list), function(n) score.subroutine(n, data.list))
   scores.df <- do.call(cbind, scores.list)
   colnames(scores.df) <- names(data.list)
   scores.df
