@@ -493,8 +493,8 @@ if (METH == "MAP") {
 rm(results)
 
 # summarize score
-score.table <- get.score.table(theta.train, theta.val, scores.train, scores.val)
-sfs.base <- score.stats(score.table)
+df.score.base <- get.score.table(theta.train, theta.val, scores.train, scores.val)
+sfs.base <- score.stats(df.score.base)
 
 # get item infos, remove outliers and plot distributions
 info.items <- collect.item.info(model, theta.train, colnames(data))
@@ -509,6 +509,62 @@ final <- hyperparam.wrapper(hyperparams, internal = F)
 compare.score.stats(sfs.base, final$sfs)
 gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
 
+# evaluation on validation set
+data.val.sub <- data.val[,as.character(final$items$item)]
+theta.val.sub <- get.theta(final$model, method=METH, resp=data.val.sub)
+df.score.val <- get.score.table(final$theta.train, theta.val.sub, scores.train, scores.val)
+
+# misc plots
+ceiling <- max(rowSums(info.items[,-1]))
+p.testinfo <- cowplot::plot_grid(
+  plot.expected.testinfo(info.items, items, ceiling, "Full Testinfo"),
+  plot.expected.testinfo(info.items, final$items, ceiling, "Expected Testinfo"),
+  plot.testinfo(final$model, final$theta.train[,1,drop=F], ceiling),
+  nrow = 1
+)
+p.estimates <- plot.estimates(final$model, final$theta.train)
+p.misc <- cowplot::plot_grid(
+  p.testinfo,
+  p.estimates,
+  ncol = 1
+)
+plotpath <- gpath("plots/{BM}-reduced-info-{MOD}-{METH}-{LAMBDA}.png")
+ggplot2::ggsave(plotpath, p.misc, width = 16, height = 16)
+
+# prediction plots
+p.ts <- cowplot::plot_grid(
+  plot.theta.score(df.score.base, "(Full)"),
+  plot.theta.score(final$df.score, "(Subset)"),
+  plot.theta.score(df.score.val, "(Validation)"),
+  nrow = 1
+)
+p.perc <- cowplot::plot_grid(
+  plot.perc(df.score.base, "(Full)"),
+  plot.perc(final$df.score, "(Subset)"),
+  plot.perc(df.score.val, "(Validation)"),
+  nrow = 1
+)
+p.score <- cowplot::plot_grid(
+  plot.score(df.score.base, "(Full)"),
+  plot.score(final$df.score, "(Subset)"),
+  plot.score(df.score.val, "(Validation)"),
+  nrow = 1
+)
+ceiling <- max(abs(df.score.val$error))
+p.error <- cowplot::plot_grid(
+  plot.score.error(df.score.base, "(Full)", ceiling),
+  plot.score.error(final$df.score, "(Subset)", ceiling),
+  plot.score.error(df.score.val, "(Validation)", ceiling),
+  nrow = 1
+) 
+p.pred <- cowplot::plot_grid(
+  p.ts, p.perc, p.score, p.error, ncol = 1
+)
+plotpath <- gpath("plots/{BM}-reduced-pred-{MOD}-{METH}-{LAMBDA}.png")
+ggplot2::ggsave(plotpath, p.pred, width = 16, height = 16)
+
+
+# save results
 out <- list(
    items = merge.params(final$items, final$model),
    model = final$model,
@@ -518,9 +574,11 @@ out <- list(
    hyperparams = hyperparams,
    opt.results = opt.results,
    sfs.full = sfs.base,
-   sfs.sub = final$sfs
+   sfs.sub = final$sfs,
+   p.misc = p.misc,
+   p.pred = p.pred
 )
 
-outpath <- gpath("analysis/reduced/{BM}-{MOD}-{LAMBDA}.rds")
+outpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved results to {outpath}")
