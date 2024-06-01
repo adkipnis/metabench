@@ -9,7 +9,7 @@
 box::use(./utils[parse.args, gprint, gpath, mytheme, get.theta])
 parse.args(
    names = c("BM", "METHOD"),
-   defaults = c("arc", "EAPsum"),
+   defaults = c("arc", "MAP"),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      METHOD = c("MAP", "EAPsum")
@@ -180,24 +180,28 @@ df.score <- cv.collect(cvs)
 sfs <- evaluate.fit(df.score)
 print(sfs)
 p.ts <- cowplot::plot_grid(
+  plot.theta.score(df.score, "2PL"),
   plot.theta.score(df.score, "3PL"),
   plot.theta.score(df.score, "3PLu"),
   plot.theta.score(df.score, "4PL"),
   nrow = 1)
 
 p.pc <- cowplot::plot_grid(
+  plot.perc(df.score, "2PL"),
   plot.perc(df.score, "3PL"),
   plot.perc(df.score, "3PLu"),
   plot.perc(df.score, "4PL"),
   nrow = 1)
 
 p.ps <- cowplot::plot_grid(
+  plot.score(df.score, "2PL"),
   plot.score(df.score, "3PL"),
   plot.score(df.score, "3PLu"),
   plot.score(df.score, "4PL"),
   nrow = 1)
 
 p.er <- cowplot::plot_grid(
+  plot.error(df.score, "2PL"),
   plot.error(df.score, "3PL"),
   plot.error(df.score, "3PLu"),
   plot.error(df.score, "4PL"),
