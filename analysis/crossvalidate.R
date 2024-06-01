@@ -6,10 +6,11 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(
-   names = c("BM"),
-   defaults = c("hellaswag"),
+   names = c("BM", "MOD"),
+   defaults = c("hellaswag", "3PL"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
+     MOD = c("2PL", "3PL", "3PLu", "4PL")
    )
 )
 here::i_am("analysis/crossvalidate.R")
@@ -66,11 +67,7 @@ scores.test <- 100 * preproc$scores.test / preproc$max.points.orig
 
 # =============================================================================
 # cv models
-cv.2pl <- cross.validate("2PL")
-cv.3pl <- cross.validate("3PL")
-cv.3plu <- cross.validate("3PLu")
-cv.4pl <- cross.validate("4PL")
-cvs <- list(`2PL`=cv.2pl, `3PL`=cv.3pl, `3PLu`=cv.3plu, `4PL`=cv.4pl)
-outpath <- gpath("analysis/models/{BM}-cv.rds")
-saveRDS(cvs, outpath)
+cv <- cross.validate(MOD)
+outpath <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
+saveRDS(cv, outpath)
 gprint("💾 Saved to '{outpath}'.")
