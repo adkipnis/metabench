@@ -447,10 +447,17 @@ if (BM %in% c("hellaswag", "mmlu")){
    datapath <- gpath("data/{BM}-preproc-split.rds")
 }
 full <- readRDS(datapath)
-data <- full$data.train
 items <- full$items
 items$item <- as.numeric(items$item)
-scores <- full$scores.orig / full$scores.max.orig * 100
+data <- full$data.train
+scores <- full$scores.train / full$max.points.orig * 100
+indices <- caret::createDataPartition(scores, p = 0.1, list = F)
+data.train <- data[-indices,]
+data.test <- data[indices,]
+data.val <- full$data.test
+scores.train <- scores[-indices]
+scores.test <- scores[indices]
+scores.val <- full$scores.test / full$max.points.orig * 100
 rm(full)
 
 # append itemfits to items
@@ -468,21 +475,25 @@ results <- readRDS(fitpath)
 model <- results$model
 items <- merge.params(items, model)
 if (METH == "MAP") {
-   theta <- results$theta
+   theta <- results$df |> dplyr::filter(set == "train") |>
+     dplyr::pull(theta) |> as.matrix()
+   theta.train <- as.matrix(theta[-indices])
+   theta.test <- as.matrix(theta[indices])
+   theta.val <- results$df |> dplyr::filter(set == "test") |>
+     dplyr::pull(theta) |> as.matrix()
 } else {
-   theta <- get.theta(model, method=METH)
+   theta.train <- get.theta(model, method=METH)
+   theta.test <- get.theta(model, method=METH, data=data.test)
+   theta.val <- get.theta(model, method=METH, data=data.val)
 }
-
 rm(results)
 
 # summarize score
-score.table <- get.score.table(theta, scores)
-p <- evaluate.score.table(score.table)
-printorsave(p, "score-prediction-full")
-sfs <- score.stats(score.table)
+score.table <- get.score.table(theta.train, theta.val, scores.train, scores.val)
+sfs.base <- score.stats(score.table)
 
 # get item infos, remove outliers and plot distributions
-info.items <- collect.item.info(model, theta, colnames(data))
+info.items <- collect.item.info(model, theta.train, colnames(data))
 info.items <- info.items |>
    dplyr::select(!as.character(items$item[items$outlier]))
 items <- merge(items, summarize.info(info.items), by="item")
