@@ -26,7 +26,6 @@ parse.args(
 )
 Saveplots <- T
 here::i_am("analysis/reduce.R")
-mkdir("plots")
 mkdir("analysis/reduced")
 set.seed(1)
 N_ITER <- 15 # for Bayesian Optimization
@@ -195,7 +194,7 @@ plot.theta <- function(theta, suffix=""){
          mytheme()
 }
 
-plot.testinfo <- function(model, theta, ylim=NULL) {
+plot.testinfo <- function(model, theta, ylim=NULL, title="Testinfo") {
    box::use(ggplot2[...], latex2exp[TeX])
    info.test <- mirt::testinfo(model, Theta = theta)
    ymax <- ifelse(is.null(ylim), max(info.test), ylim)
@@ -205,7 +204,7 @@ plot.testinfo <- function(model, theta, ylim=NULL) {
          geom_line(linewidth = 1) +
          ylim(0, ymax) +
          labs(
-            title = "Sub Testinfo",
+            title = title,
             x = TeX("$\\theta$"),
             y = TeX("$I(\\theta)$"),
             ) +
@@ -495,9 +494,12 @@ df.score.val <- get.score.table(final$theta.train, theta.val.sub, scores.train, 
 # misc plots
 ceiling <- max(rowSums(info.items[,-1]))
 p.testinfo <- cowplot::plot_grid(
-  plot.expected.testinfo(info.items, items, ceiling, "Full Testinfo"),
-  plot.expected.testinfo(info.items, final$items, ceiling, "Expected Testinfo"),
-  plot.testinfo(final$model, final$theta.train[,1,drop=F], ceiling),
+  plot.expected.testinfo(info.items, items, ceiling,
+                         glue::glue("Full Testinfo (n = {nrow(items)})")),
+  plot.expected.testinfo(info.items, final$items, ceiling,
+                         glue::glue("Expected Testinfo (n = {nrow(final$items)})")),
+  plot.testinfo(final$model, final$theta.train[,1,drop=F], ceiling,
+                glue::glue("Reduced Testinfo (n = {nrow(final$items)})")),
   nrow = 1
 )
 p.estimates <- plot.estimates(final$model, final$theta.train)
