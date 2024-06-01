@@ -435,9 +435,9 @@ optimize.hyperparameters <- function(){
   }
   BayesianOptimization(
    objective,
-   bounds = list(n_max = c(1L, 6L),
+   bounds = list(n_max = c(1L, 7L),
                  threshold = c(0, 2),
-                 n_quant = c(20L, 50L)),
+                 n_quant = c(25L, 50L)),
    init_points = 5,
    n_iter = 15,
    acq = "ucb", 
