@@ -142,7 +142,7 @@ plot.perc <- function(df.scores, sfs = NULL, suffix = ""){
     mytheme()
 }
 
-subsample <- function(data, remove = 50){
+subsample <- function(data, remove = 20){
   n <- ncol(data)
   sort(sample(1:n, remove, replace = F))
 }
