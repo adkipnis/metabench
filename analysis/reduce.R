@@ -53,17 +53,41 @@ printorsave <- function(p, outsuffix){
 
 # -----------------------------------------------------------------------------
 # Score prediction
-get.score.table <- function(theta, scores){
-   colnames(theta) <- 'theta'
-   df <- data.frame(theta=theta, score=scores) |>
-      dplyr::arrange(theta) |>
+make.df.score <- function(scores, theta) {
+   data.frame(score = scores, theta = theta[,1]) |>
       dplyr::mutate(rank.score = rank(score),
+                    perc.score = rank.score / max(rank.score),
                     rank.theta = rank(theta),
-                    perc.score = rank.score/max(rank.score),
-                    perc.theta = rank.theta/max(rank.theta))
-   mod.score <- mgcv::gam(score ~ s(theta), data = df)
-   df$p <- predict(mod.score)
-   df |> dplyr::mutate(error = score - p)
+                    perc.theta = rank.theta / max(rank.theta))
+}
+
+get.score.table <- function(theta.train, theta.test, scores.train, scores.test){
+   df.train <- make.df.score(scores.train, theta.train)
+   df.test <- make.df.score(scores.test, theta.test)
+   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
+   df.train$p <- predict(mod.score, df.train)
+   df.test$p <- predict(mod.score, df.test)
+   df.train$set <- "train"
+   df.test$set <- "test"
+   rbind(df.train, df.test) |>
+      dplyr::mutate(error = score - p)
+}
+
+score.stats <- function(df.score){
+  out <- df.score |>
+    dplyr::filter(set == "test") |>
+    dplyr::summarise(
+      mae = mean(abs(error)),
+      ub = mean(abs(error)) + 1.96 * sd(abs(error)),
+      rmse = sqrt(mean(error^2)),
+      sse = sum(error^2)
+    )
+  gprint("📊 Score error:
+          RMSE: {round(out$rmse, 3)}
+          MAE: {round(out$mae, 3)}
+          MAE + 1.96 SD: {round(out$ub, 3)}
+          SSE: {round(out$sse, 3)}")
+  out
 }
 
 plot.theta.score <- function(df.score){
@@ -143,22 +167,6 @@ evaluate.score.table <- function(score.table){
       plot.error.dist(score.table))
 }
 
-score.stats <- function(df.score){
-   abs.error <- abs(df.score$error)
-   mae <- mean(abs.error)
-   out <- list(
-      mae = mae,
-      ub = mae + 1.96 * sd(abs.error),
-      total = sum(abs.error),
-      rmse = sqrt(mean(df.score$error^2))
-   )
-   gprint("📊 Score error:
-          RMSE: {round(out$rmse, 2)}
-          MAE: {round(out$mae, 2)}
-          MAE + 1.96 SD: {round(out$ub, 2)}
-          Total AE: {round(out$total, 2)}")
-   out
-}
 
 compare.score.stats <- function(sfs, sfs.sub){
    out <- list()
