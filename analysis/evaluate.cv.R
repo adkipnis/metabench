@@ -169,8 +169,12 @@ plot.error <- function(df.score, itemtype){
 
 # =============================================================================
 # load cv results
-cvpath <- gpath("analysis/models/{BM}-cv.rds")
-cvs <- readRDS(cvpath)
+cvs <- list(
+   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-cv.rds")),
+   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-cv.rds")),
+   "3PLu" = readRDS(gpath("analysis/models/{BM}-3PLu-cv.rds")),
+   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-cv.rds"))
+)
 if (METHOD == "EAPsum"){
   cvs <- refit.wrapper(cvs)
 }
