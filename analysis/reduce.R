@@ -494,9 +494,9 @@ if (METH == "MAP") {
    theta.val <- results$df |> dplyr::filter(set == "test") |>
      dplyr::pull(theta) |> as.matrix()
 } else {
-   theta.train <- get.theta(model, method=METH)
-   theta.test <- get.theta(model, method=METH, data=data.test)
-   theta.val <- get.theta(model, method=METH, data=data.val)
+   theta.train <- get.theta(model, method=METH, resp=data.train)
+   theta.test <- get.theta(model, method=METH, resp=data.test)
+   theta.val <- get.theta(model, method=METH, resp=data.val)
 }
 rm(results)
 
@@ -513,18 +513,19 @@ items <- merge(items, summarize.info(info.items), by="item")
 # run hyperparameter search using rBayesianOptimization
 opt.results <- optimize.hyperparameters()
 hyperparams <- as.list(opt.results$Best_Par)
-final <- hyperparam.wrapper(hyperparams)
-compare.score.stats(sfs, final$sfs)
+final <- hyperparam.wrapper(hyperparams, internal = F)
+compare.score.stats(sfs.base, final$sfs)
 gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
 
 out <- list(
    items = merge.params(final$items, final$model),
    model = final$model,
-   theta = final$theta,
-   info.items = info.items,
+   theta.train = final$theta.train,
+   theta.test = final$theta.test,
+   info.items.orig = info.items,
    hyperparams = hyperparams,
    opt.results = opt.results,
-   sfs.full = sfs,
+   sfs.full = sfs.base,
    sfs.sub = final$sfs
 )
 
