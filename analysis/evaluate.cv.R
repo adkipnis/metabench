@@ -75,9 +75,10 @@ refit.wrapper <- function(cvs){
     tryCatch({
       cvs.re[[i]] <- refit(cvs[[i]], data.train, data.test)
     }, error = function(e){
+      gprint("Could not re-estimate theta for {names(cvs)[i]}")
     })
   }
-  names(cvs.re) <- names(cvs)
+  names(cvs.re) <- names(cvs)[1:length(cvs.re)]
   cvs.re[!sapply(cvs.re, is.null)]
 }
 
