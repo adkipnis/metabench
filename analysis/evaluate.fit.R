@@ -183,8 +183,12 @@ plot.modelcomp <- function(comparisons) {
 # =============================================================================
 # load fit results
 gprint("🚰 Loading {BM} fits...")
-path <- gpath("analysis/models/{BM}-cv.rds")
-results <- readRDS(path)
+results <- list(
+   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-cv.rds")),
+   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-cv.rds")),
+   "3PLu" = readRDS(gpath("analysis/models/{BM}-3PLu-cv.rds")),
+   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-cv.rds"))
+)
 
 # plot theta and params
 p.theta <- cowplot::plot_grid(
