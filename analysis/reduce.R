@@ -18,7 +18,7 @@ parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
    defaults = c("hellaswag", "3PL", "MAP", 0.0),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande"),
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "3PLu", "4PL"),
      METH = c("MAP", "EAPsum"), # for theta estimation
      LAMBDA = seq(0, 1, 0.1) # penalty for subtest size (0 = no penalty)
@@ -435,12 +435,16 @@ optimize.hyperparameters <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-datapath <- gpath("data/{BM}_preproc.rds")
+if (BM %in% c("hellaswag", "mmlu")){
+   datapath <- gpath("data/{BM}-sub.rds")
+} else {
+   datapath <- gpath("data/{BM}-preproc-split.rds")
+}
 full <- readRDS(datapath)
-data <- full$data
+data <- full$data.train
 items <- full$items
 items$item <- as.numeric(items$item)
-scores <- full$scores
+scores <- full$scores.orig / full$scores.max.orig * 100
 rm(full)
 
 # append itemfits to items
@@ -453,8 +457,8 @@ rm(itemfits)
 
 # prepare model
 gprint("🚰 Loading {BM} fits...")
-fitpath <- gpath("analysis/models/{BM}-all.rds")
-results <- readRDS(fitpath)[[MOD]]
+fitpath <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
+results <- readRDS(fitpath)
 model <- results$model
 items <- merge.params(items, model)
 if (METH == "MAP") {
