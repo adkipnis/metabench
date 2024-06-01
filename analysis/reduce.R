@@ -38,7 +38,6 @@ merge.params <- function(items, model){
    mirt::coef(model, simplify=T, rotate="none")$items |>
       data.frame() |>
       tibble::rownames_to_column(var='item') |>
-      dplyr::mutate(item = as.numeric(item)) |>
       dplyr::left_join(items, by="item")
 }
 
@@ -423,7 +422,7 @@ if (BM %in% c("hellaswag", "mmlu")){
 }
 full <- readRDS(datapath)
 items <- full$items
-items$item <- as.numeric(items$item)
+items$item <- as.character(items$item)
 data <- full$data.train
 scores <- full$scores.train / full$max.points.orig * 100
 indices <- caret::createDataPartition(scores, p = 0.1, list = F)
