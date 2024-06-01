@@ -171,13 +171,13 @@ evaluate.score.table <- function(score.table){
 compare.score.stats <- function(sfs, sfs.sub){
    out <- list()
    for (key in names(sfs)) {
-      out[[key]] <- sfs[[key]] - sfs.sub[[key]]
+      out[[key]] <- sfs.sub[[key]] - sfs[[key]]
    }
-   gprint("📊 Score error change (full - subtest, bigger is better):
-          Δ RMSE: {round(out$rmse, 2)}
-          Δ MAE: {round(out$mae, 2)}
-          Δ (MAE + 1.96 SD): {round(out$ub, 2)}
-          Δ Total AE: {round(out$total, 2)}")
+   gprint("📊 Score error change (subtest - full, negative means improvement):
+          Δ RMSE: {round(out$rmse, 3)}
+          Δ MAE: {round(out$mae, 3)}
+          Δ (MAE + 1.96 SD): {round(out$ub, 3)}
+          Δ Total SSE: {round(out$sse, 3)}")
 }
 
 
