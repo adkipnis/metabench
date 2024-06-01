@@ -473,6 +473,10 @@ itemfitpath <- gpath("analysis/itemfits/{BM}.rds")
 itemfits <- readRDS(itemfitpath) |>
    dplyr::filter(itemtype == MOD) |>
    dplyr::select(-itemtype)
+if (!all(itemfits$item == items$item)){
+  gprint("itemfits and items do not match!")
+  quit()
+}
 items <- merge(items, itemfits, by="item")
 rm(itemfits)
 
