@@ -86,69 +86,78 @@ score.stats <- function(df.score){
     )
 }
 
-plot.theta.score <- function(df.score){
+plot.theta.score <- function(df.score, suffix=""){
    box::use(ggplot2[...], latex2exp[TeX])
-   p <- df.score |> 
-      ggplot(aes(x = theta, y = score)) +
-         geom_point(alpha = 0.5) +
-         labs(
-            title = glue::glue("Theta vs. Score"),
-            x = TeX("$\\theta$"),
-            y = "Full Score",
-            ) +
-         mytheme() 
-
-   # print prediction line
-   if ("p" %in% colnames(df.score)) {
-      p + geom_line(aes(y = p), color = "red")
-   } else {
-      p
-   }
+   df.plot <- df.score |> dplyr::filter(set == "test")
+   sfs <- score.stats(df.plot)
+   text <- glue::glue(
+     "RMSE = {round(sfs$rmse, 3)}\nMAE = {round(sfs$mae, 3)}\nr = {round(sfs$r, 3)}")
+   x.label <- 0.8 * diff(range(df.plot$theta)) + min(df.plot$theta)
+   y.label <- 0.1 * diff(range(df.plot$score)) + min(df.plot$score)
+   ggplot(df.plot, aes(x = theta, y = score)) +
+      geom_point(alpha = 0.5) +
+      geom_line(aes(y = p), color = "red") +
+      ylim(0,100) +
+      annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+      labs(
+         title = glue::glue("Theta vs. Score {suffix}"),
+         x = TeX("$\\theta$"),
+         y = "Score",
+      ) +
+      mytheme()
 }
 
-plot.perc <- function(df.score){
+plot.perc <- function(df.score, suffix=""){
    box::use(ggplot2[...], latex2exp[TeX])
-   df.score |> 
-      ggplot(aes(x = perc.theta, y = perc.score)) +
+   df.plot <- df.score |>
+     dplyr::filter(set == "test")
+   ggplot(df.plot, aes(x = 100 * perc.theta, y = 100 * perc.score)) +
+      geom_point(alpha = 0.5) +
+      geom_abline(intercept = 0,
+                  slope = 1,
+                  linetype = "dashed") +
+      coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+         labs(
+            title = glue::glue("Percentile Comparison {suffix}"),
+            x = TeX("$\\% \\theta$"),
+            y = "% Score",
+            ) +
+         mytheme()
+}
+
+plot.score <- function(df.score, suffix = ""){
+   box::use(ggplot2[...])
+   df.plot <- df.score |>
+      dplyr::filter(set == "test")
+   ggplot(df.plot, aes(x = score, y = p)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
                      linetype = "dashed") +
+         coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
          labs(
-            title = glue::glue("Percentile comparison"),
-            x = TeX("$\\% \\theta$"),
-            y = "% Full Score",
+            title = glue::glue("Score Reconstruction {suffix}"),
+            x = "Score",
+            y = "Predicted",
             ) +
          mytheme()
 }
 
-plot.score.error <- function(df.score){
+plot.score.error <- function(df.score, suffix = "", ylim = NULL){
    box::use(ggplot2[...], latex2exp[TeX])
-   df.score |> 
-      ggplot(aes(x = p, y = error)) +
+   df.plot <- df.score |>
+      dplyr::filter(set == "test")
+   ymax <- ifelse(is.null(ylim), max(abs(df.plot$error)), ylim)
+   ggplot(df.plot, aes(x = p, y = error)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 0,
                      linetype = "dashed") +
+         coord_cartesian(xlim = c(0, 100), ylim = c(-ymax, ymax)) +
          labs(
-            title = glue::glue("Predicted vs. Error"),
+            title = glue::glue("Predicted vs. Error {suffix}"),
             x = "Predicted Score",
             y = "Error",
-            ) +
-         mytheme()
-}
-
-plot.error.dist <- function(df.score){
-   box::use(ggplot2[...], latex2exp[TeX])
-   max_score <- max(df.score$score)
-   df.score |> 
-      ggplot(aes(x = abs(error)/max_score)) +
-         geom_histogram(bins = 50, fill="white", color="black") +
-         xlim(NA, 1) +
-         labs(
-            title = glue::glue("Error Distribution"),
-            x = "Points / Max Score",
-            y = "Count",
             ) +
          mytheme()
 }
