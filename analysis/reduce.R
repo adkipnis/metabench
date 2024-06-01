@@ -16,19 +16,19 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
-   defaults = c("arc", "2PL", "MAP", 0.0),
+   defaults = c("mmlu", "3PL", "MAP", 0.001),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "3PLu", "4PL"),
      METH = c("MAP", "EAPsum"), # for theta estimation
-     LAMBDA = seq(0, 1, 0.1) # penalty for subtest size (0 = no penalty)
+     LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
    )
 )
 Saveplots <- T
 here::i_am("analysis/reduce.R")
 mkdir("analysis/reduced")
 set.seed(1)
-N_ITER <- 15 # for Bayesian Optimization
+N_ITER <- 20 # for Bayesian Optimization
 
 # =============================================================================
 # helper functions
