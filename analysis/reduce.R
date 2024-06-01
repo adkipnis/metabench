@@ -470,7 +470,7 @@ if (!all(itemfits$item == items$item)){
 items <- merge(items, itemfits, by="item")
 rm(itemfits)
 
-# prepare model
+# prepare model and thetas
 gprint("🚰 Loading {BM} fits...")
 fitpath <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
 results <- readRDS(fitpath)
@@ -478,14 +478,16 @@ model <- results$model
 items <- merge.params(items, model)
 if (METH == "MAP") {
    theta <- results$df |> dplyr::filter(set == "train") |>
-     dplyr::pull(theta) |> as.matrix()
+     dplyr::select(theta) |> as.matrix()
    theta.train <- as.matrix(theta[-indices])
    theta.test <- as.matrix(theta[indices])
    theta.val <- results$df |> dplyr::filter(set == "test") |>
-     dplyr::pull(theta) |> as.matrix()
+     dplyr::select(theta) |> as.matrix()
 } else {
-   theta.train <- get.theta(model, method=METH, resp=data.train)
-   theta.test <- get.theta(model, method=METH, resp=data.test)
+   theta <- get.theta(model, method=METH)
+   # split theta but keep column dims
+   theta.train <- theta[-indices, , drop=F]
+   theta.test <- theta[indices, , drop=F]
    theta.val <- get.theta(model, method=METH, resp=data.val)
 }
 rm(results)
