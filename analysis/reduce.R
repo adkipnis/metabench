@@ -162,17 +162,6 @@ plot.score.error <- function(df.score, suffix = "", ylim = NULL){
          mytheme()
 }
 
-evaluate.score.table <- function(score.table){
-   r <- cor(score.table$theta, score.table$score, method = 'spearman')
-   gprint("Spearman correlation Theta x Score: {round(r, 2)}")
-   cowplot::plot_grid(
-      plot.theta.score(score.table),
-      plot.perc(score.table),
-      plot.score.error(score.table),
-      plot.error.dist(score.table))
-}
-
-
 compare.score.stats <- function(sfs, sfs.sub){
    out <- list()
    for (key in names(sfs)) {
@@ -204,28 +193,30 @@ collect.item.info <- function(model, theta, itemnames){
    info.items
 }
 
-plot.theta <- function(theta){
+plot.theta <- function(theta, suffix=""){
    box::use(ggplot2[...], latex2exp[TeX])
    as.data.frame(theta) |> 
       ggplot(aes(x = F1)) +
          geom_density(color="black") +
          labs(
-            title = "Theta Distribution",
+            title = glue::glue("Theta Distribution ({suffix})"),
             x = TeX("$\\theta$"),
             y = TeX("$f(\\theta)$"),
             ) +
          mytheme()
 }
 
-plot.testinfo <- function(model, theta) {
+plot.testinfo <- function(model, theta, ylim=NULL) {
    box::use(ggplot2[...], latex2exp[TeX])
    info.test <- mirt::testinfo(model, Theta = theta)
+   ymax <- ifelse(is.null(ylim), max(info.test), ylim)
    data.frame(theta=theta, info=info.test) |>
       ggplot(aes(x = F1, y = info)) +
       # increase linewidth
          geom_line(linewidth = 1) +
+         ylim(0, ymax) +
          labs(
-            title = "Full Testinfo",
+            title = "Sub Testinfo",
             x = TeX("$\\theta$"),
             y = TeX("$I(\\theta)$"),
             ) +
@@ -368,30 +359,25 @@ create.subtest <- function(data, items, info.quantiles, hyper) {
 
 evaluate.selection <- function(theta, info.quantiles, info.items, items, index.set){
    # evaluation 0: before fitting
-   p <- cowplot::plot_grid(
+   ceiling <- max(rowSums(info.items[,-1]))
+   cowplot::plot_grid(
       plot.theta(theta),
       plot.quantiles(info.quantiles, theta),
-      plot.expected.testinfo(info.items, items, 1000, "Full Testinfo"),
-      plot.expected.testinfo(info.items, index.set, 1000, "Expected Testinfo"),
+      plot.expected.testinfo(info.items, items, ceiling, "Full Testinfo"),
+      plot.expected.testinfo(info.items, index.set, ceiling, "Expected Testinfo"),
       align = "v"
    )
-   outsuffix <- ifelse(Saveplots, "selection-evaluation", NULL)
-   outsuffix <- ifelse(Saveplots, glue::glue("selection-evaluation-{LAMBDA}"), NULL)
-   printorsave(p, outsuffix)
 }
 
-evaluate.subtest.params <- function(model.sub, theta.sub){
-   # evaluation 1: parameter recovery + testinfo
+plot.estimates <- function(model.sub, theta.sub){
    param.compare <- compare.parameters(model, model.sub)
-   p <- cowplot::plot_grid(
-      plot.theta(theta.sub),
+   cowplot::plot_grid(
+      plot.theta(theta.train, "Original"),
       plot.recovery.d(param.compare),
-      plot.testinfo(model.sub, theta.sub),
+      plot.theta(theta.sub, "Reduced"),
       plot.recovery.a1(param.compare),
       align = "v"
    )
-   outsuffix <- ifelse(Saveplots, glue::glue("parameter-recovery-{LAMBDA}"), NULL)
-   printorsave(p, outsuffix)
 }
 
 hyperparam.wrapper <- function(hyperparams, internal=T){
@@ -407,8 +393,6 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
      return(list(sfs = data.frame(rmse = 9999), items = items.sub))
    }
    
-   # if (!internal) evaluate.selection(theta, info.quantiles, info.items, items, items.sub)
-
    # 2. fit subtest
    ncycles <- ifelse(internal, 1000, 5000)
    tol <- ifelse(internal, 1e-4, 1e-5)
@@ -417,7 +401,6 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
    theta.test.sub <- get.theta(model.sub, method=METH, resp=data.test.sub)
 
    # 3. evaluate subtest
-   # if (!internal) evaluate.subtest.params(model.sub, theta.train.sub)
    score.table.sub <- get.score.table(theta.train.sub, theta.test.sub, scores.train, scores.test)
    sfs.sub <- score.stats(score.table.sub)
      
