@@ -392,7 +392,7 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
    }
    
    # 2. fit subtest
-   ncycles <- ifelse(internal, 1000, 3000)
+   ncycles <- ifelse(internal, 500, 1000)
    model.sub <- run.mirt(data.train.sub, MOD, tol = 1e-4, ncycles=ncycles)
    theta.train.sub <- get.theta(model.sub, method=METH, resp=data.train.sub)
    rownames(theta.train.sub) <- rownames(data.tain.sub)
@@ -424,9 +424,9 @@ optimize.hyperparameters <- function(){
   }
   BayesianOptimization(
    objective,
-   bounds = list(n_max = c(1L, 7L),
+   bounds = list(n_max = c(1L, 5L),
                  threshold = c(0, 2),
-                 n_quant = c(25L, 50L)),
+                 n_quant = c(50L, 200L)),
    init_points = 5,
    n_iter = N_ITER,
    acq = "ucb", 
@@ -506,7 +506,7 @@ items <- merge(items, summarize.info(info.items), by="item")
 # run hyperparameter search using rBayesianOptimization
 if (LAMBDA == 0){
    gprint("Skipping hyperparameter search (LAMBDA = 0)")
-   hyperparams <- list(n_max=7L, threshold=0, n_quant=50)
+   hyperparams <- list(n_max=1L, threshold=0, n_quant=150L)
    opt.results <- hyperparams
 } else {
    gprint("🔍 Running hyperparameter search...")
