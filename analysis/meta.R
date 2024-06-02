@@ -198,20 +198,25 @@ benchmarks <- list(arc=list(mod="4PL", est="MAP", lam=0),
                    truthfulqa=list(mod="2PL", est="EAPsum", lam=0),
                    winogrande=list(mod="4PL", est="MAP", lam=0))
 
+scores.full.train <- lapply(names(benchmarks), collect.scores)
+scores.full.test <- lapply(names(benchmarks), function(n) collect.scores(n, train = F))
+scores.partial.train <- merge.skill(scores.full.train)
+scores.partial.test <- merge.skill(scores.full.test)
 numitems.orig <- get.numitems(benchmarks, "original")
 
 # plot correlation matrix
-covmat.score <- construct.covmat(scores.full)
+cor(scores.partial.train) |>
   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
 
 # exploratory factor analysis
-fa.score.1 <- do.fa(scores.partial, 1)
-fa.score.2 <- do.fa(scores.partial, 2)
-fa.score.3 <- do.fa(scores.partial, 3, verbose = F)
+fa.score.1 <- do.fa(scores.partial.train, 1)
+fa.score.2 <- do.fa(scores.partial.train, 2)
+fa.score.3 <- do.fa(scores.partial.train, 3, verbose = F)
 fa.score <- fa.score.2
 psych::fa.diagram(fa.score)
-fa.score$loadings
-fs.score <- psych::factor.scores(scores.partial, fa.score)
+fs.score.train <- psych::factor.scores(scores.partial.train, fa.score)
+fs.score.test <- psych::factor.scores(scores.partial.test, fa.score)
+sort(fa.score$uniquenesses, decreasing = T)
 
 # check prediction of grand sum from factor scores
 scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
