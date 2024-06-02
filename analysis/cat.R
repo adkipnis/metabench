@@ -1,5 +1,8 @@
-# Get reduced test set and adaptively test models to estimate theta:
-#   1. load reduced test set
+# Get test items for each benchmark and adaptively test models to estimate theta:
+#   1. Load data and models
+#   2. Remove outlier items
+#   3. Estimate thetas given trained model for full dataset
+#   4. Simulate Computerized Adaptive Tests using real model responses
 
 
 # =============================================================================
