@@ -589,8 +589,8 @@ out <- list(
    opt.results = opt.results,
    sfs.full = sfs.base,
    sfs.sub = final$sfs,
-   p.misc = p.misc,
-   p.pred = p.pred
+   df.score.base = df.score.base,
+   df.score.val = df.score.val
 )
 
 outpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}.rds")
