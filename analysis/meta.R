@@ -258,40 +258,54 @@ fs.theta.test <- psych::factor.scores(thetas.partial.test, fa.theta)
 sort(fa.theta$uniquenesses, decreasing = T)
 
 # check relation to grand sum
-pred.full <- rowmerge(scores.partial, fs.theta$scores)
-pred.full <- fit.score(pred.full, fa.theta)
+pred.theta.train <- cbind(thetas.partial.train, fs.theta.train$scores)
+pred.theta.test <- cbind(thetas.partial.test, fs.theta.test$scores)
+pred.theta.train$grand <- pred.base.train$grand
+pred.theta.test$grand <- pred.base.test$grand
+mod.theta <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
+                         s(mmlu) + s(truthfulqa) + s(winogrande),
+                       data = pred.theta.train)
+pred.theta.train$p <- predict(mod.theta)
+pred.theta.test$p <- predict(mod.theta, pred.theta.test)
 
 # evaluate grand sum prediction from factor scores
-p.full <- evaluate.score.pred(pred.full) +
+p.full <- evaluate.score.pred(pred.theta.test) +
   ggplot2::ggtitle(glue::glue(
-    "Score prediction from factor scores (IRT, n = {numitems.theta$sum})"))
+    "Score prediction from latent abilities (IRT, n = {numitems.theta$sum})"))
+p.full
 
 # =============================================================================
 # collect theta estimates from reduced benchmarks
-thetas.sub.full <- lapply(names(benchmarks), function(b) collect.theta(b, full = F))
-thetas.sub.partial <- merge.skill(thetas.sub.full)
-covmat.sub.theta <- construct.covmat(thetas.sub.full)
+thetas.sub.full.train <- lapply(names(benchmarks), collect.theta.reduced)
+thetas.sub.full.test <- lapply(names(benchmarks), function(n) collect.theta.reduced(n, train=F))
+thetas.sub.partial.train <- merge.skill(thetas.sub.full.train)
+thetas.sub.partial.test <- merge.skill(thetas.sub.full.test)
 numitems.sub <- get.numitems(benchmarks, "reduced")
 
 # plot correlation matrix
-cov2cor(covmat.sub.theta)|>
+cor(thetas.sub.partial.train)|>
    corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
 
 # exploratory factor analysis
-fa.theta.s <- do.fa(thetas.sub.partial, 1)
-psych::fa.diagram(fa.theta.s)
-fa.theta.s$loadings
-fs.theta.s <- psych::factor.scores(thetas.sub.partial, fa.theta.s)
+fa.sub <- do.fa(thetas.sub.partial.train, 1)
+fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
+fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.theta)
 
 # check relation to grand sum
-pred.sub <- rowmerge(scores.partial, fs.theta.s$scores)
-pred.sub <- fit.score(pred.sub, fa.theta.s)
-
-# evaluate grand sum prediction from factor scores
-p.sub <- evaluate.score.pred(pred.sub) +
+pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
+pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
+pred.sub.train$grand <- pred.base.train$grand
+pred.sub.test$grand <- pred.base.test$grand
+mod.sub <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
+                         s(mmlu) + s(truthfulqa) + s(winogrande),
+                       data = pred.sub.train)
+# mod.theta <- fit.score(pred.theta.train, fa.theta)
+pred.sub.train$p <- predict(mod.sub, pred.sub.train)
+pred.sub.test$p <- predict(mod.sub, pred.sub.test)
+p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::ggtitle(glue::glue(
-    "Score prediction from factor scores (reduced IRT, n = {numitems.sub$sum})"))
-
+    "Score prediction from latent abilities (IRT, n = {numitems.sub$sum})"))
+p.sub
 # =============================================================================
 # summary
 p <- cowplot::plot_grid(p.base, p.full, p.sub,
