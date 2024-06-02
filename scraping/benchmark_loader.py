@@ -4,6 +4,7 @@ import multiprocessing as mp
 from typing import List, Tuple
 from huggingface_hub import snapshot_download, HfApi
 from huggingface_hub.hf_api import DatasetInfo
+import numpy as np
 import pandas as pd
 
 
@@ -136,8 +137,27 @@ class BenchmarkLoader:
         path = os.path.join(self.output_dir, 'logs', f'{prefix}{benchmark}_{suffix}.txt')
         with open(path, 'a') as f:
             f.write(source + '\n')
-    
+   
 
+    def _processPrompts(self, path: str, benchmark: str) -> None:
+        try:
+            raw = pd.read_parquet(path, engine='fastparquet')
+        except:
+            print('🚨 Using pyarrow engine instead of fastparquet.')
+            raw = pd.read_parquet(path, engine='pyarrow')
+        n = len(raw)
+        prefix = '' if benchmark in self.benchmarks else 'mmlu_'
+        prompt_path = os.path.join(self.output_dir, f'{prefix}{benchmark}_prompts.csv')
+        prompts = pd.DataFrame({'item': range(1, n+1),
+                                'prompt': raw['full_prompt']})
+        # check if all prompts are unique
+        n_unique = len(prompts['prompt'].unique())
+        if n_unique != n:
+            print(f'🚨 Warning: {n - n_unique} duplicate prompts.')
+        prompts.to_csv(prompt_path, index=False)
+        if self.verbose > 0:
+            print(f'📜 Dumped {benchmark} prompts to csv.')
+ 
 
     def _processParquet(self, path: str, source: str, benchmark: str) -> pd.DataFrame:
         try:
@@ -146,16 +166,6 @@ class BenchmarkLoader:
             print('🚨 Using pyarrow engine instead of fastparquet.')
             raw = pd.read_parquet(path, engine='pyarrow')
         n = len(raw)
-        
-        # optionally save prompts
-        prefix = '' if benchmark in self.benchmarks else 'mmlu_'
-        prompt_path = os.path.join(self.output_dir, f'{prefix}{benchmark}_prompts.csv')
-        if not os.path.exists(prompt_path):
-            prompts = pd.DataFrame({'item': range(1, n+1),
-                                    'prompt': raw['full_prompt']})
-            prompts.to_csv(prompt_path, index=False)
-            if self.verbose > 0:
-                print(f'📜 Dumped {benchmark} prompts to csv.')
         
         # extract metric
         metric = self.metrics[benchmark] if benchmark in self.metrics else 'acc'
@@ -247,7 +257,7 @@ class BenchmarkLoader:
             self.snapshots[key] = value
 
     
-    def getBenchmark(self, benchmark: str, download: bool = False) -> None:
+    def getBenchmark(self, benchmark: str, download: bool = False, prompts: bool = False) -> None:
         mode = 'downloading' if download else 'processing'
         print(f'🚀 Starting {benchmark} {mode} using {self.num_cores} cores...')
         if benchmark == 'mmlu':
@@ -259,22 +269,35 @@ class BenchmarkLoader:
             self.df = self.df.dropna(subset=[benchmark])
         else:
             self.df = self.df.dropna(subset=['mmlu'])
-        sources = self._removeRedundant(benchmark)
+        self._getSnapshotDirs(benchmark)
         
         # download 
         if download:
-            self._getSnapshotDirs(benchmark)
+            sources = self._removeRedundant(benchmark)
             with mp.Pool(self.num_cores) as pool:
                 for s in sources:
                     pool.apply_async(self.downloadDataset, args=(s, benchmark))
                 pool.close()
                 pool.join()
-            sources = self._removeRedundant(benchmark, sources, verbose=0)
             print(f'🏁 Finished downloading {benchmark} dataset for {len(sources)} sources.\n')
+            return
+
+        # prompts
+        if prompts:
+            # find first source that is in self.snapshots
+            sources = self.df['name'].values.tolist()
+            _, failed = self._getBlacklist(benchmark)
+            sources = [s for s in sources
+                       if (s not in failed and s in self.snapshots)]
+            if len(sources) == 0:
+                print(f'🚨 No snapshots found for {benchmark}.')
+                return
+            path = self.snapshots[sources[0]]
+            self._processPrompts(path, benchmark)
             return
         
         # process
-        self._getSnapshotDirs(benchmark)
+        sources = self._removeRedundant(benchmark)
         if self.num_cores == 1:
             for s in sources:
                 self.processDataset(s, benchmark)
@@ -318,10 +341,11 @@ def main():
     parser.add_argument('-v', '--verbose', type=int, default=1)
     parser.add_argument('-c', '--num_cores', type=int, default=0)
     parser.add_argument('--download', action='store_true', default=False)
+    parser.add_argument('--prompts', action='store_true', default=False)
     parser.add_argument('-b', '--benchmark', type=str, default='gsm8k')
     args = parser.parse_args()
     bl = BenchmarkLoader(args.cachedir, args.outputdir, args.verbose, args.num_cores)
-    bl.getBenchmark(args.benchmark, args.download)
+    bl.getBenchmark(args.benchmark, args.download, args.prompts)
     
 if __name__ == '__main__':
     main()

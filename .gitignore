@@ -1,10 +1,13 @@
 */.RData
 */.Rhistory
 */tempCodeRunnerFile.r
+*/.DS_Store
 .Rproj.user
 analysis/models*
-data
-plots
+analysis/archive
 analysis/itemfits
 analysis/reduced
 analysis/cat/*
+data
+plots
+*_old

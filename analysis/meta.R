@@ -38,7 +38,7 @@ collect.theta <- function(benchmark, full=T){
          model <- results[[model.type]]$model
          theta <- results[[model.type]]$theta
       } else {
-         fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.rds")
+         fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.1.rds")
          results <- readRDS(fitpath)
          model <- results$model
          theta <- results$theta
@@ -83,7 +83,7 @@ collect.numitems <- function(benchmark, type) {
      numitems <- ncol(all$data)
    } else if (type == "reduced") {
       model.type <- benchmarks[[benchmark]]$mod
-      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.rds")
+      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.1.rds")
       results <- readRDS(fitpath)
       numitems <- nrow(results$items)
    }
@@ -150,6 +150,8 @@ plot.score.pred <- function(scores.partial, text = ""){
       mytheme()
 }
 
+
+
 # =============================================================================
 # get ceiling for score prediction
 
@@ -166,7 +168,6 @@ numitems.orig <- get.numitems(benchmarks, "original")
 
 # plot correlation matrix
 covmat.score <- construct.covmat(scores.full)
-cov2cor(covmat.score)|>
   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
 
 # exploratory factor analysis
@@ -204,7 +205,7 @@ fa.theta <- fa.theta.1
 psych::fa.diagram(fa.theta)
 fa.theta$loadings
 fs.theta <- psych::factor.scores(thetas.partial, fa.theta)
-plot(sort(fa.theta$uniquenesses, decreasing = T))
+sort(fa.theta$uniquenesses, decreasing = T) 
 
 # check relation to grand sum
 pred.full <- rowmerge(scores.partial, fs.theta$scores)

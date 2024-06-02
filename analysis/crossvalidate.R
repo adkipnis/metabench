@@ -6,10 +6,11 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
 parse.args(
-   names = c("BM"),
-   defaults = c("hellaswag"),
+   names = c("BM", "MOD"),
+   defaults = c("hellaswag", "3PL"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande")
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
+     MOD = c("2PL", "3PL", "3PLu", "4PL")
    )
 )
 here::i_am("analysis/crossvalidate.R")
@@ -19,92 +20,54 @@ set.seed(1)
 # =============================================================================
 # helper functions  
 
-subset.score <- function(df.score, indices, theta) {
-  df <- df.score[indices, ]
-  df$theta <- theta[, 1]
-  df |>
-    dplyr::arrange(theta) |>
-    dplyr::mutate(rank.theta = rank(theta),
-                  perc.theta = rank.theta / max(rank.theta))
+make.df.score <- function(scores, theta) {
+   data.frame(score = scores, theta = theta[,1]) |>
+      dplyr::mutate(rank.score = rank(score),
+                    perc.score = rank.score / max(rank.score),
+                    rank.theta = rank(theta),
+                    perc.theta = rank.theta / max(rank.theta))
 }
 
-
-plot.prediction <- function(df.score, set) {
-  p <- ggplot(df.score, aes(x = theta, y = score)) +
-    geom_point() +
-    geom_line(aes(y = p), color = 'red') +
-    labs(x = expression(theta), y = 'Score') +
-    ggtitle(glue("Score recovery ({set} set)"))
-  return(p)
-}
-
-
-cv.fold <- function(fold, itemtype) {
-  # prepare data
-  train <- data[-fold, ]
-  test <- data[fold, ]
-  std.train <- apply(train, 2, sd)
-  std.test <- apply(test, 2, sd)
-  item.ids <- which(std.train > 0 & std.test > 0)
-  gprint("🧹 Removing {ncol(train) - length(item.ids)} items with zero variance.")
-  train <- train[, item.ids]
-  test <- test[, item.ids]
-  
+cross.validate <- function(itemtype){
   # fit model
   gprint("⚙️ Fitting {itemtype} model to training fold...")
-  model <- run.mirt(train, itemtype)
-  
+  model <- run.mirt(data.train, itemtype)
+ 
   # train performance
   theta.train <- get.theta(model, method = "MAP")
-  df.train <- subset.score(df.score, -fold, theta.train)
+  df.train <- make.df.score(scores.train, theta.train)
   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
   df.train$p <- predict(mod.score)
   
   # test performance
-  theta.test <- get.theta(model, method = "MAP", resp = test)
-  df.test <- subset.score(df.score, fold, theta.test)
+  theta.test <- get.theta(model, method = "MAP", resp = data.test)
+  df.test <- make.df.score(scores.test, theta.test)
   df.test$p <- predict(mod.score, newdata = df.test)
 
   # collaps both dataframes
   df.train$set <- "train"
   df.test$set <- "test"
-  list(df = rbind(df.train, df.test), model = model)
+  list(df = rbind(df.train, df.test), model = model, mod.score = mod.score)
 }
 
-
-cv.wrapper <- function(folds, itemtype) {
-  results <- list()
-  for (i in 1:length(folds)) {
-    gprint("🔁 Cross-validation fold {i}...")
-    result <- cv.fold(folds[[i]], itemtype)
-    results[[i]] <- result
-  }
-  return(results)
-}
 
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-preproc <- readRDS(gpath("data/{BM}_preproc.rds"))
-data <- preproc$data
-scores <- preproc$scores
-
-# init df.score
-df.score <- data.frame(score = scores) |>
-  dplyr::mutate(rank.score = rank(score),
-                perc.score = rank.score / max(rank.score))
-
-# init 10-fold CV split (stratified wrt. scores)
-folds <- caret::createFolds(scores, k = 10, list = T)
+if (BM %in% c("hellaswag", "mmlu")){
+   datapath <- gpath("data/{BM}-sub.rds")
+} else {
+   datapath <- gpath("data/{BM}-preproc-split.rds")
+}
+preproc <- readRDS(datapath)
+data.train <- preproc$data.train
+data.test <- preproc$data.test
+scores.train <- 100 * preproc$scores.train / preproc$max.points.orig
+scores.test <- 100 * preproc$scores.test / preproc$max.points.orig
 
 # =============================================================================
 # cv models
-cv.2pl <- cv.wrapper(folds, "2PL")
-cv.3pl <- cv.wrapper(folds, "3PL")
-cv.3plu <- cv.wrapper(folds, "3PLu")
-cv.4pl <- cv.wrapper(folds, "4PL")
-cvs <- list(`2PL`=cv.2pl, `3PL`=cv.3pl, `3PLu`=cv.3plu, `4PL`=cv.4pl)
-outpath <- gpath("analysis/models/{BM}-cv.rds")
-saveRDS(cvs, outpath)
+cv <- cross.validate(MOD)
+outpath <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
+saveRDS(cv, outpath)
 gprint("💾 Saved to '{outpath}'.")
-

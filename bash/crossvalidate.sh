@@ -3,7 +3,7 @@
 #SBATCH --job-name=mb-cv-array
 #SBATCH --output=logs/cv.%A_%a.out
 #SBATCH --error=logs/cv.%A_%a.err
-#SBATCH --array=1-5
+#SBATCH --array=1-4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de
 
@@ -16,9 +16,22 @@
 #SBATCH --time=24:00:00
 #SBATCH --nice=1000
 
+# add flag -b to specify benchmark to run
+while getopts b: flag
+do
+    case "${flag}" in
+        b) benchmark=${OPTARG};;
+    esac
+done
+if [ -z "$benchmark" ]
+then
+    echo "Please specify benchmark with -b flag"
+    exit 1
+fi
+
 source $HOME/.bashrc
-benchmarks=("arc" "gsm8k" "hellaswag" "truthfulqa" "winogrande")
+models=("2PL" "3PL" "3PLu" "4PL")
 task_index=$((SLURM_ARRAY_TASK_ID-1))
-task=${benchmarks[$task_index]}
+task=${models[$task_index]}
 echo "Running task $task"
-LC_ALL=C.UTF-8 Rscript ../analysis/crossvalidate.R $task
+LC_ALL=C.UTF-8 Rscript ../analysis/crossvalidate.R $benchmark $task

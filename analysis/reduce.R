@@ -16,19 +16,19 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
-   defaults = c("hellaswag", "3PL", "MAP", 0.0),
+   defaults = c("mmlu", "3PL", "MAP", 0.001),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande"),
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "3PLu", "4PL"),
      METH = c("MAP", "EAPsum"), # for theta estimation
-     LAMBDA = seq(0, 1, 0.1) # penalty for subtest size (0 = no penalty)
+     LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
    )
 )
 Saveplots <- T
 here::i_am("analysis/reduce.R")
-mkdir("plots")
 mkdir("analysis/reduced")
 set.seed(1)
+N_ITER <- 20 # for Bayesian Optimization
 
 # =============================================================================
 # helper functions
@@ -37,139 +37,129 @@ merge.params <- function(items, model){
    mirt::coef(model, simplify=T, rotate="none")$items |>
       data.frame() |>
       tibble::rownames_to_column(var='item') |>
-      dplyr::mutate(item = as.numeric(item)) |>
       dplyr::left_join(items, by="item")
-}
-
-printorsave <- function(p, outsuffix){
-   if (!is.null(outsuffix)) {
-      outpath <- gpath("plots/{BM}-{MOD}-{METH}-{outsuffix}.png")
-      ggplot2::ggsave(outpath, p, width = 8, height = 8)
-      gprint("💾 Saved plot to {outpath}")
-   } else {
-      print(p)
-   }
 }
 
 # -----------------------------------------------------------------------------
 # Score prediction
-get.score.table <- function(theta, scores){
-   colnames(theta) <- 'theta'
-   df <- data.frame(theta=theta, score=scores) |>
-      dplyr::arrange(theta) |>
+make.df.score <- function(scores, theta) {
+   data.frame(score = scores, theta = theta[,1]) |>
       dplyr::mutate(rank.score = rank(score),
+                    perc.score = rank.score / max(rank.score),
                     rank.theta = rank(theta),
-                    perc.score = rank.score/max(rank.score),
-                    perc.theta = rank.theta/max(rank.theta))
-   mod.score <- mgcv::gam(score ~ s(theta), data = df)
-   df$p <- predict(mod.score)
-   df |> dplyr::mutate(error = score - p)
+                    perc.theta = rank.theta / max(rank.theta))
 }
 
-plot.theta.score <- function(df.score){
-   box::use(ggplot2[...], latex2exp[TeX])
-   p <- df.score |> 
-      ggplot(aes(x = theta, y = score)) +
-         geom_point(alpha = 0.5) +
-         labs(
-            title = glue::glue("Theta vs. Score"),
-            x = TeX("$\\theta$"),
-            y = "Full Score",
-            ) +
-         mytheme() 
-
-   # print prediction line
-   if ("p" %in% colnames(df.score)) {
-      p + geom_line(aes(y = p), color = "red")
-   } else {
-      p
-   }
+get.score.table <- function(theta.train, theta.test, scores.train, scores.test){
+   df.train <- make.df.score(scores.train, theta.train)
+   df.test <- make.df.score(scores.test, theta.test)
+   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
+   df.train$p <- predict(mod.score, df.train)
+   df.test$p <- predict(mod.score, df.test)
+   df.train$set <- "train"
+   df.test$set <- "test"
+   rbind(df.train, df.test) |>
+      dplyr::mutate(error = score - p)
 }
 
-plot.perc <- function(df.score){
+score.stats <- function(df.score){
+  df.score |>
+    dplyr::filter(set == "test") |>
+    dplyr::summarise(
+      mae = mean(abs(error)),
+      ub = mean(abs(error)) + 1.96 * sd(abs(error)),
+      rmse = sqrt(mean(error^2)),
+      sse = sum(error^2),
+      r = cor(theta, score, method = "spearman")
+    )
+}
+
+plot.theta.score <- function(df.score, suffix=""){
    box::use(ggplot2[...], latex2exp[TeX])
-   df.score |> 
-      ggplot(aes(x = perc.theta, y = perc.score)) +
-         geom_point(alpha = 0.5) +
-         geom_abline(intercept = 0,
-                     slope = 1,
-                     linetype = "dashed") +
+   df.plot <- df.score |> dplyr::filter(set == "test")
+   sfs <- score.stats(df.plot)
+   text <- glue::glue(
+     "RMSE = {round(sfs$rmse, 3)}\nMAE = {round(sfs$mae, 3)}\nr = {round(sfs$r, 3)}")
+   x.label <- 0.8 * diff(range(df.plot$theta)) + min(df.plot$theta)
+   y.label <- 0.1 * diff(range(df.plot$score)) + min(df.plot$score)
+   ggplot(df.plot, aes(x = theta, y = score)) +
+      geom_point(alpha = 0.5) +
+      geom_line(aes(y = p), color = "red") +
+      ylim(0,100) +
+      annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+      labs(
+         title = glue::glue("Theta vs. Score {suffix}"),
+         x = TeX("$\\theta$"),
+         y = "Score",
+      ) +
+      mytheme()
+}
+
+plot.perc <- function(df.score, suffix=""){
+   box::use(ggplot2[...], latex2exp[TeX])
+   df.plot <- df.score |>
+     dplyr::filter(set == "test")
+   ggplot(df.plot, aes(x = 100 * perc.theta, y = 100 * perc.score)) +
+      geom_point(alpha = 0.5) +
+      geom_abline(intercept = 0,
+                  slope = 1,
+                  linetype = "dashed") +
+      coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
          labs(
-            title = glue::glue("Percentile comparison"),
+            title = glue::glue("Percentile Comparison {suffix}"),
             x = TeX("$\\% \\theta$"),
-            y = "% Full Score",
+            y = "% Score",
             ) +
          mytheme()
 }
 
-plot.score.error <- function(df.score){
+plot.score <- function(df.score, suffix = ""){
+   box::use(ggplot2[...])
+   df.plot <- df.score |>
+      dplyr::filter(set == "test")
+   ggplot(df.plot, aes(x = score, y = p)) +
+         geom_point(alpha = 0.5) +
+         geom_abline(intercept = 0,
+                     slope = 1,
+                     linetype = "dashed") +
+         coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+         labs(
+            title = glue::glue("Score Reconstruction {suffix}"),
+            x = "Score",
+            y = "Predicted",
+            ) +
+         mytheme()
+}
+
+plot.score.error <- function(df.score, suffix = "", ylim = NULL){
    box::use(ggplot2[...], latex2exp[TeX])
-   df.score |> 
-      ggplot(aes(x = p, y = error)) +
+   df.plot <- df.score |>
+      dplyr::filter(set == "test")
+   ymax <- ifelse(is.null(ylim), max(abs(df.plot$error)), ylim)
+   ggplot(df.plot, aes(x = p, y = error)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 0,
                      linetype = "dashed") +
+         coord_cartesian(xlim = c(0, 100), ylim = c(-ymax, ymax)) +
          labs(
-            title = glue::glue("Predicted vs. Error"),
+            title = glue::glue("Predicted vs. Error {suffix}"),
             x = "Predicted Score",
             y = "Error",
             ) +
          mytheme()
 }
 
-plot.error.dist <- function(df.score){
-   box::use(ggplot2[...], latex2exp[TeX])
-   max_score <- max(df.score$score)
-   df.score |> 
-      ggplot(aes(x = abs(error)/max_score)) +
-         geom_histogram(bins = 50, fill="white", color="black") +
-         xlim(NA, 1) +
-         labs(
-            title = glue::glue("Error Distribution"),
-            x = "Points / Max Score",
-            y = "Count",
-            ) +
-         mytheme()
-}
-
-evaluate.score.table <- function(score.table){
-   r <- cor(score.table$theta, score.table$score, method = 'spearman')
-   gprint("Spearman correlation Theta x Score: {round(r, 2)}")
-   cowplot::plot_grid(
-      plot.theta.score(score.table),
-      plot.perc(score.table),
-      plot.score.error(score.table),
-      plot.error.dist(score.table))
-}
-
-score.stats <- function(df.score){
-   abs.error <- abs(df.score$error)
-   mae <- mean(abs.error)
-   out <- list(
-      mae = mae,
-      ub = mae + 1.96 * sd(abs.error),
-      total = sum(abs.error),
-      rmse = sqrt(mean(df.score$error^2))
-   )
-   gprint("📊 Score error:
-          RMSE: {round(out$rmse, 2)}
-          MAE: {round(out$mae, 2)}
-          MAE + 1.96 SD: {round(out$ub, 2)}
-          Total AE: {round(out$total, 2)}")
-   out
-}
-
 compare.score.stats <- function(sfs, sfs.sub){
    out <- list()
    for (key in names(sfs)) {
-      out[[key]] <- sfs[[key]] - sfs.sub[[key]]
+      out[[key]] <- sfs.sub[[key]] - sfs[[key]]
    }
-   gprint("📊 Score error change (full - subtest, bigger is better):
-          Δ RMSE: {round(out$rmse, 2)}
-          Δ MAE: {round(out$mae, 2)}
-          Δ (MAE + 1.96 SD): {round(out$ub, 2)}
-          Δ Total AE: {round(out$total, 2)}")
+   gprint("📊 Score error change (subtest - full, negative means improvement):
+          Δ RMSE: {round(out$rmse, 3)}
+          Δ MAE: {round(out$mae, 3)}
+          Δ (MAE + 1.96 SD): {round(out$ub, 3)}
+          Δ Total SSE: {round(out$sse, 3)}")
 }
 
 
@@ -191,28 +181,30 @@ collect.item.info <- function(model, theta, itemnames){
    info.items
 }
 
-plot.theta <- function(theta){
+plot.theta <- function(theta, suffix=""){
    box::use(ggplot2[...], latex2exp[TeX])
    as.data.frame(theta) |> 
       ggplot(aes(x = F1)) +
          geom_density(color="black") +
          labs(
-            title = "Theta Distribution",
+            title = glue::glue("Theta Distribution ({suffix})"),
             x = TeX("$\\theta$"),
             y = TeX("$f(\\theta)$"),
             ) +
          mytheme()
 }
 
-plot.testinfo <- function(model, theta) {
+plot.testinfo <- function(model, theta, ylim=NULL, title="Testinfo") {
    box::use(ggplot2[...], latex2exp[TeX])
    info.test <- mirt::testinfo(model, Theta = theta)
+   ymax <- ifelse(is.null(ylim), max(info.test), ylim)
    data.frame(theta=theta, info=info.test) |>
       ggplot(aes(x = F1, y = info)) +
       # increase linewidth
          geom_line(linewidth = 1) +
+         ylim(0, ymax) +
          labs(
-            title = "Full Testinfo",
+            title = title,
             x = TeX("$\\theta$"),
             y = TeX("$I(\\theta)$"),
             ) +
@@ -305,8 +297,7 @@ compare.parameters <- function(model, model.sub){
    get.estimates <- function(model){
       mirt::coef(model, simplify=T, rotate="none")$items |>
          data.frame() |>
-         tibble::rownames_to_column(var='item') |>
-         dplyr::mutate(item = as.numeric(item))
+         tibble::rownames_to_column(var='item')
    }
    estimates <- get.estimates(model)
    estimates.sub <- get.estimates(model.sub)
@@ -344,6 +335,16 @@ plot.recovery.a1 <- function(df.comparison){
          mytheme()
 }
 
+plot.estimates <- function(model.sub, theta.sub){
+   param.compare <- compare.parameters(model, model.sub)
+   cowplot::plot_grid(
+      plot.theta(theta.train, "Original"),
+      plot.recovery.d(param.compare),
+      plot.theta(theta.sub, "Reduced"),
+      plot.recovery.a1(param.compare),
+      align = "v"
+   )
+}
 # -----------------------------------------------------------------------------
 # hyperparameter search
 
@@ -353,79 +354,57 @@ create.subtest <- function(data, items, info.quantiles, hyper) {
    list(data=data.sub, items=index.set)
 }
 
-evaluate.selection <- function(theta, info.quantiles, info.items, items, index.set){
-   # evaluation 0: before fitting
-   p <- cowplot::plot_grid(
-      plot.theta(theta),
-      plot.quantiles(info.quantiles, theta),
-      plot.expected.testinfo(info.items, items, 1000, "Full Testinfo"),
-      plot.expected.testinfo(info.items, index.set, 1000, "Expected Testinfo"),
-      align = "v"
-   )
-   outsuffix <- ifelse(Saveplots, "selection-evaluation", NULL)
-   outsuffix <- ifelse(Saveplots, glue::glue("selection-evaluation-{LAMBDA}"), NULL)
-   printorsave(p, outsuffix)
-}
-
-evaluate.subtest.params <- function(model.sub, theta.sub){
-   # evaluation 1: parameter recovery + testinfo
-   param.compare <- compare.parameters(model, model.sub)
-   p <- cowplot::plot_grid(
-      plot.theta(theta.sub),
-      plot.recovery.d(param.compare),
-      plot.testinfo(model.sub, theta.sub),
-      plot.recovery.a1(param.compare),
-      align = "v"
-   )
-   outsuffix <- ifelse(Saveplots, glue::glue("parameter-recovery-{LAMBDA}"), NULL)
-   printorsave(p, outsuffix)
-}
-
-evaluate.subtest.score <- function(theta.sub, scores){
-   # evaluation 2: score prediction
-   score.table.sub <- get.score.table(theta.sub, scores)
-   p <- evaluate.score.table(score.table.sub)
-   outsuffix <- ifelse(Saveplots, glue::glue("score-prediction-sub-{LAMBDA}"), NULL)
-   printorsave(p, outsuffix)
-   score.stats(score.table.sub)
-}
-
-hyperparam.wrapper <- function(hyperparams, plot=T){
+hyperparam.wrapper <- function(hyperparams, internal=T){
    # 1. create subtest
    info.quantiles <- get.info.quantiles(info.items, steps=hyperparams$n_quant)
-   subtest <- create.subtest(data, items, info.quantiles, hyperparams)
-   data.sub <- subtest$data
+   subtest <- create.subtest(data.train, items, info.quantiles, hyperparams)
+   data.train.sub <- subtest$data
+   data.test.sub <- data.test[colnames(data.train.sub)]
    items.sub <- subtest$items
-   if (plot) evaluate.selection(theta, info.quantiles, info.items, items, items.sub)
-
+   
+   # fail gracefully if the set becomes too
+   if (ncol(data.frame(data.train.sub)) < 10){
+     return(list(sfs = data.frame(rmse = 9999), items = items.sub))
+   }
+   
    # 2. fit subtest
-   model.sub <- run.mirt(data.sub, MOD)
-   theta.sub <- get.theta(model.sub, method=METH)
+   ncycles <- ifelse(internal, 1000, 3000)
+   model.sub <- run.mirt(data.train.sub, MOD, tol = 1e-4, ncycles=ncycles)
+   theta.train.sub <- get.theta(model.sub, method=METH, resp=data.train.sub)
+   rownames(theta.train.sub) <- rownames(data.tain.sub)
+   theta.test.sub <- get.theta(model.sub, method=METH, resp=data.test.sub)
+   rownames(theta.test.sub) <- rownames(data.test.sub)
 
    # 3. evaluate subtest
-   if (plot) evaluate.subtest.params(model.sub, theta.sub)
-   sfs.sub <- evaluate.subtest.score(theta.sub, scores)
-
+   score.table.sub <- get.score.table(theta.train.sub, theta.test.sub, scores.train, scores.test)
+   sfs.sub <- score.stats(score.table.sub)
+     
    # 4. return results
-   list(items=items.sub, model=model.sub, theta=theta.sub, sfs=sfs.sub)
+   list(items = items.sub,
+        model = model.sub,
+        theta.train = theta.train.sub,
+        theta.test = theta.test.sub,
+        info.quantiles = info.quantiles,
+        df.score = score.table.sub,
+        sfs = sfs.sub)
 }
 
 optimize.hyperparameters <- function(){
    box::use(rBayesianOptimization[...])
    objective <- function(n_max, threshold, n_quant) {
      hyperparams <- list(n_max=n_max, threshold=threshold, n_quant=n_quant)
-     res <- hyperparam.wrapper(hyperparams, plot=F)
+     res <- hyperparam.wrapper(hyperparams, internal=T)
      sfs <- res$sfs
-     score <- sfs$ub + as.numeric(LAMBDA) * nrow(res$items) # minimize this
-     list(Score = -score, Pred = sfs$items.sub)
+     score <- sfs$rmse + as.numeric(LAMBDA) * nrow(res$items) # minimize this
+     list(Score = -score, Pred = 0)
   }
   BayesianOptimization(
    objective,
-   bounds = list(n_max = c(1L, 6L),
+   bounds = list(n_max = c(1L, 7L),
                  threshold = c(0, 2),
-                 n_quant = c(20L, 50L)),
+                 n_quant = c(25L, 50L)),
    init_points = 5,
-   n_iter = 15,
+   n_iter = N_ITER,
    acq = "ucb", 
    kappa = 2.576,
    eps = 0.0,
@@ -435,12 +414,23 @@ optimize.hyperparameters <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-datapath <- gpath("data/{BM}_preproc.rds")
+if (BM %in% c("hellaswag", "mmlu")){
+   datapath <- gpath("data/{BM}-sub.rds")
+} else {
+   datapath <- gpath("data/{BM}-preproc-split.rds")
+}
 full <- readRDS(datapath)
-data <- full$data
 items <- full$items
-items$item <- as.numeric(items$item)
-scores <- full$scores
+items$item <- as.character(items$item)
+data <- full$data.train
+scores <- full$scores.train / full$max.points.orig * 100
+indices <- caret::createDataPartition(scores, p = 0.1, list = F)
+data.train <- data[-indices,]
+data.test <- data[indices,]
+data.val <- full$data.test
+scores.train <- scores[-indices]
+scores.test <- scores[indices]
+scores.val <- full$scores.test / full$max.points.orig * 100
 rm(full)
 
 # append itemfits to items
@@ -448,53 +438,135 @@ itemfitpath <- gpath("analysis/itemfits/{BM}.rds")
 itemfits <- readRDS(itemfitpath) |>
    dplyr::filter(itemtype == MOD) |>
    dplyr::select(-itemtype)
+if (!all(itemfits$item == items$item)){
+  gprint("itemfits and items do not match!")
+  quit()
+}
 items <- merge(items, itemfits, by="item")
 rm(itemfits)
 
-# prepare model
+# prepare model and thetas
 gprint("🚰 Loading {BM} fits...")
-fitpath <- gpath("analysis/models/{BM}-all.rds")
-results <- readRDS(fitpath)[[MOD]]
+fitpath <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
+results <- readRDS(fitpath)
 model <- results$model
 items <- merge.params(items, model)
 if (METH == "MAP") {
-   theta <- results$theta
+   theta <- results$df |> dplyr::filter(set == "train") |>
+     dplyr::select(theta) |> as.matrix()
+   colnames(theta) <- "F1"
+   theta.train <- theta[-indices, , drop=F]
+   theta.test <- theta[indices, , drop = F]
+   theta.val <- results$df |> dplyr::filter(set == "test") |>
+     dplyr::select(theta) |> as.matrix()
+   colnames(theta.val) <- "F1"
 } else {
    theta <- get.theta(model, method=METH)
+   # split theta but keep column dims
+   theta.train <- theta[-indices, , drop=F]
+   theta.test <- theta[indices, , drop=F]
+   theta.val <- get.theta(model, method=METH, resp=data.val)
 }
-
 rm(results)
 
 # summarize score
-score.table <- get.score.table(theta, scores)
-p <- evaluate.score.table(score.table)
-printorsave(p, "score-prediction-full")
-sfs <- score.stats(score.table)
+df.score.base <- get.score.table(theta.train, theta.val, scores.train, scores.val)
+sfs.base <- score.stats(df.score.base)
 
 # get item infos, remove outliers and plot distributions
-info.items <- collect.item.info(model, theta, colnames(data))
+info.items <- collect.item.info(model, theta.train, colnames(data))
 info.items <- info.items |>
    dplyr::select(!as.character(items$item[items$outlier]))
 items <- merge(items, summarize.info(info.items), by="item")
 
 # run hyperparameter search using rBayesianOptimization
-opt.results <- optimize.hyperparameters()
-hyperparams <- as.list(opt.results$Best_Par)
-final <- hyperparam.wrapper(hyperparams)
-compare.score.stats(sfs, final$sfs)
+if (LAMBDA == 0){
+   gprint("Skipping hyperparameter search (LAMBDA = 0)")
+   hyperparams <- list(n_max=7L, threshold=0, n_quant=50)
+   opt.results <- hyperparams
+} else {
+   gprint("🔍 Running hyperparameter search...")
+   opt.results <- optimize.hyperparameters()
+   hyperparams <- as.list(opt.results$Best_Par)
+}
+final <- hyperparam.wrapper(hyperparams, internal = F)
+compare.score.stats(sfs.base, final$sfs)
 gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
 
+# evaluation on validation set
+data.val.sub <- data.val[,as.character(final$items$item)]
+theta.val.sub <- get.theta(final$model, method=METH, resp=data.val.sub)
+df.score.val <- get.score.table(final$theta.train, theta.val.sub, scores.train, scores.val)
+
+# misc plots
+ceiling <- max(rowSums(info.items[,-1]))
+p.testinfo <- cowplot::plot_grid(
+  plot.expected.testinfo(info.items, items, ceiling,
+                         glue::glue("Full Testinfo (n = {nrow(items)})")),
+  plot.expected.testinfo(info.items, final$items, ceiling,
+                         glue::glue("Expected Testinfo (n = {nrow(final$items)})")),
+  plot.testinfo(final$model, final$theta.train[,1,drop=F], ceiling,
+                glue::glue("Reduced Testinfo (n = {nrow(final$items)})")),
+  nrow = 1
+)
+# TODO: scatterplot of theta with marginal distributions
+p.estimates <- plot.estimates(final$model, final$theta.train)
+p.misc <- cowplot::plot_grid(
+  p.testinfo,
+  p.estimates,
+  ncol = 1
+)
+plotpath <- gpath("plots/{BM}-reduced-info-{MOD}-{METH}-{LAMBDA}.png")
+ggplot2::ggsave(plotpath, p.misc, width = 16, height = 16)
+
+# prediction plots
+p.ts <- cowplot::plot_grid(
+  plot.theta.score(df.score.base, "(Full)"),
+  plot.theta.score(final$df.score, "(Subset)"),
+  plot.theta.score(df.score.val, "(Validation)"),
+  nrow = 1
+)
+p.perc <- cowplot::plot_grid(
+  plot.perc(df.score.base, "(Full)"),
+  plot.perc(final$df.score, "(Subset)"),
+  plot.perc(df.score.val, "(Validation)"),
+  nrow = 1
+)
+p.score <- cowplot::plot_grid(
+  plot.score(df.score.base, "(Full)"),
+  plot.score(final$df.score, "(Subset)"),
+  plot.score(df.score.val, "(Validation)"),
+  nrow = 1
+)
+ceiling <- max(abs(df.score.val$error))
+p.error <- cowplot::plot_grid(
+  plot.score.error(df.score.base, "(Full)", ceiling),
+  plot.score.error(final$df.score, "(Subset)", ceiling),
+  plot.score.error(df.score.val, "(Validation)", ceiling),
+  nrow = 1
+) 
+p.pred <- cowplot::plot_grid(
+  p.ts, p.perc, p.score, p.error, ncol = 1
+)
+plotpath <- gpath("plots/{BM}-reduced-pred-{MOD}-{METH}-{LAMBDA}.png")
+ggplot2::ggsave(plotpath, p.pred, width = 16, height = 16)
+
+
+# save results
 out <- list(
    items = merge.params(final$items, final$model),
    model = final$model,
-   theta = final$theta,
-   info.items = info.items,
+   theta.train = final$theta.train,
+   theta.test = final$theta.test,
+   info.items.orig = info.items,
    hyperparams = hyperparams,
    opt.results = opt.results,
-   sfs.full = sfs,
-   sfs.sub = final$sfs
+   sfs.full = sfs.base,
+   sfs.sub = final$sfs,
+   p.misc = p.misc,
+   p.pred = p.pred
 )
 
-outpath <- gpath("analysis/reduced/{BM}-{MOD}-{LAMBDA}.rds")
+outpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved results to {outpath}")

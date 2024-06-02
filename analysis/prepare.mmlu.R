@@ -1,39 +1,42 @@
-# Jointly fit MMLU single model on all subtests 
-# 1. Perform exploratory FA on scores and discard non-unique subtests
-# 2. Fit IRT model on remaining subtests
+# Further reduce MMLU to at max 1/4 of the number of LLMs
+# 0. Perform exploratory FA on scores and discard non-unique subtests
+# 1. Drop a random subset of MMLU items per scenario and recalculate the scores
+# 2. Perform exploratory factor analysis on the scores
+# 3. Try to predict the the normalized full score using the latent factor
 # usage: Rscript prepare.mmlu.R
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[mkdir, gprint, gpath, df2data, rowmerge, do.fa, mytheme])
+box::use(./utils[mkdir, gprint, gpath, prop.indices, rowmerge, do.fa, mytheme])
 here::i_am("analysis/prepare.mmlu.R")
-mkdir(gpath("plots"))
 set.seed(1)
-GOAL <- 1500L
-SHOW <- F
 
 # =============================================================================
 # helper functions
 
-collect.data <- function(datapath){
-  df <- readr::read_csv(datapath, show_col_types = F)
-  data <- df2data(df)
-  benchmark <- gsub("mmlu_", "", gsub(".csv", "", basename(datapath)))
-  colnames(data) <- paste0(benchmark, ".", colnames(data))
-  data
+df2list <- function(df){
+  scenarios <- unique(gsub("\\..*", "", colnames(df)))
+  data.list <- lapply(scenarios, function(s) df[, grepl(s, colnames(df))])
+  names(data.list) <- scenarios
+  data.list
 }
 
-collect.prompts <- function(datapath){
-   items <- readr::read_csv(datapath, show_col_types = F)
-   benchmark <- gsub("mmlu_", "", gsub("_prompts.csv", "", basename(datapath)))
-   items$item <- paste0(benchmark, ".", items$item)
-   items
+score.subroutine <- function(name, data.list){
+  df <- as.data.frame(data.list[[name]])
+  if (ncol(df) > 1){
+    out <- data.frame(rowSums(df))
+  } else {
+    out <- df
+  }
+  colnames(out) <- name
+  out
 }
 
-collect.scores <- function(dataset){
-  scores <- data.frame(rowSums(dataset))
-  colnames(scores) <- gsub("\\..*", "", colnames(dataset)[1])
-  scores
+get.scores <- function(data.list){
+  scores.list <- lapply(names(data.list), function(n) score.subroutine(n, data.list))
+  scores.df <- do.call(cbind, scores.list)
+  colnames(scores.df) <- names(data.list)
+  scores.df
 }
 
 n.data <- function(data.list){
@@ -50,167 +53,199 @@ plot.unique <- function(unique){
          ggtitle("Unique variance of MMLU subtests") +
          mytheme()
 }
-
-predict.scores <- function(scores, fa.res, full.points = NULL){
-  fs <- psych::factor.scores(scores, fa.res, method = "Bartlett")$scores
+#
+make.score.df <- function(scores, fa.res, means){
+  fs <- psych::factor.scores(scores, fa.res)$scores
   colnames(fs) <- paste0("F", 1:ncol(fs))
-  if (is.null(full.points)){
-     full.points <- rowSums(scores)
-  }
-  df.scores <- data.frame(points = full.points, fs)
-  formula <- paste0("points ~ ", paste0("s(", colnames(fs), ")", collapse=" + "))
-  mod.score <- mgcv::gam(as.formula(formula), data = df.scores)
-  df.scores$p <- predict(mod.score)
-  df.scores |>
-     dplyr::mutate(error = points - p,
-                   F1.rank = rank(F1),
-                   points.rank = rank(points),
-                   F1.perc = F1.rank / max(F1.rank),
-                   points.perc = points.rank / max(points.rank))
+  data.frame(fs, means)
 }
 
-plot.scores <- function(df.scores, text = ""){
-  box::use(ggplot2[...], latex2exp[TeX])
-  x.label <- 0.9 * diff(range(df.scores$F1)) + min(df.scores$F1)
-  y.label <- 0.1 * diff(range(df.scores$points)) + min(df.scores$points)
-  ggplot(df.scores, aes(x = F1, y = points)) +
-   geom_point(alpha = 0.5) +
-   geom_line(aes(y = p), color = "red") +
-   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
-   labs(
-      x = TeX("$\\theta$"),
-      y = "Full score",
-      title = "FA Theta vs. Score"
-   ) +
-   mytheme()
+predict.scores <- function(df.scores, mod.score){
+   df.scores$p <- predict(mod.score, df.scores)
+   df.scores |>
+      dplyr::mutate(error = means - p,
+                    p.rank = rank(p),
+                    p.perc = 100* p.rank / max(p.rank),
+                    means.rank = rank(means),
+                    means.perc = 100 * means.rank / max(means.rank),
+                    error.perc = means.perc - p.perc)
 }
 
-plot.perc <- function(df.scores, text = ""){
-  box::use(ggplot2[...], latex2exp[TeX])
-  # get 0.9 of x range and 0.1 of y range
-  x.label <- 0.9 * diff(range(df.scores$F1.perc)) + min(df.scores$F1.perc)
-  y.label <- 0.1 * diff(range(df.scores$points.perc)) + min(df.scores$points.perc)
-  ggplot(df.scores, aes(x = F1.perc, y = points.perc)) +
-   geom_point(alpha = 0.5) +
-   geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-   annotate("text", x = x.label, y = y.label, label = text, size = 3) +
-  labs(
-      x = TeX("% $\\theta$"),
-      y = "% Full score",
-      title = "Percentile comparison"
-   ) +
-   mytheme()
-}
-
-evaluate.scores <- function(scores, fa.res, full.points = NULL, labels = "AUTO", justsummary = F){
-  df.scores <- predict.scores(scores, fa.res, full.points)
-  summary <- df.scores |> 
+evaluate.prediction <- function(df.scores){
+  df.scores |> 
     dplyr::summarise(
-    RMSE = sqrt(mean((points - p)^2)),
-    MAE = mean(abs(points - p)),
-    r = cor(points, F1, method = "spearman")
-  )
-  if (justsummary) return(summary)
-  gprint("\n\n📊 Evaluating score prediction...")
-  gprint("- Spearman correlation (total score x theta): {round(summary$r, 3)}")
-  gprint("- RMSE: {round(summary$RMSE, 3)}")
-  gprint("- MAE: {round(summary$MAE, 3)}")
-  cowplot::plot_grid(
-    plot.scores(df.scores, text = glue::glue("RMSE = {round(summary$RMSE, 2)}\nMAE = {round(summary$MAE, 2)}")),
-    plot.perc(df.scores, text = glue::glue("r = {round(summary$r, 2)}")),
-    labels = labels,
-    nrow = 1)
+      RMSE = sqrt(mean(error^2)),
+      MAE = mean(abs(error)),
+      SSE = sum(error^2)
+    )
 }
 
-subsample <- function(dataset, percentage){
-   n <- ncol(dataset)
-   k <- round(n * percentage)
-   indices <- sort(sample(1:n, k))
-   dataset[, indices]
+
+evaluate.percentiles <- function(df.scores){
+  df.scores |> 
+    dplyr::summarise(
+      RMSE = sqrt(mean(error.perc^2)),
+      MAE = mean(abs(error.perc)),
+      r = cor(means, p, method = "spearman")
+    )
 }
 
-subsample.wrapper <- function(data.list, percentage = 0.95){
-   subsample.p <- function(d) subsample(d, percentage)
-   data.list.sample <- lapply(data.list, subsample.p)
-   scores.sample <- Reduce(rowmerge, lapply(data.list.sample, collect.scores))
-   fa.mmlu.sample <- do.fa(scores.sample, 1, verbose = F)
-   sfs.sample <- evaluate.scores(scores.sample, fa.mmlu.sample,
-                           full.points = rowSums(scores), justsummary = T)
-   list(data.list = data.list.sample, scores = scores.sample,
-        fa = fa.mmlu.sample, sfs = sfs.sample)
+evaluate.scores <- function(scores.train, scores.test){
+  df.train <- data.frame(scores.train, means = total.train)
+  df.test <- data.frame(scores.test, means = total.test)
+  mod.score <- lm(means ~ ., data = df.train)
+  df.train <- predict.scores(df.train, mod.score)
+  df.test <- predict.scores(df.test, mod.score)
+  sfs.train <- evaluate.prediction(df.train)
+  sfs.test <- evaluate.prediction(df.test)
+  list(mod.score = mod.score,
+       sfs.train = sfs.train,
+       sfs.test = sfs.test,
+       df.train = df.train,
+       df.test = df.test)
 }
 
-find.best.subset <- function(data.list, iters){
-   sample.list <- list()
-   for (i in 1:iters){
-      sample.list[[i]] <- subsample.wrapper(data.list)
-   }
-   i <- which.min(sapply(sample.list, function(s) s$sfs$RMSE))
-   out <- sample.list[[i]]
-   gprint("Best RMSE: {round(out$sfs$RMSE, 3)}")
-   gprint("Reduced dataset to {n.data(out$data.list)} items.")
-   out
+plot.prediction <- function(df.scores, sfs = NULL, suffix = ""){
+  text <- ''
+  if (!is.null(sfs)){
+    text <- text <- glue::glue(
+      "RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}")
+  }
+  box::use(ggplot2[...], latex2exp[TeX])
+  x.label <- 0.9 * diff(range(df.scores$means)) + min(df.scores$means)
+  y.label <- 0.1 * diff(range(df.scores$p)) + min(df.scores$p)
+  ggplot(df.scores, aes(x = means, y = p)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+    coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+    labs(
+      x = "True",
+      y = "Predicted",
+      title = glue::glue("Score Reconstruction {suffix}")
+    ) +
+    mytheme()
 }
+
+plot.perc <- function(df.scores, sfs = NULL, suffix = ""){
+  text <- ''
+  if (!is.null(sfs)){
+    text <- text <- glue::glue(
+      "RMSE = {round(sfs$RMSE, 2)}\nMAE = {round(sfs$MAE, 2)}\nr = {round(sfs$r, 2)}")
+  }
+  box::use(ggplot2[...], latex2exp[TeX])
+  x.label <- 0.9 * diff(range(df.scores$means.perc)) + min(df.scores$means.perc)
+  y.label <- 0.1 * diff(range(df.scores$p.perc)) + min(df.scores$p.perc)
+  ggplot(df.scores, aes(y = p.perc, x = means.perc)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+    labs(
+      x = "% True",
+      y = "% Predicted",
+      title = glue::glue("Percentile Comparison {suffix}")
+    ) +
+    mytheme()
+}
+
+subsample <- function(data, remove = 100){
+  n <- ncol(data)
+  sort(sample(1:n, remove, replace = F))
+}
+ 
+
+subsample.wrapper <- function(data.train, data.test){
+   # subsample
+   indices <- subsample(data.train)
+   data.train.sub <- data.train[, -indices]
+   data.test.sub <- data.test[, -indices]
+   dl.train.sub <- df2list(data.train.sub)
+   dl.test.sub <- df2list(data.test.sub)
+   scores.train.sub <- get.scores(dl.train.sub)
+   scores.test.sub <- get.scores(dl.test.sub)
+
+   # evaluate
+   out <- evaluate.scores(scores.train.sub, scores.test.sub)
+   list(data.train = data.train.sub,
+        data.test = data.test.sub,
+        eval = out)
+}
+
+find.best.subset <- function(data.train, data.test, iters){
+  sample.list <- list()
+  for (i in 1:iters){
+    sample.list[[i]] <- subsample.wrapper(data.train, data.test)
+  }
+  err.list <- sapply(sample.list, function(s) s$eval$sfs.test$SSE)
+  i <- which.min(err.list)
+  j <- which.max(err.list)
+  best <- sample.list[[i]]
+  worst <- sample.list[[j]]
+  gprint("Test SSE (Range): {round(err.list[i], 3)} -- {round(err.list[j], 3)}")
+  gprint("Reduced dataset to {ncol(best$data.train)} items.")
+  best
+}
+
 
 # =============================================================================
 # prepare data
 gprint("🚰 Loading MMLU data...")
-mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*csv", full.names=T)
-mmlu.data <- mmlu.files[!grepl("prompts", mmlu.files)]
-mmlu.prompts <- mmlu.files[grepl("prompts", mmlu.files)]
-mmlu.names <- gsub("mmlu_", "", gsub(".csv", "", basename(mmlu.data)))
-data.list <- lapply(mmlu.data, collect.data)
-prompt.list <- lapply(mmlu.prompts, collect.prompts)
-names(prompt.list) <- names(data.list) <- mmlu.names
-scores <- Reduce(rowmerge, lapply(data.list, collect.scores))
+mmlu <- readRDS(gpath("data/mmlu-preproc-split.rds"))
+data <- mmlu$data.train
+nc <- mmlu$max.points.orig
+indices <- caret::createDataPartition(mmlu$scores.train, p = 0.1, list = F)
+data.train <- data[-indices, ]
+data.test <- data[indices, ]
+goal <- round(1/4 * nrow(data))
+data.list.train <- df2list(data.train)
+data.list.test <- df2list(data.test)
+scores.train <- get.scores(data.list.train)
+scores.test <- get.scores(data.list.test)
+total.train <- rowSums(scores.train) / nc * 100
+total.test <- rowSums(scores.test) / nc * 100
 
-# exploratory factor analysis
-if (SHOW){
-  cor(scores) |>
-    corrplot::corrplot(method = "color",
-                       order="hclust",
-                       tl.cex = 0.3,
-                       tl.col = "black",
-                       col.lim = c(0,1))
+# evolutionary algorithm to further reduce number of items
+gprint("Starting evolutionary subsampling until at most {goal} items remain...")
+data.train.sub <- data.train
+data.test.sub <- data.test
+while (ncol(data.train.sub) > goal){
+   subsample.res <- find.best.subset(data.train.sub, data.test.sub, iters = 50)
+   data.train.sub <- subsample.res$data.train
+   data.test.sub <- subsample.res$data.test
 }
-fa.mmlu <- do.fa(scores, 1)
-p.full <- evaluate.scores(scores, fa.mmlu)
 
-# determine unique contribution of subtests
-unique <- sort(fa.mmlu$uniquenesses, decreasing=T)
-if (SHOW) plot.unique(unique)
-keepers <- names(unique[1:30]) # keep first n
-# keepers <- names(unique[unique > 0.1]) # alternatively: keep most informative
-scores.sub <- scores[keepers]
-fa.mmlu.sub <- do.fa(scores.sub, 1)
-p.sub <- evaluate.scores(scores.sub, fa.mmlu.sub, full.points = rowSums(scores),
-                         labels = c("C", "D"))
-n.items <- n.data(data.list[keepers])
-gprint("\n\nReduced dataset from {n.data(data.list)} to {n.items} items.")
+# check with validation set
+data.val <- mmlu$data.test
+scores.val <- get.scores(df2list(data.val))
+total.val <- rowSums(scores.val) / nc * 100
+data.val.sub <- mmlu$data.test[colnames(data.train.sub)]
+scores.val.sub <- get.scores(df2list(data.val.sub))
+df.val <- data.frame(scores.val.sub, means = total.val)
+df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
+sfs.val <- evaluate.prediction(df.val)
 
-# evolutionary alogorithm to further reduce number of items
-subsample.res <- list(data.list = data.list[keepers])
-gprint("Starting evolutionary subsampling until at most {GOAL} items remain...")
-while (n.items > GOAL){
-  subsample.res <- find.best.subset(subsample.res$data.list, iters = 30)
-  n.items <- n.data(subsample.res$data.list)
-}
-p.sample <- evaluate.scores(subsample.res$scores, subsample.res$fa,
-                            full.points = rowSums(scores), labels = c("E", "F"))
-
-# save plot
-p <- cowplot::plot_grid(p.full, p.sub, p.sample, align = "v", nrow = 3)
-outpath <- gpath("plots/mmlu_efa.png")
-ggplot2::ggsave(outpath, p, width = 8, height = 8)
+# plot final result
+p.final <- cowplot::plot_grid(
+  plot.prediction(subsample.res$eval$df.train, subsample.res$eval$sfs.train, "(Train)"),
+  plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Test)"),
+  plot.prediction(df.val, sfs.val, "(Validation)"),
+  nrow = 1, labels = "AUTO"
+)
+outpath <- gpath("plots/mmlu-reduced.png")
+ggplot2::ggsave(outpath, p.final, width = 18, height = 8)
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
-data.sub <- Reduce(rowmerge, subsample.res$data.list)
-prompts.sub <- Reduce(rbind, prompt.list[keepers]) |> 
-   dplyr::filter(item %in% colnames(data.sub))
-outpath <- gpath("data/mmlu_sub.rds")
-out <- list(data = data.sub, prompts = prompts.sub,
-            scores = scores, scores.sub = scores.sub)
+data.sub <- rbind(data.train.sub, data.test.sub)
+out <- list(data.train = data.train.sub,
+            data.test = data.val.sub,
+            scores.train = mmlu$scores.train[rownames(data.train.sub)],
+            scores.test = mmlu$scores.test,
+            max.points.orig = mmlu$max.points.orig,
+            items = mmlu$items |> dplyr::filter(item %in% colnames(data.train.sub)),
+            plot = p.final)
+
+# save data
+outpath <- gpath("data/mmlu-sub.rds")
 saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
-

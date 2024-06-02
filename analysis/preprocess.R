@@ -7,19 +7,48 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, mytheme])
+box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, rowmerge, mytheme])
 parse.args(names = c("BM"),
-           defaults = c("mmlu_sub"),
+           defaults = c("mmlu"),
            legal = list(
-             BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande")
+             BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
             )
 )
 here::i_am("analysis/preprocess.R")
-mkdir(gpath("plots"))
+mkdir("plots")
 set.seed(1)
 
 # =============================================================================
 # helper functions
+collect.mmlu.scenario <- function(datapath){
+  df <- readr::read_csv(datapath, show_col_types = F)
+  scenario <- df2data(df)
+  benchmark <- gsub("mmlu_", "", gsub(".csv", "", basename(datapath)))
+  colnames(scenario) <- paste0(benchmark, ".", colnames(scenario))
+  scenario
+}
+
+collect.mmlu.items <- function(datapath){
+  items <- readr::read_csv(datapath, show_col_types = F)
+  benchmark <- gsub("mmlu_", "", gsub("_prompts.csv", "", basename(datapath)))
+  items$item <- paste0(benchmark, ".", items$item)
+  items
+}
+
+collect.mmlu <- function(){
+  mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*csv", full.names=T)
+  mmlu.data <- mmlu.files[!grepl("prompts", mmlu.files)]
+  mmlu.prompts <- mmlu.files[grepl("prompts", mmlu.files)]
+  mmlu.names <- gsub("mmlu_", "", gsub(".csv", "", basename(mmlu.data)))
+  gprint("Fetching all MMLU scenarios...")
+  data.list <- lapply(mmlu.data, collect.mmlu.scenario)
+  item.list <- lapply(mmlu.prompts, collect.mmlu.items)
+  names(item.list) <- names(data.list) <- mmlu.names
+  gprint("Merging MMLU data...")
+  data <- Reduce(rowmerge, data.list)
+  items <- Reduce(rbind, item.list)
+  list(data = data, items = items)
+}
 
 get.item.difficulty <- function(data, n_options = 4) {
   # item difficulty (corrected for guessing)
@@ -48,7 +77,7 @@ get.item.discrimination <- function(data, scores) {
   (m1 - m) / s * sqrt(n1 * n0 / (n * (n-1)))
 }
 
-plot.items <- function(items, den = T, outpath = NULL) {
+plot.items <- function(items, den = T) {
    box::use(ggplot2[...], cowplot[plot_grid])
    hist1 <- ggplot(items, aes(diff)) +
       geom_histogram(bins = 100, fill="lightgrey", color="black") +
@@ -66,64 +95,40 @@ plot.items <- function(items, den = T, outpath = NULL) {
       scatter <- scatter +
          geom_density_2d(color = "red", linewidth = 1)
    }
-
-   # position three plots in a single column
-   p <- plot_grid(hist1, hist2, scatter, ncol = 1)
-
-   # save or print
-   if (!is.null(outpath)) {
-      ggsave(outpath, p, width = 8, height = 8)
-   } else {
-      print(p)
-   }
+   plot_grid(hist1, hist2, scatter, ncol = 1)
 }
 
-rejection.prob <- function(items, pmf) {
-   x.values <- findInterval(items$diff, pmf$x)
-   pmf$y[x.values] * (1 - items$disc) # reduce probability for high discrimination
-}
-
-rejection.sampling <- function(items, max_reject = 100) {
-  # create pmf for equally spaced bins
-  pmf <- density(items$diff, from = 0, to = 1, n = 100)
-  pmf$y <- pmf$y / max(pmf$y)
-  items$reject <- rejection.prob(items, pmf)
-  items$exclude <- items$reject > runif(nrow(items))
-  # if too many items are rejected, keep the rest
-  if (sum(items$exclude) > max_reject) {
-     n_too_many <- sum(items$exclude) - max_reject
-     indices <- sample(which(items$exclude), n_too_many)
-     items$exclude[indices] <- F
-  }
-  items <- items[!items$exclude, ]
-  return(items)
-}
 
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-if (BM == "mmlu_sub"){
-  datapath <- gpath("data/{BM}.rds")
-  all <- readRDS(datapath)
-  data <- all$data
-  items <- all$prompts
-  items$item.orig <- items$item
-  items$item <- colnames(data) <- 1:ncol(data)
-  scores <- rowSums(all$scores)
-  max.points.orig <- 7987L
-} else {
+if (BM != "mmlu"){
   df <- readr::read_csv(gpath("data/{BM}.csv"), show_col_types = F)
   data <- df2data(df)
   rm(df)
   items <- readr::read_csv(gpath("data/{BM}_prompts.csv"), show_col_types = F) 
-  scores <- rowSums(data)
-  max.points.orig <- ncol(data)
+} else {
+  mmlu <- collect.mmlu()
+  data <- mmlu$data
+  items <- mmlu$items
+  rm(mmlu)
 }
+
+# find all duplicates 
+dups <- which(duplicated(items$prompt)) # indices of non-unique items (only the second occurrance)
+if (length(dups) > 0){
+   gprint("⚠️  Found {length(dups)} duplicate items, removing all but the first...")
+   items <- items[-dups,]
+   data <- data[,items$item]
+}
+scores <- rowSums(data)
+max.points.orig <- ncol(data)
 
 # check if data and items conform
 if (!all(colnames(data) == items$item)){
    stop("❌ Item indices don't match prompts aborting.")
 }
+gprint("# LLMs: {nrow(data)}, # items: {ncol(data)}.")
 
 # =============================================================================
 # outlier removal
@@ -139,7 +144,7 @@ gprint("⚙️  Starting item analysis...")
 items$sd <- apply(data, 2, sd)
 items$diff <- get.item.difficulty(data)
 items$disc <- get.item.discrimination(data, scores)
-plot.items(items, den = F, outpath = gpath("plots/pp_{BM}_0.png"))
+p.pre <- plot.items(items, den = F)
 
 # =============================================================================
 # item pre-selection
@@ -147,42 +152,47 @@ plot.items(items, den = F, outpath = gpath("plots/pp_{BM}_0.png"))
 # 0. item answers must vary
 items$exclude <- F
 items$exclude[items$sd <= 0.01] <- T
+gprint("{sum(items$exclude)} items have too little variance.")
+d.tmp <- sum(items$exclude)
 
 # 1. items should not be too easy 
 guess_coeff <- 3/4
 upper_bound <- 0.95 * guess_coeff
 items$exclude[items$diff > upper_bound] <- T
+gprint("{sum(items$exclude) - d.tmp} additional items are too easy.")
+d.tmp <- sum(items$exclude)
 
-# 2. item discrimination shouldn't be negative
-items$exclude[items$disc < 0] <- T
+# 2. part-whole correlation with full score should not be ~0
+limit <- ifelse(BM == "winogrande", 0.02, 0.05)
+items$exclude[items$disc < limit & items$disc > -limit] <- T
+gprint("{sum(items$exclude) - d.tmp} additional items have too low correlation with score.")
 
 # pre-selection summary
 n_excluded <- sum(items$exclude)
 p_excluded <- round(100 * n_excluded / nrow(items), 2)
 n_remaining <- nrow(items) - n_excluded
-gprint("1️⃣  Excluding {p_excluded}% items, {n_remaining} remain...")
+gprint("Excluding {p_excluded}% items, {n_remaining} remain...")
+isr <- n_remaining / nrow(data) 
+if (isr <= 1/4){
+  gprint("✅ Item to subject ratio is {round(isr, 2)}")
+} else {
+  gprint("⚠️  Item to subject ratio is {round(isr, 2)}, further reduction is needed.")
+}
+items.sub <- items[!items$exclude, ]
+data.sub <- data[, items.sub$item]
 
 # plots (after)
-items.sub <- items[!items$exclude, ]
-plot.items(items.sub, outpath = gpath("plots/pp_{BM}_1.png"))
-
-# optionally do rejection sampling for item pre-selection
-n_max <- nrow(data)/4 # aspire an item to subject ratio of at max 1:4
-if (n_remaining > n_max) gprint("2️⃣  Starting rejection sampling...")
-while (nrow(items.sub) > n_max) {
-  items.sub <- rejection.sampling(items.sub)
-}
-plot.items(items.sub, outpath = gpath("plots/pp_{BM}_2.png"))
+p.post <- plot.items(items.sub)
+p <- cowplot::plot_grid(p.pre, p.post, ncol = 2, labels = "AUTO")
+ggplot2::ggsave(gpath("plots/{BM}-preproc.png"), p, width = 10, height = 5)
 
 # reduce data and save
-data.sub <- data[, items.sub$item]
 gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
-out <- list(items = items.sub, data = data.sub,
-            scores = rowSums(data.sub),
-            max.points = ncol(data.sub),
+out <- list(items = items.sub,
+            data = data.sub,
             scores.orig = scores,
             max.points.orig = max.points.orig 
 )
-outpath <- gpath("data/{BM}_preproc.rds")
+outpath <- gpath("data/{BM}-preproc.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved to '{outpath}'.")

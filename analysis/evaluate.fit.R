@@ -12,7 +12,7 @@ parse.args(
    names = c("BM"),
    defaults = c("gsm8k"),
    legal = list(
-     BM = c("arc", "gsm8k", "hellaswag", "mmlu_sub", "truthfulqa", "winogrande")
+     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
    )
 )
 here::i_am("analysis/evaluate.fit.R")
@@ -28,11 +28,13 @@ plot.theta.ests <- function(results){
    n <- length(results)
    thetas <- list()
    for (i in 1:n) {
-      thetas[[i]] <- data.frame(results[[i]]$theta)
+      thetas[[i]] <- data.frame(results[[i]]$df$theta)
       thetas[[i]]$itemtype <- names(results)[i]
    }
-   do.call(rbind, thetas) |>
-      ggplot(aes(x = F1)) +
+   thetas <- do.call(rbind, thetas)
+   colnames(thetas)[1] <- "theta"
+   thetas |>
+      ggplot(aes(x = theta)) +
       geom_density() +
       facet_wrap(~itemtype, ncol = n) +
       labs(
@@ -63,7 +65,6 @@ plot.theta.dists <- function(results){
          y = TeX("$f(\\theta)$"),
          ) +
       mytheme()
-
 }
 
 plot.parameters <- function(results){
@@ -110,7 +111,8 @@ summarize.comparisons <- function(comparisons) {
 
 get.itemfit <- function(result){
    model <- result$model
-   theta <- result$theta
+   df <- result$df |> dplyr::filter(set == "train")
+   theta <- as.matrix(df$theta)
    itemtype <- model@Model[["itemtype"]][1]
    item.fit <- mirt::itemfit(model, fit_stats = 'infit', Theta = theta) |>
       dplyr::mutate(outlier = infit <= 0.5 |
@@ -181,8 +183,12 @@ plot.modelcomp <- function(comparisons) {
 # =============================================================================
 # load fit results
 gprint("🚰 Loading {BM} fits...")
-path <- gpath("analysis/models/{BM}-all.rds")
-results <- readRDS(path)
+results <- list(
+   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-cv.rds")),
+   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-cv.rds")),
+   "3PLu" = readRDS(gpath("analysis/models/{BM}-3PLu-cv.rds")),
+   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-cv.rds"))
+)
 
 # plot theta and params
 p.theta <- cowplot::plot_grid(

@@ -6,11 +6,52 @@ packages <- c("tibble", "MASS", # base
               "readr", "here", "glue", "box", "latex2exp", # utilities
               "tidyr", "dplyr", "ggplot2", "cowplot", "corrplot", # tidyverse/plots
               "mirt", "caret", "rBayesianOptimization", "psych", "catR") # data analysis
-install.packages(setdiff(packages, rownames(installed.packages())))
-box::use(./utils)
+install.packages(setdiff(packages, rownames(installed.packages())), 
+                 repos='http://cran.us.r-project.org')
 # =============================================================================
-# check data health
+# custom utils, args, path
+box::use(./utils[parse.args, gpath, gprint, df2data])
+parse.args(names = c("BM"),
+           defaults = c("all"))
 here::i_am("analysis/init.R")
+
+# =============================================================================
+# helper functions
+check.health <- function(b){
+   gprint("🔍 Checking {b}...")
+   datapath <- gpath("data/{b}.csv")
+   df <- readr::read_csv(datapath, show_col_types = F)
+   data <- df2data(df)
+   out = T
+
+   # check for missing values
+   if (any(is.na(data))) {
+      gprint("❌ data contains missing values!")
+      out = F
+   } else {
+      gprint("✅ data contains {nrow(data)} subjects and {ncol(data)} items")
+   }
+
+   # check if prompts exist
+   promptpath <- gpath("data/{b}_prompts.csv")
+   prompts <- readr::read_csv(promptpath, show_col_types = F)
+   if (any(is.na(prompts))) {
+      gprint("❌ prompts incomplete!")
+      out = F
+   }
+   if (any(prompts$item != colnames(data))) {
+      gprint("❌ prompts do not match items!")
+      out = F
+   }
+   if (length(unique(prompts$prompt)) != nrow(prompts)) {
+      gprint("❌ not all prompts unique: {nrow(prompts) - length(unique(prompts$prompt))} duplicates!")
+      out = F
+   }
+   out
+}
+
+# =============================================================================
+# benchmarks
 benchmarks <- c("arc", "gsm8k", "hellaswag", "truthfulqa", "winogrande")
 mmlu <- c(
     "abstract_algebra",
@@ -76,27 +117,18 @@ benchmarks <- c(benchmarks, paste0("mmlu_", mmlu))
 # =============================================================================
 # check data health
 
-for (b in benchmarks) {
-   print(glue::glue("🔍 Checking {b}..."))
-   datapath <- here::here("data", glue::glue("{b}.csv"))
-   df <- readr::read_csv(datapath, show_col_types = F)
-   data <- utils$df2data(df)
+if (BM == "all") {
+   healthy <- sapply(benchmarks, check.health)
+   critical <- benchmarks[!healthy]
+   gprint("\n\nUnhealthy benchmarks: {paste(critical, collapse = ', ')}")
 
-   # check for missing values
-   if (any(is.na(data))) {
-      print(glue::glue("❌ data contains missing values!"))
-   } else {
-      print(glue::glue("✅ data contains {nrow(data)} subjects and {ncol(data)} items"))
+} else {
+   # check if BM is valid
+   if (!(BM %in% benchmarks)) {
+      gprint("❌ {BM} is not a valid benchmark!")
+      gprint("🔍 Valid benchmarks are: {benchmarks}")
+      stop()
    }
-
-   # check if prompts exist
-   promptpath <- here::here("data", glue::glue("{b}_prompts.csv"))
-   prompts <- readr::read_csv(promptpath, show_col_types = F)
-   if (any(is.na(prompts))) {
-      print(glue::glue("❌ prompts incomplete!"))
-   }
-   if (any(prompts$item != colnames(data))) {
-      print(glue::glue("❌ prompts do not match items!"))
-   }
+   health <- check.health(BM)
 }
 

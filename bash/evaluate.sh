@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=mb-preprocess
-#SBATCH --output=logs/preprocess.%j.out
-#SBATCH --error=logs/preprocess.%j.err
+#SBATCH --job-name=mb-evaluate
+#SBATCH --output=logs/evaluate.%j.out
+#SBATCH --error=logs/evaluate.%j.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de
 
@@ -18,12 +18,10 @@
 source $HOME/.bashrc
 benchmarks=("arc" "gsm8k" "hellaswag" "mmlu" "truthfulqa" "winogrande")
 
-# 1. preprocess data
 for b in "${benchmarks[@]}"; do
-	echo "Preprocessing $b"
-	LC_ALL=C.UTF-8 Rscript ../analysis/preprocess.R $b
+	echo "Evaluating $b"
+	LC_ALL=C.UTF-8 Rscript ../analysis/evaluate.cv.R $b
+	LC_ALL=C.UTF-8 Rscript ../analysis/evaluate.cv.R $b EAPsum
+	LC_ALL=C.UTF-8 Rscript ../analysis/evaluate.fit.R $b
 done
-
-# 2. split
-LC_ALL=C.UTF-8 Rscript ../analysis/split.R
 
