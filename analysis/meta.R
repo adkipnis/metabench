@@ -163,15 +163,11 @@ fit.score <- function(scores.partial, res.fa){
 }
 
 evaluate.score.pred <- function(scores.partial){
-   # r.s <- cor(scores.partial$grand, scores.partial$MR1, method = "spearman")
    r.p <- cor(scores.partial$grand, scores.partial$p, method = "spearman")
    s <- scores.partial |>
       dplyr::mutate(error = grand - p) |>
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
-   # gprint("Spearman corr. Score (norm.) x First Factor: {round(r.s, 3)}")
-   # gprint("Spearman corr. Score (norm.) x Predicted: {round(r.p, 3)}")
-   # gprint("Mean absolute error: {round(s$mae, 3)}, RMSE: {round(s$rmse, 3)}")
    plot.score.pred(scores.partial,
      text = glue::glue("RMSE = {round(s$rmse, 3)}\nMAE = {round(s$mae, 3)}\nr = {round(r.p, 3)}"))
 }
@@ -195,14 +191,13 @@ plot.score.pred <- function(scores.partial, text = ""){
 # get ceiling for score prediction
 
 # load scores
-benchmarks <- list(arc=list(mod="4PL", est="EAPsum"),
-                   gsm8k=list(mod="3PLu", est="EAPsum"),
-                   hellaswag=list(mod="3PL", est="MAP"),
-                   mmlu_sub=list(mod="3PLu", est="EAPsum"),
-                   truthfulqa=list(mod="3PL", est="EAPsum"),
-                   winogrande=list(mod="3PL", est="EAPsum"))
-scores.full <- lapply(names(benchmarks), collect.scores)
-scores.partial <- merge.skill(scores.full)
+benchmarks <- list(arc=list(mod="4PL", est="MAP", lam=0),
+                   gsm8k=list(mod="2PL", est="MAP", lam=0),
+                   hellaswag=list(mod="3PL", est="MAP", lam=0),
+                   mmlu=list(mod="3PL", est="MAP", lam=0),
+                   truthfulqa=list(mod="2PL", est="EAPsum", lam=0),
+                   winogrande=list(mod="4PL", est="MAP", lam=0))
+
 numitems.orig <- get.numitems(benchmarks, "original")
 
 # plot correlation matrix
