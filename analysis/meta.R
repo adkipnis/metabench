@@ -235,6 +235,9 @@ p.base <- evaluate.score.pred(pred.score.test) +
     "Score prediction from fewer benchmarks (GSM8K + HellaSwag, n = {n})"))
 p.base
 
+r.score <- cor(pred.score.test$MR1, pred.score.test$grand)
+gprint("r(Factor1, Score) = {round(r.score,3)}")
+
 # # =============================================================================
 # collect theta estimates and construct covariance matrix
 thetas.full.train <- lapply(names(benchmarks), collect.theta)
@@ -274,6 +277,9 @@ p.full <- evaluate.score.pred(pred.theta.test) +
     "Score prediction from latent abilities (IRT, n = {numitems.theta$sum})"))
 p.full
 
+r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
+gprint("r(Factor1, Score) = {round(r.theta,3)}")
+
 # =============================================================================
 # collect theta estimates from reduced benchmarks
 thetas.sub.full.train <- lapply(names(benchmarks), collect.theta.reduced)
@@ -306,6 +312,12 @@ p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::ggtitle(glue::glue(
     "Score prediction from latent abilities (IRT, n = {numitems.sub$sum})"))
 p.sub
+
+r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
+gprint("r(Factor1, Score) = {round(r.sub,3)}")
+
+# cor(cbind(pred.sub.test$MR1, pred.theta.test$MR1, pred.score.test$MR1))
+
 # =============================================================================
 # summary
 p <- cowplot::plot_grid(p.base, p.full, p.sub,
