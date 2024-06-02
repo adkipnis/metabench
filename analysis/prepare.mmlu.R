@@ -225,14 +225,13 @@ df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
 sfs.val <- evaluate.prediction(df.val)
 
 # plot final result
-p.final <- cowplot::plot_grid(
-  plot.prediction(subsample.res$eval$df.train, subsample.res$eval$sfs.train, "(Train)"),
-  plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Test)"),
-  plot.prediction(df.val, sfs.val, "(Validation)"),
-  nrow = 1, labels = "AUTO"
-)
+p.train <- plot.prediction(subsample.res$eval$df.train, subsample.res$eval$sfs.train, "(Train)")
+p.test <- plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Test)")
+p.val <- plot.prediction(df.val, sfs.val, "(Validation)")
+p.final <- cowplot::plot_grid(p.train, p.test, p.val, nrow = 1, labels = "AUTO")
 outpath <- gpath("plots/mmlu-reduced.png")
 ggplot2::ggsave(outpath, p.final, width = 18, height = 8)
+saveRDS(list(p.train, p.test, p.val), gpath("plots/mmlu-reduced.rds"))
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
@@ -242,11 +241,9 @@ out <- list(data.train = data.sub,
             scores.train = mmlu$scores.train[rownames(data.sub)],
             scores.test = mmlu$scores.test,
             max.points.orig = mmlu$max.points.orig,
-            items = mmlu$items |> dplyr::filter(item %in% colnames(data.train.sub)),
-            plot = p.final)
+            items = mmlu$items |> dplyr::filter(item %in% colnames(data.train.sub)))
 
 # save data
 outpath <- gpath("data/mmlu-sub.rds")
 saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
-

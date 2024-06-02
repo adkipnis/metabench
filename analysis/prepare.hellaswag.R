@@ -182,6 +182,7 @@ p.val <- plot.prediction(df.val, sfs.val, "(Validation)")
 p <- cowplot::plot_grid(p.train, p.test, p.val, nrow = 1, labels = "AUTO")
 outpath <- gpath("plots/hellaswag-reduced.png")
 ggplot2::ggsave(outpath, p, width = 18, height = 8)
+saveRDS(list(p.train, p.test, p.val), gpath("plots/hellaswag-reduced.rds"))
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
