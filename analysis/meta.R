@@ -228,7 +228,6 @@ mod.score <- mgcv::gam(grand ~ s(gsm8k) + s(hellaswag),
 pred.score.train$p <- predict(mod.score, pred.score.train)
 pred.score.test$p <- predict(mod.score, pred.score.test)
 
-
 n = numitems.orig$gsm8k + numitems.orig$hellaswag
 p.base <- evaluate.score.pred(pred.score.test) +
   ggplot2::ggtitle(glue::glue(
@@ -263,8 +262,8 @@ sort(fa.theta$uniquenesses, decreasing = T)
 # check relation to grand sum
 pred.theta.train <- cbind(thetas.partial.train, fs.theta.train$scores)
 pred.theta.test <- cbind(thetas.partial.test, fs.theta.test$scores)
-pred.theta.train$grand <- pred.base.train$grand
-pred.theta.test$grand <- pred.base.test$grand
+pred.theta.train$grand <- pred.score.train$grand
+pred.theta.test$grand <- pred.score.test$grand
 mod.theta <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
                          s(mmlu) + s(truthfulqa) + s(winogrande),
                        data = pred.theta.train)
@@ -300,8 +299,8 @@ fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.theta)
 # check relation to grand sum
 pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
-pred.sub.train$grand <- pred.base.train$grand
-pred.sub.test$grand <- pred.base.test$grand
+pred.sub.train$grand <- pred.score.train$grand
+pred.sub.test$grand <- pred.score.test$grand
 mod.sub <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
                          s(mmlu) + s(truthfulqa) + s(winogrande),
                        data = pred.sub.train)
