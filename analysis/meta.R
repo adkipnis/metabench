@@ -218,13 +218,22 @@ fs.score.train <- psych::factor.scores(scores.partial.train, fa.score)
 fs.score.test <- psych::factor.scores(scores.partial.test, fa.score)
 sort(fa.score$uniquenesses, decreasing = T)
 
-# check prediction of grand sum from factor scores
-scores.partial$grand <- rowSums(scores.partial)/ncol(scores.partial)
-pred.base <- rowmerge(scores.partial, fs.score$scores)
-pred.base <- fit.score(pred.base, fa.score)
-p.base <- evaluate.score.pred(pred.base) +
+# check relation to grand sum
+pred.score.train <- cbind(scores.partial.train, fs.score.train$scores)
+pred.score.test <- cbind(scores.partial.test, fs.score.test$scores)
+pred.score.train$grand <- rowMeans(scores.partial.train)
+pred.score.test$grand <- rowMeans(scores.partial.test)
+mod.score <- mgcv::gam(grand ~ s(gsm8k) + s(hellaswag),
+                       data = pred.score.train)
+pred.score.train$p <- predict(mod.score, pred.score.train)
+pred.score.test$p <- predict(mod.score, pred.score.test)
+
+
+n = numitems.orig$gsm8k + numitems.orig$hellaswag
+p.base <- evaluate.score.pred(pred.score.test) +
   ggplot2::ggtitle(glue::glue(
-    "Score prediction from factor scores (raw points, n = {numitems.orig$sum})"))
+    "Score prediction from fewer benchmarks (GSM8K + HellaSwag, n = {n})"))
+p.base
 
 # =============================================================================
 # collect theta estimates and construct covariance matrix
