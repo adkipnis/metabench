@@ -159,23 +159,21 @@ construct.covmat <- function(thetas){
 fit.score <- function(scores.partial, res.fa){
    pred.names <- colnames(scores.partial)[grepl("\\d$", colnames(scores.partial))]
    formula <- paste0("grand ~ ", paste0("s(", pred.names, ")", collapse=" + "))
-   mod.score <- mgcv::gam(as.formula(formula), data = scores.partial)
-   scores.partial$p <- predict(mod.score)
-   scores.partial
+   mgcv::gam(as.formula(formula), data = scores.partial)
 }
 
 evaluate.score.pred <- function(scores.partial){
-   r.s <- cor(scores.partial$grand, scores.partial$MR1, method = "spearman")
+   # r.s <- cor(scores.partial$grand, scores.partial$MR1, method = "spearman")
    r.p <- cor(scores.partial$grand, scores.partial$p, method = "spearman")
    s <- scores.partial |>
       dplyr::mutate(error = grand - p) |>
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
-   gprint("Spearman corr. Score (norm.) x First Factor: {round(r.s, 3)}")
-   gprint("Spearman corr. Score (norm.) x Predicted: {round(r.p, 3)}")
-   gprint("Mean absolute error: {round(s$mae, 3)}, RMSE: {round(s$rmse, 3)}")
+   # gprint("Spearman corr. Score (norm.) x First Factor: {round(r.s, 3)}")
+   # gprint("Spearman corr. Score (norm.) x Predicted: {round(r.p, 3)}")
+   # gprint("Mean absolute error: {round(s$mae, 3)}, RMSE: {round(s$rmse, 3)}")
    plot.score.pred(scores.partial,
-     text = glue::glue("r = {round(r.p, 3)}\nMAE = {round(s$mae, 3)}\nRMSE = {round(s$rmse, 3)}"))
+     text = glue::glue("RMSE = {round(s$rmse, 3)}\nMAE = {round(s$mae, 3)}\nr = {round(r.p, 3)}"))
 }
 
 plot.score.pred <- function(scores.partial, text = ""){
@@ -184,10 +182,10 @@ plot.score.pred <- function(scores.partial, text = ""){
    y.label <- 0.1 * diff(range(scores.partial$p)) + min(scores.partial$p)
    ggplot(scores.partial, aes(x=grand, y=p)) +
       geom_point(alpha=0.3) +
-      geom_abline(intercept=0, slope=1, color="red") +
-      xlim(20,80) + ylim(20, 80) +
+      geom_abline(intercept=0, slope=1, linetype="dashed") +
+      xlim(0,100) + ylim(0, 100) +
       annotate("text", x = x.label, y = y.label, label = text, size = 3) +
-      labs(x="Total Score (norm.)", y="Predicted") +
+      labs(x="Score", y="Predicted") +
       mytheme()
 }
 
