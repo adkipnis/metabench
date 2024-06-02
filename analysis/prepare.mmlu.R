@@ -239,7 +239,7 @@ gprint("💾 Saved plot to {outpath}")
 data.sub <- rbind(data.train.sub, data.test.sub)
 out <- list(data.train = rbind(data.train.sub, data.test.sub),
             data.test = data.val.sub,
-            scores.train = mmlu$scores.train[rownames(data.train.sub)],
+            scores.train = mmlu$scores.train,
             scores.test = mmlu$scores.test,
             max.points.orig = mmlu$max.points.orig,
             items = mmlu$items |> dplyr::filter(item %in% colnames(data.train.sub)),
