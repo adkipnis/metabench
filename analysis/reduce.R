@@ -514,8 +514,6 @@ if (LAMBDA == 0){
    hyperparams <- as.list(opt.results$Best_Par)
 }
 final <- hyperparam.wrapper(hyperparams, internal = F)
-compare.score.stats(sfs.base, final$sfs)
-gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
 
 # evaluation on validation set
 data.val.sub <- data.val[,as.character(final$items$item)]
@@ -541,7 +539,7 @@ p.misc <- cowplot::plot_grid(
   p.estimates,
   ncol = 1
 )
-plotpath <- gpath("plots/{BM}-reduced-info-{MOD}-{METH}-{LAMBDA}.png")
+plotpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}-info.png")
 ggplot2::ggsave(plotpath, p.misc, width = 16, height = 16)
 
 # prediction plots
@@ -573,7 +571,7 @@ p.error <- cowplot::plot_grid(
 p.pred <- cowplot::plot_grid(
   p.ts, p.perc, p.score, p.error, ncol = 1
 )
-plotpath <- gpath("plots/{BM}-reduced-pred-{MOD}-{METH}-{LAMBDA}.png")
+plotpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}-pred.png")
 ggplot2::ggsave(plotpath, p.pred, width = 16, height = 16)
 
 
@@ -595,4 +593,7 @@ out <- list(
 
 outpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}.rds")
 saveRDS(out, outpath)
+gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
+compare.score.stats(sfs.base, final$sfs)
 gprint("💾 Saved results to {outpath}")
+p.pred
