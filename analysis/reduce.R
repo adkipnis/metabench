@@ -273,21 +273,45 @@ summarize.info <- function(info.items){
       )
 }
 
-select.items <- function(items, info.quantiles, n_max=6L, threshold=3.0){
-   index.set <- list()
-   # iterate over quantiles (get the current and next quantile)
-   for (i in 1:nrow(info.quantiles)) {
-      q0 <- info.quantiles$quantile[i]
-      q1 <- info.quantiles$quantile[i+1]
-      selection <- items |>
-         dplyr::filter(info.argmax >= q0 & info.argmax < q1 & info.max >= threshold) |>
-         dplyr::arrange(dplyr::desc(info.max)) |>
-         utils::head(n_max)
-      index.set[[i]] <- selection
-   }
-   do.call(rbind, index.set) |>
-      dplyr::distinct() |>
-      dplyr::arrange(info.argmax)
+# select.items <- function(items, info.quantiles, n_max=6L, threshold=3.0){
+#    index.set <- list()
+#    # iterate over quantiles (get the current and next quantile)
+#    for (i in 1:nrow(info.quantiles)) {
+#       q0 <- info.quantiles$quantile[i]
+#       q1 <- info.quantiles$quantile[i+1]
+#       selection <- items |>
+#          dplyr::filter(info.argmax >= q0 & info.argmax < q1 & info.max >= threshold) |>
+#          dplyr::arrange(dplyr::desc(info.max)) |>
+#          utils::head(n_max)
+#       index.set[[i]] <- selection
+#       items <- items[!items$item %in% selection$item,] # remove from search space
+#    }
+#    do.call(rbind, index.set) |>
+#       dplyr::arrange(info.argmax)
+# }
+select.items <- function(items, info.items, info.quantiles, n_max=6L, threshold=0.1){
+  info.tmp <- info.items
+  rownames(info.tmp) <- NULL
+  index.list <- list()
+  for (i in 1:nrow(info.quantiles)){
+    q0 <- info.quantiles$quantile[i]
+    q1 <- info.quantiles$quantile[i+1]
+    # select rows in info.items that are in the current quantile
+    info.sub <- info.tmp |>
+      dplyr::filter(theta >= q0 & theta < q1) |> # select rows in the current quantile
+      dplyr::select(-theta)
+    # find items with max info in the current quantile
+    maxinfo <- apply(info.sub, 2, max)
+    maxinfo <- maxinfo[maxinfo >= threshold]
+    if (length(maxinfo) > 0) {
+      l <- min(n_max, length(maxinfo))
+      maxinfo <- sort(maxinfo, decreasing = T)[1:l]
+      index.list[[i]] <- items[items$item %in% names(maxinfo),]
+      info.tmp[, names(maxinfo)] <- NULL
+    }
+  }
+  do.call(rbind, index.list) |>
+    dplyr::arrange(info.argmax)
 }
 
 # -----------------------------------------------------------------------------
@@ -349,7 +373,7 @@ plot.estimates <- function(model.sub, theta.sub){
 # hyperparameter search
 
 create.subtest <- function(data, items, info.quantiles, hyper) {
-   index.set <- select.items(items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
+   index.set <- select.items(items, info.items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
    data.sub <- data[, as.character(index.set$item)]
    list(data=data.sub, items=index.set)
 }
