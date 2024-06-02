@@ -520,6 +520,7 @@ gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coeffici
 # evaluation on validation set
 data.val.sub <- data.val[,as.character(final$items$item)]
 theta.val.sub <- get.theta(final$model, method=METH, resp=data.val.sub)
+rownames(theta.val.sub) <- rownames(data.val.sub)
 df.score.val <- get.score.table(final$theta.train, theta.val.sub, scores.train, scores.val)
 
 # misc plots
@@ -582,6 +583,7 @@ out <- list(
    model = final$model,
    theta.train = final$theta.train,
    theta.test = final$theta.test,
+   theta.val = theta.val.sub,
    info.items.orig = info.items,
    hyperparams = hyperparams,
    opt.results = opt.results,
