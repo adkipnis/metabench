@@ -395,7 +395,7 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
    ncycles <- ifelse(internal, 500, 1000)
    model.sub <- run.mirt(data.train.sub, MOD, tol = 1e-4, ncycles=ncycles)
    theta.train.sub <- get.theta(model.sub, method=METH, resp=data.train.sub)
-   rownames(theta.train.sub) <- rownames(data.tain.sub)
+   rownames(theta.train.sub) <- rownames(data.train.sub)
    theta.test.sub <- get.theta(model.sub, method=METH, resp=data.test.sub)
    rownames(theta.test.sub) <- rownames(data.test.sub)
 
