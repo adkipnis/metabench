@@ -191,12 +191,12 @@ plot.score.pred <- function(scores.partial, text = ""){
 # get ceiling for score prediction
 
 # load scores
-benchmarks <- list(arc=list(mod="4PL", est="MAP", lam=0),
-                   gsm8k=list(mod="2PL", est="MAP", lam=0),
-                   hellaswag=list(mod="3PL", est="MAP", lam=0),
-                   mmlu=list(mod="3PL", est="MAP", lam=0),
-                   truthfulqa=list(mod="2PL", est="EAPsum", lam=0),
-                   winogrande=list(mod="4PL", est="MAP", lam=0))
+benchmarks <- list(arc=list(mod="4PL", est="MAP", lam=0.005),
+                   gsm8k=list(mod="2PL", est="MAP", lam=0.005),
+                   hellaswag=list(mod="3PL", est="MAP", lam=0.005),
+                   mmlu=list(mod="3PL", est="MAP", lam=0.005),
+                   truthfulqa=list(mod="2PL", est="EAPsum", lam=0.005),
+                   winogrande=list(mod="4PL", est="MAP", lam=0.005))
 
 scores.full.train <- lapply(names(benchmarks), collect.scores)
 scores.full.test <- lapply(names(benchmarks), function(n) collect.scores(n, train = F))
@@ -286,6 +286,7 @@ thetas.sub.full.test <- lapply(names(benchmarks), function(n) collect.theta.redu
 thetas.sub.partial.train <- merge.skill(thetas.sub.full.train)
 thetas.sub.partial.test <- merge.skill(thetas.sub.full.test)
 numitems.sub <- get.numitems(benchmarks, "reduced")
+numitems.sub
 
 # plot correlation matrix
 cor(thetas.sub.partial.train)|>

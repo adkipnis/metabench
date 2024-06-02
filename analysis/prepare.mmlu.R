@@ -237,7 +237,7 @@ gprint("💾 Saved plot to {outpath}")
 
 # subset data
 data.sub <- rbind(data.train.sub, data.test.sub)
-out <- list(data.train = data.train.sub,
+out <- list(data.train = rbind(data.train.sub, data.test.sub),
             data.test = data.val.sub,
             scores.train = mmlu$scores.train[rownames(data.train.sub)],
             scores.test = mmlu$scores.test,
