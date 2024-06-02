@@ -499,8 +499,8 @@ sfs.base <- score.stats(df.score.base)
 
 # get item infos, remove outliers and plot distributions
 info.items <- collect.item.info(model, theta.train, colnames(data))
-info.items <- info.items |>
-   dplyr::select(!as.character(items$item[items$outlier]))
+#info.items <- info.items |>
+#  dplyr::select(!as.character(items$item[items$outlier]))
 items <- merge(items, summarize.info(info.items), by="item")
 
 # run hyperparameter search using rBayesianOptimization
