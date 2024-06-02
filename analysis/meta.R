@@ -235,25 +235,27 @@ p.base <- evaluate.score.pred(pred.score.test) +
     "Score prediction from fewer benchmarks (GSM8K + HellaSwag, n = {n})"))
 p.base
 
-# =============================================================================
+# # =============================================================================
 # collect theta estimates and construct covariance matrix
-thetas.full <- lapply(names(benchmarks), collect.theta)
-thetas.partial <- merge.skill(thetas.full)
+thetas.full.train <- lapply(names(benchmarks), collect.theta)
+thetas.full.test <- lapply(names(benchmarks), function(n) collect.theta(n, train = F))
+thetas.partial.train <- Reduce(rowmerge, thetas.full.train)
+thetas.partial.test <- Reduce(rowmerge, thetas.full.test)
 numitems.theta <- get.numitems(benchmarks, "preprocessed")
-covmat.theta <- construct.covmat(thetas.full)
 
 # plot correlation matrix
-cov2cor(covmat.theta)|>
+cor(thetas.partial.train) |>
    corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
 
 # exploratory factor analysis
-fa.theta.1 <- do.fa(thetas.partial, 1)
-fa.theta.2 <- do.fa(thetas.partial, 2)
+fa.theta.1 <- do.fa(thetas.partial.train, 1)
+fa.theta.2 <- do.fa(thetas.partial.train, 2)
 fa.theta <- fa.theta.1
 psych::fa.diagram(fa.theta)
 fa.theta$loadings
-fs.theta <- psych::factor.scores(thetas.partial, fa.theta)
-sort(fa.theta$uniquenesses, decreasing = T) 
+fs.theta.train <- psych::factor.scores(thetas.partial.train, fa.theta)
+fs.theta.test <- psych::factor.scores(thetas.partial.test, fa.theta)
+sort(fa.theta$uniquenesses, decreasing = T)
 
 # check relation to grand sum
 pred.full <- rowmerge(scores.partial, fs.theta$scores)
