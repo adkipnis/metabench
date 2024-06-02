@@ -60,6 +60,24 @@ collect.theta <- function(benchmark, train=T){
   as.data.frame(theta)
 }
 
+collect.theta.reduced <- function(benchmark, train = T){
+  model.type <- benchmarks[[benchmark]]$mod
+  theta.type <- benchmarks[[benchmark]]$est
+  lam <- benchmarks[[benchmark]]$lam
+  fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}.rds")
+  results <- readRDS(fitpath)
+  model <- results$model
+  if (train){
+    theta.train <- results$theta.train[, 1, drop=F]
+    theta.test <- results$theta.test[, 1, drop=F]
+    theta <- rbind(theta.train, theta.test)
+  } else {
+    theta <- results$theta.val[, 1, drop=F]
+  }
+  colnames(theta) <- benchmark
+  theta
+}
+
 merge.skill <- function(skill.full){
    skill.reduced <- skill.full[[1]]
    for (i in 2:length(skill.full)){
