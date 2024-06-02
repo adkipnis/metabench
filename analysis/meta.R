@@ -86,28 +86,45 @@ merge.skill <- function(skill.full){
    skill.reduced
 }
 
-collect.scores <- function(benchmark){
-   datapath <- gpath("data/{benchmark}_preproc.rds")
+collect.scores <- function(benchmark, train = T){
+   if (benchmark %in% c("hellaswag", "mmlu")){
+      datapath <- gpath("data/{benchmark}-sub.rds")
+   } else {
+      datapath <- gpath("data/{benchmark}-preproc-split.rds")
+   }
    all <- readRDS(datapath)
-   scores.norm <- all$scores.orig/all$max.points.orig
-   scores <- data.frame(100 * scores.norm)
+   if (train){
+     scores <- all$scores.train
+     names <- rownames(all$data.train)
+   } else {
+     scores <- all$scores.test
+     names <- rownames(all$data.test)
+   }
+   scores.norm <- scores/all$max.points.orig * 100
+   scores <- data.frame(scores.norm)
    colnames(scores) <- benchmark
-   rownames(scores) <- rownames(all$data)
+   rownames(scores) <- names
    scores
 }
 
 collect.numitems <- function(benchmark, type) {
    if (type == "original"){
-      datapath <- gpath("data/{benchmark}_preproc.rds")
+      datapath <- gpath("data/{benchmark}-preproc-split.rds")
       all <- readRDS(datapath)
       numitems <- all$max.points.orig
    } else if (type == "preprocessed"){
-     datapath <- gpath("data/{benchmark}_preproc.rds")
+     if (benchmark %in% c("hellaswag", "mmlu")){
+       datapath <- gpath("data/{benchmark}-sub.rds")
+     } else {
+       datapath <- gpath("data/{benchmark}-preproc-split.rds")
+     }
      all <- readRDS(datapath)
-     numitems <- ncol(all$data)
+     numitems <- ncol(all$data.train)
    } else if (type == "reduced") {
       model.type <- benchmarks[[benchmark]]$mod
-      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.1.rds")
+      theta.type <- benchmarks[[benchmark]]$est
+      lam <- benchmarks[[benchmark]]$lam
+      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}.rds")
       results <- readRDS(fitpath)
       numitems <- nrow(results$items)
    }
