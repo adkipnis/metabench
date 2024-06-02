@@ -6,7 +6,6 @@
 # custom utils, args, path, seed
 box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, get.theta, do.fa, do.fa.cov])
 Saveplots <- T
-mkdir("plots")
 here::i_am("analysis/meta.R")
 set.seed(1)
 
@@ -29,29 +28,36 @@ rowmerge <- function(df1, df2){
      tibble::column_to_rownames("Row.names")
 }
 
-collect.theta <- function(benchmark, full=T){
-   model.type <- benchmarks[[benchmark]]$mod
-   theta.type <- benchmarks[[benchmark]]$est
-   if (full) {
-         fitpath <- gpath("analysis/models/{benchmark}-all.rds")
-         results <- readRDS(fitpath)
-         model <- results[[model.type]]$model
-         theta <- results[[model.type]]$theta
-      } else {
-         fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-0.1.rds")
-         results <- readRDS(fitpath)
-         model <- results$model
-         theta <- results$theta
-   }
-   if (theta.type != "MAP"){
-      theta <- get.theta(model, theta.type)
-   }
-   datapath <- gpath("data/{benchmark}_preproc.rds")
-   names <- rownames(readRDS(datapath)$data)
-   theta <- as.data.frame(theta)
-   rownames(theta) <- names
-   colnames(theta) <- benchmark
-   theta
+collect.theta <- function(benchmark, train=T){
+  model.type <- benchmarks[[benchmark]]$mod
+  theta.type <- benchmarks[[benchmark]]$est
+  fitpath <- gpath("analysis/models/{benchmark}-{model.type}-cv.rds")
+  results <- readRDS(fitpath)
+  model <- results$model
+  if (train) {
+    theta <- results$df |> dplyr::filter(set == "train") |> dplyr::select(theta)
+  } else {
+    theta <- results$df |> dplyr::filter(set == "test") |> dplyr::select(theta)
+  }
+  
+  if (theta.type != "MAP") {
+    if (benchmark %in% c("hellaswag", "mmlu")) {
+      datapath <- gpath("data/{benchmark}-sub.rds")
+    } else {
+      datapath <- gpath("data/{benchmark}-preproc-split.rds")
+    }
+    all <- readRDS(datapath)
+    if (train) {
+      data <- all$data.train
+    } else {
+      data <- all$data.test
+    }
+    theta.new <- get.theta(model, theta.type, resp = data)
+    theta.new <- as.data.frame(theta.new)
+    rownames(theta.new) <- rownames(theta)
+  }
+  colnames(theta) <- benchmark
+  as.data.frame(theta)
 }
 
 merge.skill <- function(skill.full){
