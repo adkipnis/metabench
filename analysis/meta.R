@@ -168,7 +168,6 @@ numitems.orig <- get.numitems(benchmarks, "original")
 
 # plot correlation matrix
 covmat.score <- construct.covmat(scores.full)
-cov2cor(covmat.score)|>
   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
 
 # exploratory factor analysis
