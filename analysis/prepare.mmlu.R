@@ -224,20 +224,35 @@ df.val <- data.frame(scores.val.sub, means = total.val)
 df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
 sfs.val <- evaluate.prediction(df.val)
 
+# check with random subset of equal size
+n.final <- ncol(data.val.sub)
+indices.rand <- subsample(data.train, remove = ncol(mmlu$data.train) - n.final)
+data.rand <- data.train[,-indices.rand]
+scores.rand <- get.scores(df2list(data.rand))
+df.rand <- data.frame(scores.rand, means = total.train)
+mod.score.rand <- lm(means ~ ., data = df.rand)
+data.val.rand <- mmlu$data.test[colnames(data.rand)]
+scores.val.rand <- get.scores(df2list(data.val.rand))
+df.rand.val <- data.frame(scores.val.rand, means = total.val)
+df.rand.val <- predict.scores(df.rand.val, mod.score.rand)
+(sfs.rand.val <- evaluate.prediction(df.rand.val))
+
 # plot final result
 p.train <- plot.prediction(subsample.res$eval$df.train, subsample.res$eval$sfs.train, "(Train)")
-p.test <- plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Test)")
+p.test <- plot.prediction(subsample.res$eval$df.test, subsample.res$eval$sfs.test, "(Validation)")
 p.val <- plot.prediction(df.val, sfs.val, "(Validation)")
-p.final <- cowplot::plot_grid(p.train, p.test, p.val, nrow = 1, labels = "AUTO")
+p.rand <- plot.prediction(df.rand.val, sfs.rand.val, "(Random)")
+p.final <- cowplot::plot_grid(p.train, p.test, p.val, p.rand, nrow = 1, labels = "AUTO")
 outpath <- gpath("plots/mmlu-reduced.png")
 ggplot2::ggsave(outpath, p.final, width = 18, height = 8)
-saveRDS(list(p.train, p.test, p.val), gpath("plots/mmlu-reduced.rds"))
+saveRDS(list(p.train, p.test, p.val, p.rand), gpath("plots/mmlu-reduced.rds"))
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
 data.sub <- rbind(data.train.sub, data.test.sub)
 out <- list(data.train = data.sub,
             data.test = data.val.sub,
+            mod.score = subsample.res$eval$mod.score,
             scores.train = mmlu$scores.train[rownames(data.sub)],
             scores.test = mmlu$scores.test,
             max.points.orig = mmlu$max.points.orig,
@@ -247,3 +262,4 @@ out <- list(data.train = data.sub,
 outpath <- gpath("data/mmlu-sub.rds")
 saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
+
