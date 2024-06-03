@@ -6,7 +6,7 @@
 analysis/models*
 analysis/archive
 analysis/itemfits
-analysis/reduced
+analysis/reduced*
 analysis/cat/*
 data
 plots
