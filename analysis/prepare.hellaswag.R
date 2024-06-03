@@ -204,8 +204,8 @@ data.sub <- rbind(data.train.sub, data.test.sub)
 out <- list(data.train = data.sub,
             data.test = hs$data.test[colnames(data.sub)],
             mod.score = subsample.res$eval$mod.score,
-            scores.train = scores.train[rownames(data.sub)],
-            scores.test = scores.test,
+            scores.train = hs$scores.train[rownames(data.sub)],
+            scores.test = hs$scores.test,
             max.points.orig = hs$max.points.orig,
             items = hs$items |> dplyr::filter(item %in% colnames(data.train.sub)))
 
