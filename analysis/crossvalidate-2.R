@@ -36,13 +36,13 @@ cross.validate <- function(itemtype){
   df.train <- data.frame(score = scores.train, theta.train)
   mod.score <- mgcv::gam(score ~ s(F1) + s(F2), data = df.train)
   df.train$p <- predict(mod.score)
-  gprint("RMSE train: {quick.eval(df.train)$rmse}")
+  gprint("RMSE train: {round(quick.eval(df.train)$rmse, 3)}")
   
   # test performance
   theta.test <- get.theta(model, method = "MAP", resp = data.test)
   df.test <- data.frame(score = scores.test, theta.test)
   df.test$p <- predict(mod.score, newdata = df.test)
-  gprint("RMSE test: {quick.eval(df.test)$rmse}")
+  gprint("RMSE test: {round(quick.eval(df.test)$rmse, 3)}")
   
   # collaps both dataframes
   df.train$set <- "train"
