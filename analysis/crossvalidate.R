@@ -10,7 +10,7 @@ parse.args(
    defaults = c("hellaswag", "3PL"),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     MOD = c("2PL", "3PL", "3PLu", "4PL")
+     MOD = c("2PL", "3PL")
    )
 )
 here::i_am("analysis/crossvalidate.R")
@@ -28,13 +28,28 @@ make.df.score <- function(scores, theta) {
                     perc.theta = rank.theta / max(rank.theta))
 }
 
-glm.recov <- function(scores.train, data.column){
-   df.log <- data.frame(y = data.column, x = scores.train)
-   mod.log <- glm(y ~ x, data = df.log, family = binomial(link = "logit"))
-   logits <- predict(mod.log, newdata = df.log, type = "link")
-   params <- mod.log$coefficients
-   (logits - params[1]) / params[2]
+glm.train <- function(normalized.scores, data.column){
+  df.log <- data.frame(y = data.column, x = normalized.scores)
+  mod <- glm(y ~ x, data = df.log, family = binomial(link = "logit"))
+  mod$coefficients
 }
+
+train.glms <- function(scores.train.norm, data.train){
+   params <- list()
+   for (i in colnames(data.train)){
+      params[[i]] <- glm.train(scores.train.norm, data.train[,i])
+   }
+   do.call(rbind, params)
+}
+
+get.log.likelihood <- function(thetas, params, response){
+  a <- params[2]
+  b <- params[1]
+  inner <- thetas * a + b
+  prob <- 1 / (1 + exp(-inner))
+  response %*% t(log(prob)) + (1 - response) %*% t(log(1 - prob))
+}
+
 
 cross.validate <- function(itemtype){
   # fit model
@@ -73,7 +88,24 @@ data.test <- preproc$data.test
 scores.train <- 100 * preproc$scores.train / preproc$max.points.orig
 scores.test <- 100 * preproc$scores.test / preproc$max.points.orig
 
-scores.recovered <- glm.recov(scores.train, data.train)
+# theta recovery
+scores.train.norm <- (scores.train - mean(scores.train))
+item.params <- train.glms(scores.train.norm, data.train)
+prior <- density(scores.train.norm, n = 512)
+loglikelihoods <- matrix(0, nrow(data.train), 512)
+
+for (i in 1:ncol(data.train)){
+  ll <- function(theta) get.log.likelihood(theta, item.params[i,], data.train[,i])
+  loglikelihoods <- loglikelihoods + ll(prior$x) 
+}
+logposterior <- loglikelihoods + log(prior$y)
+plot(prior$x, logposterior[19,])
+argmax <- apply(logposterior, 1, which.max)
+theta.rec <- prior$x[argmax]
+plot(scores.train.norm, theta.rec)
+abline(0, 1)
+sqrt(mean((scores.train.norm - theta.rec)^2))
+
 # =============================================================================
 # cv models
 cv <- cross.validate(MOD)
