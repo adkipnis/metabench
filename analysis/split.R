@@ -1,4 +1,4 @@
-# Split preprocessed data into train and validation sets according to normalized full score
+# Split preprocessed data into train and test sets according to normalized full score
 # usage: Rscript split.R
 
 # =============================================================================
@@ -19,7 +19,7 @@ subset.data <- function(benchmark){
    all <- readRDS(gpath("data/{benchmark}-preproc.rds"))
    data <- all$data
    scores <- all$scores.orig
-   indices <- which(rownames(data) %in% llms.val)
+   indices <- which(rownames(data) %in% llms.test)
    out <- list(data.train = data[-indices, ],
                data.test = data[indices, ],
                scores.train = scores[-indices],
@@ -29,7 +29,7 @@ subset.data <- function(benchmark){
    na.count <- sapply(out, function(x) sum(is.na(x)))
    if (any(na.count > 0)) gprint("⚠️ Incomplete data produced: {na.count}")
    saveRDS(out, gpath("data/{benchmark}-preproc-split.rds"))
-   gprint("💾 Split off validation set from {b}: {nrow(out$data.train)} remain.")
+   gprint("💾 Split off test set from {b}: {nrow(out$data.train)} remain.")
 }
 
 
@@ -41,10 +41,10 @@ score.list <- lapply(benchmarks, collect.scores)
 scores.partial <- Reduce(rowmerge, score.list)
 scores.partial$mean <- rowMeans(scores.partial)
 
-# select indices for validation set
-gprint("🎲 Selecting validation indices...")
+# select indices for test set
+gprint("🎲 Selecting test indices...")
 indices <- caret::createDataPartition(scores.partial$mean, p = 0.1, list = F)
-llms.val <- rownames(scores.partial)[indices]
+llms.test <- rownames(scores.partial)[indices]
 llms.rest <- rownames(scores.partial)[-indices]
 
 # subset data
