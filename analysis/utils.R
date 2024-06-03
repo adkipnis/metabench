@@ -63,11 +63,15 @@ prop.indices <- function(scores, p = 0.1) {
 
 
 #" @export
-run.mirt <- function(data, itemtype, large=F, tol=1e-4, ncycles=1000){
-  mirt::mirt(data, 1, itemtype=itemtype,
-               method="EM",
-               density="Davidian-4",
-               large=large,
+run.mirt <- function(data, dimension, itemtype, tol=1e-4, ncycles=1000){
+   if (dimension == 1){
+      method <- "EM"
+   } else {
+      method <- "MHRM"
+   }
+   mirt::mirt(data, dimension, itemtype=itemtype,
+               method=method,
+               density="Gaussian",
                TOL=tol,
                technical=list(NCYCLES=ncycles))
 }
