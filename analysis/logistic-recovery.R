@@ -2,10 +2,10 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, gprint, gpath, mkdir, run.mirt, get.theta])
+box::use(./utils[parse.args, gprint, gpath, mytheme])
 parse.args(
   names = c("BM" ),
-  defaults = c("hellaswag"),
+  defaults = c("winogrande"),
   legal = list(
     BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
   )
@@ -38,6 +38,22 @@ get.log.likelihood <- function(thetas, params, response){
   response %*% t(log(prob)) + (1 - response) %*% t(log(1 - prob))
 }
 
+plot.score <- function(df.plot, text = ""){
+   box::use(ggplot2[...])
+   ggplot(df.plot, aes(x = score, y = p)) +
+         geom_point(alpha = 0.5) +
+         geom_abline(intercept = 0,
+                     slope = 1,
+                     linetype = "dashed") +
+         coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+         annotate("text", x = 75, y = 25, label = text, size = 3) +
+         labs(
+            title = glue::glue("Logistic Reconstruction ({BM})"),
+            x = "Score",
+            y = "Predicted",
+            ) +
+         mytheme()
+}
 
 # =============================================================================
 # prepare data
@@ -66,7 +82,10 @@ for (i in 1:ncol(data.train)){
 }
 logposterior <- loglikelihoods + log(prior$y)
 argmax <- apply(logposterior, 1, which.max)
-theta.rec <- prior$x[argmax]
-plot(scores.train.norm + mean(scores.train), theta.rec+ mean(scores.train))
-abline(0, 1, col="red")
-(sqrt(mean((scores.train.norm - theta.rec)^2)))
+score.rec <- prior$x[argmax]
+
+# plot result
+rmse <- sqrt(mean((scores.train.norm - score.rec)^2))
+df.plot <- data.frame(score = scores.train, p = score.rec + mean(scores.train))
+(p <- plot.score(df.plot, glue::glue("RMSE = {round(rmse, 3)}")))
+saveRDS(p, gpath("plots/{BM}-logistic.rds"))
