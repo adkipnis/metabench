@@ -178,21 +178,36 @@ df.val <- predict.scores(df.val, subsample.res$eval$mod.score)
 sfs.val <- evaluate.prediction(df.val)
 p.val <- plot.prediction(df.val, sfs.val, "(Validation)")
 
+# check with random subset of equal size
+n.final <- ncol(data.val.sub)
+indices.rand <- subsample(data.train, remove = ncol(hs$data.train) - n.final)
+data.rand <- data.train[,indices.rand]
+scores.rand <- rowSums(data.rand) / nc * 100
+df.rand <- data.frame(sub.score = scores.rand, means = scores.train)
+mod.score.rand <- mgcv::gam(means ~ s(sub.score), data = df.rand)
+data.val.rand <- hs$data.test[colnames(data.rand)]
+scores.val.rand <- rowSums(data.val.rand) / nc * 100
+df.rand.val <- data.frame(sub.score = scores.val.rand, means = scores.val)
+df.rand.val <- predict.scores(df.rand.val, mod.score.rand)
+(sfs.rand.val <- evaluate.prediction(df.rand.val))
+p.rand <- plot.prediction(df.rand.val, sfs.rand.val, "(Random)")
+
 # plot final result
-p <- cowplot::plot_grid(p.train, p.test, p.val, nrow = 1, labels = "AUTO")
+p <- cowplot::plot_grid(p.train, p.test, p.val, p.rand, nrow = 1, labels = "AUTO")
 outpath <- gpath("plots/hellaswag-reduced.png")
 ggplot2::ggsave(outpath, p, width = 18, height = 8)
+saveRDS(list(p.train, p.test, p.val, p.rand), gpath("plots/hellaswag-reduced.rds"))
 gprint("💾 Saved plot to {outpath}")
 
 # subset data
 data.sub <- rbind(data.train.sub, data.test.sub) 
 out <- list(data.train = data.sub,
             data.test = hs$data.test[colnames(data.sub)],
+            mod.score = subsample.res$eval$mod.score,
             scores.train = scores.train[rownames(data.sub)],
             scores.test = scores.test,
             max.points.orig = hs$max.points.orig,
-            items = hs$items |> dplyr::filter(item %in% colnames(data.train.sub)),
-            plot = p)
+            items = hs$items |> dplyr::filter(item %in% colnames(data.train.sub)))
 
 # save data
 outpath <- gpath("data/hellaswag-sub.rds")
