@@ -28,6 +28,14 @@ make.df.score <- function(scores, theta) {
                     perc.theta = rank.theta / max(rank.theta))
 }
 
+glm.recov <- function(scores.train, data.column){
+   df.log <- data.frame(y = data.column, x = scores.train)
+   mod.log <- glm(y ~ x, data = df.log, family = binomial(link = "logit"))
+   logits <- predict(mod.log, newdata = df.log, type = "link")
+   params <- mod.log$coefficients
+   (logits - params[1]) / params[2]
+}
+
 cross.validate <- function(itemtype){
   # fit model
   gprint("⚙️ Fitting {itemtype} model to training fold...")
@@ -65,6 +73,7 @@ data.test <- preproc$data.test
 scores.train <- 100 * preproc$scores.train / preproc$max.points.orig
 scores.test <- 100 * preproc$scores.test / preproc$max.points.orig
 
+scores.recovered <- glm.recov(scores.train, data.train)
 # =============================================================================
 # cv models
 cv <- cross.validate(MOD)
