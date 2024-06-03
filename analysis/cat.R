@@ -23,7 +23,7 @@ generate.item.bank <- function(model, benchmark.name, model.type, filter.outlier
   item.fits <- readRDS(datapath.itemfits) |>
     dplyr::filter(itemtype == model.type)
   
-  gprint("🚰 Preparing CAT simulation with full set of {nrow(item.fits)} items on {benchmark.name} benchmark...")
+  gprint("🚰 Preparing CAT simulation with full set of {nrow(item.fits)} items on {benchmark.name} benchmark ({model.type} model)...")
   
   item.fits <- item.fits |>
     dplyr::filter(outlier == filter.outliers) 
@@ -63,11 +63,12 @@ generate.theta.response.matrix <- function(model, benchmark.name, item.bank){
 # =============================================================================
 # load data
 
-benchmarks <- c("hellaswag", "mmlu_sub", "arc", "gsm8k", "truthfulqa", "winogrande")
+benchmarks <- c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande")
 models <- c("2PL", "3PL", "3PLu", "4PL")
 
 for (BM in benchmarks){
   for (MOD in models){
+    
     set.seed(1) #reset one each iter
     
     gprint("🚰 Loading data...")
@@ -81,7 +82,7 @@ for (BM in benchmarks){
     item.bank <- generate.item.bank(model, BM, MOD)
     
     # Generation of thetas and response matrix for existing models
-    gprint("⚙️ Computing thetas for {BM} on full set.")
+    gprint("⚙️ Computing thetas for {BM}-{MOD} on full set.")
     
     theta.response.matrix <- generate.theta.response.matrix(model, BM, item.bank)
     
