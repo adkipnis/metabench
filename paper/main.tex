@@ -66,8 +66,8 @@ After preprocessing, \texttt{HellaSwag} and \texttt{MMLU} still had substantiall
 \begin{enumerate}
    \item Randomly drop $k$ items from the benchmark.
    \item Re-calculate the mean score $\dot {\boldsymbol{\mu}}$ of the remaining items for each LLM.
-   \item Fit a non-linear regression model on the training set: $\boldsymbol\mu = f(\dot{\boldsymbol\mu})$ 
-   \item Calculate the root mean square error (RMSE) on the validation subset.
+   \item Fit a generalized additive regression model (GAM) of the original mean score using the training set: $\boldsymbol\mu = f(\dot{\boldsymbol\mu})$ 
+   \item Calculate its root mean square error (RMSE) on the validation subset.
 \end{enumerate}
 This inner loop is repeated $50$ times, and the iteration with the lowest RMSE makes the cut. The outer loop is repeated until the number of items reaches the goal size. The final set of items and and the final regression model are tested on the global test set. For \texttt{MMLU}, the procedure uses a linear model of all scenario scores to predict the total score, but is otherwise identical.
 Using this procedure, we reduced the number of items in \texttt{HellaSwag} from $10042$ to $1181$ and in \texttt{MMLU} from $14042$ to $1108$ with minimal loss in predictive performance.
@@ -86,18 +86,14 @@ Let $x_{ij}$ be the accuracy of item $i$ for subject $j$ with some (unknown) lat
    \mathbb P(x_{ij}=1|\boldsymbol \vartheta_j) = f(x_{ij}|\boldsymbol \vartheta_j, \boldsymbol \alpha_i),
 \end{equation}
 where $f$ is a link function and $\boldsymbol \alpha_i$ are the item parameters. A simple IRT model is the 2-parameter logistic model (2PL) with $\boldsymbol \alpha_i = (d_i, \mathbf a_i)$ and $f(x_{ij}|\boldsymbol \vartheta_j, \boldsymbol \alpha_i) = G(\mathbf a_i^\top  \boldsymbol \vartheta_j - d_i)$, where $G$ is the logistic function, $\mathbf a_i$ is the loading parameter and $d_i$ is the difficulty parameter.\footnote{Generally, $\mathbf a_i$ can be a vector, but parameter recovery scales poorly with the dimensionality of this vector. As higherdimensional IRT models require much larger subjects-to-items ratios than in our case, we chose to only estimate unidimensional models.} The primary goal is to estimate the item parameters $\mathbf A = (\boldsymbol \alpha_i)_{i = 1, \ldots, d}$. As the latent ability is generally also unkown, the gold-standard approach is to use marginal maximum likelihood methods, which treat the latent ability as a random variable and attempt to maximize $\mathcal L(\mathbf A) = \prod_{i=1}^n \int \prod_{j=1}^d f(x_{ij}|\boldsymbol \vartheta_i, \boldsymbol\alpha_j) f(\boldsymbol \vartheta_i) \, \mathrm d\boldsymbol \vartheta_i$. Due to the integral there is no analytical solution to this problem, but it can be approximated using Expectation-Maximization (EM) algorithms. %TODO cite
-After model fitting, $\boldsymbol \vartheta_j$ can be estimated for each subject $j$ using e.g. maximum a posteriori estimation. %TODO cite
+After model fitting, $\boldsymbol \vartheta_j$ can be estimated for each subject $j$ using e.g. maximum a posteriori (MAP) estimation. %TODO cite
 
 % what we do
-We use the \texttt{mirt} package in R to fit a range of IRT models to the remaining items, using EM with semiparametric density estimation of the latent ability, as the normality assumption We compare the empirical distributions of GA scores for (1) all LLMs vs. (2) all latest LLMs per user to gauge how severely the conditional independence assumption of IRT models is violated. As the distributions are nearly identical and as the ratio between LLMs and items is already low for IRT standards, we treat all LLMs as independent observations.
+We used the \texttt{mirt} package in R to fit a range of IRT models to the remaining items.
+The presented results are based on models with uni-dimensional $\vartheta_i$. These were fitted using EM with semiparametric density estimation of the latent ability distribution.
+Per benchmark, we used training set data from all available LLMs after preprocessing. Note that most users had several LLMs, which potentially violates the IRT model assumption that the response patterns of two different subjects are independent conditional on the item parameters. To assess the severity of this violation, we compared the empirical distributions of GA scores for (1) all LLMs vs. (2) all latest LLMs per user. As the distributions are nearly identical and as the ratio between LLMs and items is already low for IRT standards, we treat all LLMs as independent observations.
+After model fitting, we used MAP to estimate the latent ability of each LLM. We then fit a GAM of the original benchmark score $\mu_i = $, and test it on the test set. %TODO cite
 
-%
-% We fit a range of IRT models to the remaining items using the \texttt{mirt} package in R. We used the Expectation-Maximization algorithm with semiparametric density estimation of the latent ability $\boldsymbol \vartheta$. 
-% There were multiple LLMs per user, which could pose a problem for the conditinal independence assumption of IRT models. To gauge how severely this assumption was violated, we compared the empirical distributions of GA scores for (1) all LLMs vs. (2) all latest LLMs per user. As the distributions were nearly identical and as the ratio between LLMs and items was already low for IRT standards, we decided to treat all LLMs as independent observations.
-%
-% estimate theta posterior per model
-% fit gam to recover full score
-% test on validation set
 \subsection{Information Filtering}
 % item characteristic curves
 % item information
