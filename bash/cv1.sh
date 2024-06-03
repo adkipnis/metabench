@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name=mb-cv-array
-#SBATCH --output=logs/cv.%A_%a.out
-#SBATCH --error=logs/cv.%A_%a.err
-#SBATCH --array=1-4
+#SBATCH --output=logs/cv.1.%A_%a.out
+#SBATCH --error=logs/cv.1.%A_%a.err
+#SBATCH --array=1-3
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de
 
@@ -30,8 +30,8 @@ then
 fi
 
 source $HOME/.bashrc
-models=("2PL" "3PL" "3PLu" "4PL")
+models=("2PL" "3PL" "4PL")
 task_index=$((SLURM_ARRAY_TASK_ID-1))
 task=${models[$task_index]}
 echo "Running task $task"
-LC_ALL=C.UTF-8 Rscript ../analysis/crossvalidate.R $benchmark $task
+LC_ALL=C.UTF-8 Rscript ../analysis/crossvalidate.R $benchmark $task 1
