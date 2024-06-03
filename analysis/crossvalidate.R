@@ -42,7 +42,7 @@ cross.validate <- function(itemtype){
   # train performance
   theta.train <- get.theta(model, method = "MAP")
   df.train <- make.df.score(scores.train, theta.train)
-  mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
+  mod.score <- mgcv::gam(score ~ s(theta, bs = "ad"), data = df.train)
   df.train$p <- predict(mod.score)
   gprint("RMSE train: {round(quick.eval(df.train)$rmse, 3)}")
   
