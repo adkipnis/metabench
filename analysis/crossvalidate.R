@@ -10,7 +10,7 @@ parse.args(
    defaults = c("hellaswag", "3PL"),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     MOD = c("2PL", "3PL")
+     MOD = c("2PL", "3PL", "4PL")
    )
 )
 here::i_am("analysis/crossvalidate.R")
@@ -28,6 +28,12 @@ make.df.score <- function(scores, theta) {
                     perc.theta = rank.theta / max(rank.theta))
 }
 
+quick.eval <- function(df.test){
+  df.test |>
+    dplyr::mutate(error = score - p) |>
+    dplyr::summarise(rmse = sqrt(mean(error^2)))
+}
+
 cross.validate <- function(itemtype){
   # fit model
   gprint("⚙️ Fitting {itemtype} model to training fold...")
@@ -38,11 +44,13 @@ cross.validate <- function(itemtype){
   df.train <- make.df.score(scores.train, theta.train)
   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
   df.train$p <- predict(mod.score)
+  gprint("RMSE train: {round(quick.eval(df.train)$rmse, 3)}")
   
   # test performance
   theta.test <- get.theta(model, method = "MAP", resp = data.test)
   df.test <- make.df.score(scores.test, theta.test)
   df.test$p <- predict(mod.score, newdata = df.test)
+  gprint("RMSE test: {round(quick.eval(df.test)$rmse, 3)}")
 
   # collaps both dataframes
   df.train$set <- "train"
