@@ -1,6 +1,6 @@
 # cross-validated IRT fitting of preprocessed data
 # goal: determine the best IRT model for the given benchmark
-# usage: Rscript crossvalidate.R {benchmark}
+# usage: Rscript crossvalidate2.R {benchmark}
 
 # =============================================================================
 # custom utils, args, path, seed
@@ -13,7 +13,7 @@ parse.args(
      MOD = c("2PL", "3PL")
    )
 )
-here::i_am("analysis/crossvalidate.R")
+here::i_am("analysis/crossvalidate2.R")
 mkdir("analysis/models")
 set.seed(1)
 
