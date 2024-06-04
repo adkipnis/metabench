@@ -16,12 +16,12 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "N_QUANT", "LAMBDA"),
-   defaults = c("hellaswag", "4PL", "MAP", 200, 0.1),
+   defaults = c("winogrande", "2PL", "MAP", 100, 0.0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "4PL"),
      METH = c("MAP", "EAPsum"), # for theta estimation
-     N_QUANT = seq(100, 400, 1),
+     N_QUANT = seq(100, 500, 1),
     LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
    )
 )
@@ -30,10 +30,10 @@ here::i_am("analysis/reduce.R")
 mkdir("analysis/reduced")
 set.seed(1)
 # for Bayesian Optimization
-N_ITER <- 20 
+N_ITER <- 15
 N_QUANT <- as.numeric(N_QUANT) 
 LAMBDA <- as.numeric(LAMBDA)
-default.hyperparams <- list(threshold=0.0, gridtype=2L)
+default.hyperparams <- list(threshold=0.0, gridtype=1L) # 1 theta, 2 range
 
 # =============================================================================
 # helper functions
@@ -429,6 +429,24 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
         sfs = sfs.sub)
 }
 
+grid.search <- function(){
+  results <- list()
+  i <- 1
+  for (gridtype in c(1,2)){
+    for (threshold in seq(0, 0.3, 0.05)){
+      hyperparams <- list(threshold=threshold, gridtype=gridtype)
+      res <- hyperparam.wrapper(hyperparams, internal=T)
+      n.items <- nrow(res$items)
+      score <- res$sfs$rmse + as.numeric(LAMBDA) * n.items
+      results[[i]] <- data.frame(n = n.items, RMSE = res$sfs$rmse, score = score,
+                           gridtype = gridtype, threshold = threshold)
+      gprint("n = {n.items}, RMSE = {round(res$sfs$rmse, 2)}, score = {round(score,2)}, threshold = {round(threshold,4)}, gridtype = {gridtype}")
+      i <- i + 1
+    }
+  }
+  do.call(rbind, results)
+}
+
 optimize.hyperparameters <- function(){
    box::use(rBayesianOptimization[...])
    objective <- function(threshold, gridtype) {
@@ -440,13 +458,12 @@ optimize.hyperparameters <- function(){
   }
   BayesianOptimization(
    objective,
-   bounds = list(threshold = c(0, 3), gridtype = c(1L, 3L)),
+   bounds = list(threshold = c(0, 5), gridtype = c(1L, 2L)),
    init_points = 5,
    n_iter = N_ITER,
    acq = "ucb", 
-   #kappa = 2.576,
-   kappa = 4,
-   eps = 1.0,
+   kappa = 2.576,
+   eps = 0,
    verbose = T)
 }
 
@@ -512,6 +529,9 @@ if (LAMBDA == 0){
    gprint("🔍 Running hyperparameter search...")
    opt.results <- optimize.hyperparameters()
    hyperparams <- as.list(opt.results$Best_Par)
+  #opt.results <- grid.search()
+  #mindex <- which.min(opt.results$score)
+  #hyperparams <- as.list(opt.results[mindex,])
 }
 final <- hyperparam.wrapper(hyperparams, internal = F)
 info.items <- final$info.items
