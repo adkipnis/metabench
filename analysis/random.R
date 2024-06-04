@@ -6,7 +6,7 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N"), 
-   defaults = c("mmlu", 400),
+   defaults = c("mmlu", 200),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 400, 1)
@@ -56,32 +56,31 @@ if (N > ncol(data.train)){
   quit()
 }
 
-# check with random subset of equal size
 rmses <- matrix(NA, 1000)
 index.list <- list()
 mod.list <- list()
 
 gprint("🔁 Running 1000 subsampling iterations with {N} items with seed {SEED}...")
 for (i in 1:1000){
-  # subsample same items from train and test data
-  indices.rand <- subsample(data.train, N)
-  data.train.r <- data.train[,indices.rand]
-  data.val.r <- data.val[,indices.rand]
+# subsample same items from train and test data
+indices.rand <- subsample(data.train, N)
+data.train.r <- data.train[,indices.rand]
+data.val.r <- data.val[,indices.rand]
 
-  # recalculate mean scores and prepare score dfs
-  scores.train.r <- rowMeans(data.train.r)
-  df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
-  scores.val.r <- rowMeans(data.val.r)
-  df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
+# recalculate mean scores and prepare score dfs
+scores.train.r <- rowMeans(data.train.r)
+df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
+scores.val.r <- rowMeans(data.val.r)
+df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
 
-  # train GAM on train data and predict on test data
-  mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
-  df.val <- predict.scores(df.val, mod.score)
+# train GAM on train data and predict on test data
+mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
+df.val <- predict.scores(df.val, mod.score)
 
-  # save results
-  rmses[i,] <- sqrt(mean(df.val$error^2))
-  index.list[[i]] <- indices.rand
-  mod.list[[i]] <- mod.score
+# save results
+rmses[i,] <- sqrt(mean(df.val$error^2))
+index.list[[i]] <- indices.rand
+mod.list[[i]] <- mod.score
 }
 
 # get smallest RMSE
@@ -118,7 +117,7 @@ out <- list(
 )
 
  # save data
- outpath <- gpath("analysis/reduced/{BM}-sub.rds")
+ outpath <- gpath("data/{BM}-sub-{N}.rds")
  saveRDS(out, outpath)
  gprint("🏁 Saved subset data to {outpath}")
 
