@@ -9,7 +9,7 @@ parse.args <- function(names, defaults, legal=NULL) {
       } else {
          opts[[name]] <- defaults[i]
       }
-      if (!is.null(legal) && !opts[[name]] %in% legal[[name]]) {
+      if (!is.null(legal) && name %in% names(legal) && !opts[[name]] %in% legal[[name]]) {
          stop("Invalid option for ", name)
       }
    }
