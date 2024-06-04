@@ -8,7 +8,7 @@ box::use(./utils[parse.args, gprint, gpath, mkdir, get.theta, run.mirt])
 
 parse.args(
    names = c("BM", "MOD", "D"),
-   defaults = c("arc", "4PL", 1),
+   defaults = c("winogrande", "4PL", 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "4PL"),
@@ -41,6 +41,7 @@ fit.gam <- function(df.train){
 cross.validate <- function(){
   # fit model
   gprint("⚙️ Fitting {MOD} model with {D}-dimensional ability to training fold...")
+  gprint("RMSE raw: {round(preproc$rmse.test,3)}")
   model <- run.mirt(data.train, as.numeric(D), MOD)
 
   # train performance
@@ -64,20 +65,16 @@ cross.validate <- function(){
   list(df = rbind(df.train, df.test), model = model, mod.score = mod.score)
 }
 
-
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-if (BM %in% c("hellaswag", "mmlu")){
-   datapath <- gpath("data/{BM}-sub.rds")
-} else {
-   datapath <- gpath("data/{BM}-preproc-split.rds")
-}
+datapath <- gpath("data/{BM}-sub.rds")
 preproc <- readRDS(datapath)
 data.train <- preproc$data.train
 data.test <- preproc$data.test
-scores.train <- 100 * preproc$scores.train / preproc$max.points.orig
-scores.test <- 100 * preproc$scores.test / preproc$max.points.orig
+nc <- preproc$max.points.orig
+scores.train <- preproc$scores.train / nc * 100
+scores.test <- preproc$scores.test / nc * 100
 
 # =============================================================================
 # cv models
