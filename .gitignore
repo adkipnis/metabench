@@ -9,5 +9,5 @@ analysis/itemfits
 analysis/reduced*
 analysis/cat/*
 data
-plots
+plots*
 *_old
