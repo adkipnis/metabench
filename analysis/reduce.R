@@ -16,7 +16,7 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "N_QUANT", "LAMBDA"),
-   defaults = c("arc", "3PL", "MAP", 200, 0),
+   defaults = c("hellaswag", "4PL", "MAP", 200, 0.1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "4PL"),
@@ -33,7 +33,7 @@ set.seed(1)
 N_ITER <- 20 
 N_QUANT <- as.numeric(N_QUANT) 
 LAMBDA <- as.numeric(LAMBDA)
-default.hyperparams <- list(threshold=0.0)
+default.hyperparams <- list(threshold=0.0, gridtype=2L)
 
 # =============================================================================
 # helper functions
@@ -141,15 +141,15 @@ plot.score.error <- function(df.score, suffix = "", ylim = NULL){
    df.plot <- df.score |>
       dplyr::filter(set == "test")
    ymax <- ifelse(is.null(ylim), max(abs(df.plot$error)), ylim)
-   ggplot(df.plot, aes(x = p, y = error)) +
+   ggplot(df.plot, aes(x = theta, y = error)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 0,
                      linetype = "dashed") +
-         coord_cartesian(xlim = c(0, 100), ylim = c(-ymax, ymax)) +
+         coord_cartesian(ylim = c(-ymax, ymax)) +
          labs(
-            title = glue::glue("Predicted vs. Error {suffix}"),
-            x = "Predicted Score",
+            title = glue::glue("Theta vs. Error {suffix}"),
+            x = "Theta",
             y = "Error",
             ) +
          mytheme()
@@ -175,7 +175,7 @@ collect.item.info <- function(model, theta, itemnames){
    box::use(mirt[extract.item, iteminfo])
 
    # create list of item info
-   theta <- sort(theta[,1])
+   theta <- sort(theta)
    infos <- lapply(1:length(itemnames), function(i){
       iteminfo(extract.item(model, i), Theta=theta)
    })
@@ -235,8 +235,8 @@ plot.expected.testinfo <- function(info.items, index.set, ylim=NULL, title="Expe
          mytheme()
 }
 
-get.info.quantiles <- function(info.items, steps=40){
-  theta.quantiles <- quantile(info.items$theta, probs = 0:steps/steps, type=4)
+get.info.quantiles <- function(info.items, theta.grid, steps=40){
+  theta.quantiles <- quantile(theta.grid, probs = 0:steps/steps, type=4)
   data.frame(quantile=theta.quantiles) |>
     tibble::rownames_to_column(var="percent") |>
     dplyr::mutate(index = findInterval(theta.quantiles, info.items$theta))
@@ -298,7 +298,7 @@ select.items <- function(items, info.items, info.quantiles, threshold=0.1){
   info.tmp <- info.items
   rownames(info.tmp) <- NULL
   index.list <- list()
-  n <- nrow(info.quantiles) - 1
+  n <- nrow(info.quantiles)
   for (i in 1:n){
     q0 <- info.quantiles$quantile[i]
     q1 <- info.quantiles$quantile[i+1]
@@ -377,16 +377,26 @@ plot.estimates <- function(model.sub, theta.sub){
 # -----------------------------------------------------------------------------
 # hyperparameter search
 
-create.subtest <- function(data, items, info.quantiles, hyper) {
+create.subtest <- function(data, items, info.items, info.quantiles, hyper) {
    index.set <- select.items(items, info.items, info.quantiles, threshold=hyper$threshold)
    data.sub <- data[, as.character(index.set$item)]
    list(data=data.sub, items=index.set)
 }
 
 hyperparam.wrapper <- function(hyperparams, internal=T){
+   # 0. prepare
+   if (hyperparams$gridtype == 1){
+     theta.grid <- theta[,1]
+   } else {
+     theta.range <- range(theta[,1])
+     theta.grid <- seq(theta.range[1], theta.range[2], length.out = N_QUANT)
+   }
+   info.items <- collect.item.info(model, theta.grid, colnames(data))
+   items <- merge(items, summarize.info(info.items), by="item")
+  
    # 1. create subtest
-   info.quantiles <- get.info.quantiles(info.items, steps=N_QUANT)
-   subtest <- create.subtest(data.train, items, info.quantiles, hyperparams)
+   info.quantiles <- get.info.quantiles(info.items, theta.grid, steps=N_QUANT)
+   subtest <- create.subtest(data.train, items, info.items, info.quantiles, hyperparams)
    data.train.sub <- subtest$data
    data.test.sub <- data.test[colnames(data.train.sub)]
    items.sub <- subtest$items
@@ -413,6 +423,7 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
         model = model.sub,
         theta.train = theta.train.sub,
         theta.test = theta.test.sub,
+        info.items = info.items,
         info.quantiles = info.quantiles,
         df.score = score.table.sub,
         sfs = sfs.sub)
@@ -420,8 +431,8 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
 
 optimize.hyperparameters <- function(){
    box::use(rBayesianOptimization[...])
-   objective <- function(threshold) {
-     hyperparams <- list(threshold=threshold)
+   objective <- function(threshold, gridtype) {
+     hyperparams <- list(threshold=threshold, gridtype=gridtype)
      res <- hyperparam.wrapper(hyperparams, internal=T)
      sfs <- res$sfs
      score <- sfs$rmse + as.numeric(LAMBDA) * nrow(res$items) # minimize this
@@ -429,7 +440,7 @@ optimize.hyperparameters <- function(){
   }
   BayesianOptimization(
    objective,
-   bounds = list(threshold = c(0, 3)),
+   bounds = list(threshold = c(0, 3), gridtype = c(1L, 3L)),
    init_points = 5,
    n_iter = N_ITER,
    acq = "ucb", 
@@ -485,9 +496,12 @@ rm(results)
 df.score.base <- get.score.table(theta.train, theta.val, scores.train, scores.val)
 sfs.base <- score.stats(df.score.base)
 
-# get item infos, remove outliers and plot distributions
-info.items <- collect.item.info(model, theta.train, colnames(data))
-items <- merge(items, summarize.info(info.items), by="item")
+# rank absolute errors and find the corresponding thetas
+# get 68th percentile of absolute errors by size
+# df.score.base$se <- df.score.base$error^2
+# critical.thetas <- df.score.base |> dplyr::arrange(se) |> head(50) |>
+#  dplyr::select(theta, se) |> dplyr::arrange(theta)
+
 
 # run hyperparameter search using rBayesianOptimization
 if (LAMBDA == 0){
@@ -500,6 +514,7 @@ if (LAMBDA == 0){
    hyperparams <- as.list(opt.results$Best_Par)
 }
 final <- hyperparam.wrapper(hyperparams, internal = F)
+info.items <- final$info.items
 
 # evaluation on validation set
 data.val.sub <- data.val[,as.character(final$items$item)]
