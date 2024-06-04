@@ -180,17 +180,22 @@ p.val <- plot.prediction(df.val, sfs.val, "(Validation)")
 
 # check with random subset of equal size
 n.final <- ncol(data.val.sub)
-indices.rand <- subsample(data.train, remove = ncol(hs$data.train) - n.final)
-data.rand <- data.train[,indices.rand]
-scores.rand <- rowSums(data.rand) / nc * 100
-df.rand <- data.frame(sub.score = scores.rand, means = scores.train)
-mod.score.rand <- mgcv::gam(means ~ s(sub.score), data = df.rand)
-data.val.rand <- hs$data.test[colnames(data.rand)]
-scores.val.rand <- rowSums(data.val.rand) / nc * 100
-df.rand.val <- data.frame(sub.score = scores.val.rand, means = scores.val)
-df.rand.val <- predict.scores(df.rand.val, mod.score.rand)
-(sfs.rand.val <- evaluate.prediction(df.rand.val))
+rmses.rand <- matrix(NA, 500)
+for (i in 1:500){
+  indices.rand <- subsample(data.train, remove = ncol(hs$data.train) - n.final)
+  data.rand <- data.train[,indices.rand]
+  scores.rand <- rowSums(data.rand) / nc * 100
+  df.rand <- data.frame(sub.score = scores.rand, means = scores.train)
+  mod.score.rand <- mgcv::gam(means ~ s(sub.score), data = df.rand)
+  data.val.rand <- hs$data.test[colnames(data.rand)]
+  scores.val.rand <- rowSums(data.val.rand) / nc * 100
+  df.rand.val <- data.frame(sub.score = scores.val.rand, means = scores.val)
+  df.rand.val <- predict.scores(df.rand.val, mod.score.rand)
+  sfs.rand.val <- evaluate.prediction(df.rand.val)
+  rmses.rand[i,] <- sfs.rand.val$RMSE
+}
 p.rand <- plot.prediction(df.rand.val, sfs.rand.val, "(Random)")
+saveRDS(rmses.rand, gpath("paper/figures/hellaswag-random-rmses.rds"))
 
 # plot final result
 p <- cowplot::plot_grid(p.train, p.test, p.val, p.rand, nrow = 1, labels = "AUTO")
