@@ -5,15 +5,15 @@
 box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
-   names = c("BM", "N", "SEED"), 
-   defaults = c("mmlu", 400, 1),
+   names = c("BM", "N"), 
+   defaults = c("mmlu", 400),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 400, 1)
    )
 )
 N <- as.numeric(N)
-SEED <- as.numeric(N)
+SEED <- 1
 set.seed(SEED)
 
 # =============================================================================
@@ -61,7 +61,7 @@ rmses <- matrix(NA, 1000)
 index.list <- list()
 mod.list <- list()
 
-gprint("🔁 Running 1000 subsampling iterations with {N} items...")
+gprint("🔁 Running 1000 subsampling iterations with {N} items with seed {SEED}...")
 for (i in 1:1000){
   # subsample same items from train and test data
   indices.rand <- subsample(data.train, N)
