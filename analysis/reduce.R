@@ -15,13 +15,14 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
-   names = c("BM", "MOD", "METH", "LAMBDA"),
-   defaults = c("winogrande", "4PL", "EAPsum", 0.0),
+   names = c("BM", "MOD", "METH", "N_QUANT", "LAMBDA"),
+   defaults = c("arc", "3PL", "MAP", 200, 0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "4PL"),
      METH = c("MAP", "EAPsum"), # for theta estimation
-     LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
+     N_QUANT = seq(100, 400, 1),
+    LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
    )
 )
 Saveplots <- T
@@ -30,7 +31,8 @@ mkdir("analysis/reduced")
 set.seed(1)
 # for Bayesian Optimization
 N_ITER <- 20 
-N_QUANT <- 200 
+N_QUANT <- as.numeric(N_QUANT) 
+LAMBDA <- as.numeric(LAMBDA)
 default.hyperparams <- list(threshold=0.0)
 
 # =============================================================================
@@ -431,19 +433,16 @@ optimize.hyperparameters <- function(){
    init_points = 5,
    n_iter = N_ITER,
    acq = "ucb", 
-   kappa = 2.576,
-   eps = 0.0,
+   #kappa = 2.576,
+   kappa = 4,
+   eps = 1.0,
    verbose = T)
 }
 
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-if (BM %in% c("hellaswag", "mmlu")){
-   datapath <- gpath("data/{BM}-sub.rds")
-} else {
-   datapath <- gpath("data/{BM}-preproc-split.rds")
-}
+datapath <- gpath("data/{BM}-sub.rds")
 full <- readRDS(datapath)
 items <- full$items
 items$item <- as.character(items$item)
@@ -457,18 +456,6 @@ scores.train <- scores[-indices]
 scores.test <- scores[indices]
 scores.val <- full$scores.test / full$max.points.orig * 100
 rm(full)
-
-# append itemfits to items
-itemfitpath <- gpath("analysis/itemfits/{BM}.rds")
-itemfits <- readRDS(itemfitpath) |>
-   dplyr::filter(itemtype == MOD) |>
-   dplyr::select(-itemtype)
-if (!all(itemfits$item == items$item)){
-  gprint("itemfits and items do not match!")
-  quit()
-}
-items <- merge(items, itemfits, by="item")
-rm(itemfits)
 
 # prepare model and thetas
 gprint("🚰 Loading {BM} fits...")
@@ -500,8 +487,6 @@ sfs.base <- score.stats(df.score.base)
 
 # get item infos, remove outliers and plot distributions
 info.items <- collect.item.info(model, theta.train, colnames(data))
-# info.items <- info.items |>
-#  dplyr::select(!as.character(items$item[items$outlier]))
 items <- merge(items, summarize.info(info.items), by="item")
 
 # run hyperparameter search using rBayesianOptimization
