@@ -13,7 +13,7 @@ papertheme <- function(){
         axis.text.x = element_text(size = 16),
         axis.text.y = element_text(size = 16),
         plot.title = element_text(size = 20, hjust = 0.5),
-        legend.text = element_text(size = 16),
+        legend.text = element_text(size = 14),
         legend.title = element_text(size = 18),
         plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
         panel.border = element_rect(size = 2))
@@ -42,8 +42,8 @@ plot.evo <- function(df.scores){
   rmse.1 <- sfs[sfs$bm=="MMLU",]$rmse
   rmse.2 <- sfs[sfs$bm!="MMLU",]$rmse
   idx <- df.scores$bm == "MMLU"
-  df.scores$bm[idx] = glue::glue("MMLU (RMSE = {round(rmse.1,2)})")
-  df.scores$bm[!idx] = glue::glue("HellaSwag (RMSE = {round(rmse.2,2)})")
+  df.scores$bm[idx] = glue::glue("MMLU (rmse = {round(rmse.1,2)})")
+  df.scores$bm[!idx] = glue::glue("HellaSwag (rmse = {round(rmse.2,2)})")
   
   box::use(ggplot2[...], latex2exp[TeX])
   ggplot(df.scores, aes(x = means, y = p, color = bm)) +
@@ -59,11 +59,13 @@ plot.evo <- function(df.scores){
     ) +
     # positon of the legend in left upper corner
     mytheme() +
+    papertheme() +
     theme(legend.position = "inside",
-          legend.position.inside = c(0.75, 0.25))
+          legend.position.inside = c(0.65, 0.25),
+          legend.background = element_rect(fill = NA))
 }
-plot.evo(evo) |> niceify()
+p.evo <- plot.evo(evo) 
 
-#(p.evo <- cowplot::plot_grid(hs.evo, hs.rand, mmlu.evo, mmlu.rand, ncol = 2, labels = "AUTO"))
-#outpath <- gpath("paper/figures/evo.pdf")
-#ggplot2::ggsave(outpath, p.evo, width = 12, height = 8)
+outpath <- gpath("paper/figures/evo.pdf")
+ggplot2::ggsave(outpath, p.evo, width = 5, height = 5)
+
