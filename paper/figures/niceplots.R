@@ -41,7 +41,7 @@ sfs <- evo |>
 
 rmse.mmlu <- sfs[sfs$bm=="MMLU",]$rmse
 rmse.hs <- sfs[sfs$bm!="MMLU",]$rmse
-  
+
 plot.evo <- function(df.scores){
   box::use(ggplot2[...], latex2exp[TeX])
   
@@ -69,17 +69,19 @@ mmlu.rand <-  readRDS(gpath("paper/figures/mmlu-random-rmses.rds"))
 rand <- data.frame(rmse = hs.rand, bm = "HellaSwag")
 rand <- rbind(rand, data.frame(rmse = mmlu.rand, bm = "MMLU"))
 
-# box and whiskers plot
-p.rand <- ggplot(rand, aes(x = bm, y = rmse, fill = bm)) +
-  geom_violin(draw_quantiles = c(0.5)) +
-   labs(x="", y = "RMSE", title = "Random") +
-   scale_fill_manual(values = c("#E69F00", "#56B4E9")) +
+plot.violin <- function(df){
+  ggplot(df, aes(x = bm, y = rmse, fill = bm)) +
+    geom_violin(draw_quantiles = c(0.5)) +
+    labs(x="", y = "RMSE", title = "Random") +
+    scale_fill_manual(values = cbPalette) +
+    mytheme() +
+    papertheme() +
+    theme(legend.position = "none")
+}
+p.rand <- plot.rand(rand) +
    geom_text(aes(x = 1, y = rmse.hs, label = "*"), color = "black", size = 8) +
    geom_text(aes(x = 2, y = rmse.mmlu, label = "*"), color = "black", size = 8) +
    ylim(0.5, 0.9) +
-   mytheme() +
-   papertheme() +
-  theme(legend.position = "none")
 
 (p.evo <- cowplot::plot_grid(p.samp, p.rand))
 outpath <- gpath("paper/figures/evo.pdf")
