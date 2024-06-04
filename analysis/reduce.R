@@ -16,10 +16,10 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
 parse.args(
    names = c("BM", "MOD", "METH", "LAMBDA"),
-   defaults = c("mmlu", "3PL", "MAP", 0.001),
+   defaults = c("winogrande", "4PL", "EAPsum", 0.0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     MOD = c("2PL", "3PL", "3PLu", "4PL"),
+     MOD = c("2PL", "3PL", "4PL"),
      METH = c("MAP", "EAPsum"), # for theta estimation
      LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
    )
@@ -28,7 +28,10 @@ Saveplots <- T
 here::i_am("analysis/reduce.R")
 mkdir("analysis/reduced")
 set.seed(1)
-N_ITER <- 20 # for Bayesian Optimization
+# for Bayesian Optimization
+N_ITER <- 20 
+N_QUANT <- 200 
+default.hyperparams <- list(threshold=0.0)
 
 # =============================================================================
 # helper functions
@@ -289,29 +292,29 @@ summarize.info <- function(info.items){
 #    do.call(rbind, index.set) |>
 #       dplyr::arrange(info.argmax)
 # }
-select.items <- function(items, info.items, info.quantiles, n_max=6L, threshold=0.1){
+select.items <- function(items, info.items, info.quantiles, threshold=0.1){
   info.tmp <- info.items
   rownames(info.tmp) <- NULL
   index.list <- list()
-  for (i in 1:nrow(info.quantiles)){
+  n <- nrow(info.quantiles) - 1
+  for (i in 1:n){
     q0 <- info.quantiles$quantile[i]
     q1 <- info.quantiles$quantile[i+1]
     # select rows in info.items that are in the current quantile
     info.sub <- info.tmp |>
       dplyr::filter(theta >= q0 & theta < q1) |> # select rows in the current quantile
       dplyr::select(-theta)
-    # find items with max info in the current quantile
     maxinfo <- apply(info.sub, 2, max)
     maxinfo <- maxinfo[maxinfo >= threshold]
+    maxinfo <- sort(maxinfo, decreasing = T)
+    current.best <- maxinfo[1]
     if (length(maxinfo) > 0) {
-      l <- min(n_max, length(maxinfo))
-      maxinfo <- sort(maxinfo, decreasing = T)[1:l]
-      index.list[[i]] <- items[items$item %in% names(maxinfo),]
-      info.tmp[, names(maxinfo)] <- NULL
+        index <- which(items$item == names(current.best))
+        index.list[[i]] <- items[index,]
+        info.tmp[, names(current.best)] <- NULL
     }
   }
-  do.call(rbind, index.list) |>
-    dplyr::arrange(info.argmax)
+  do.call(rbind, index.list)
 }
 
 # -----------------------------------------------------------------------------
@@ -373,14 +376,14 @@ plot.estimates <- function(model.sub, theta.sub){
 # hyperparameter search
 
 create.subtest <- function(data, items, info.quantiles, hyper) {
-   index.set <- select.items(items, info.items, info.quantiles, n_max=hyper$n_max, threshold=hyper$threshold)
+   index.set <- select.items(items, info.items, info.quantiles, threshold=hyper$threshold)
    data.sub <- data[, as.character(index.set$item)]
    list(data=data.sub, items=index.set)
 }
 
 hyperparam.wrapper <- function(hyperparams, internal=T){
    # 1. create subtest
-   info.quantiles <- get.info.quantiles(info.items, steps=hyperparams$n_quant)
+   info.quantiles <- get.info.quantiles(info.items, steps=N_QUANT)
    subtest <- create.subtest(data.train, items, info.quantiles, hyperparams)
    data.train.sub <- subtest$data
    data.test.sub <- data.test[colnames(data.train.sub)]
@@ -388,12 +391,12 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
    
    # fail gracefully if the set becomes too
    if (ncol(data.frame(data.train.sub)) < 10){
-     return(list(sfs = data.frame(rmse = 9999), items = items.sub))
+     return(list(sfs = data.frame(rmse = 9999), items = items[1,]))
    }
    
    # 2. fit subtest
    ncycles <- ifelse(internal, 500, 1000)
-   model.sub <- run.mirt(data.train.sub, MOD, tol = 1e-4, ncycles=ncycles)
+   model.sub <- run.mirt(data.train.sub, 1, MOD, tol = 1e-4, ncycles=ncycles)
    theta.train.sub <- get.theta(model.sub, method=METH, resp=data.train.sub)
    rownames(theta.train.sub) <- rownames(data.train.sub)
    theta.test.sub <- get.theta(model.sub, method=METH, resp=data.test.sub)
@@ -415,8 +418,8 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
 
 optimize.hyperparameters <- function(){
    box::use(rBayesianOptimization[...])
-   objective <- function(n_max, threshold, n_quant) {
-     hyperparams <- list(n_max=n_max, threshold=threshold, n_quant=n_quant)
+   objective <- function(threshold) {
+     hyperparams <- list(threshold=threshold)
      res <- hyperparam.wrapper(hyperparams, internal=T)
      sfs <- res$sfs
      score <- sfs$rmse + as.numeric(LAMBDA) * nrow(res$items) # minimize this
@@ -424,9 +427,7 @@ optimize.hyperparameters <- function(){
   }
   BayesianOptimization(
    objective,
-   bounds = list(n_max = c(1L, 5L),
-                 threshold = c(0, 2),
-                 n_quant = c(50L, 200L)),
+   bounds = list(threshold = c(0, 3)),
    init_points = 5,
    n_iter = N_ITER,
    acq = "ucb", 
@@ -471,18 +472,18 @@ rm(itemfits)
 
 # prepare model and thetas
 gprint("🚰 Loading {BM} fits...")
-fitpath <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
+fitpath <- gpath("analysis/models/{BM}-{MOD}-{1}-cv.rds")
 results <- readRDS(fitpath)
 model <- results$model
 items <- merge.params(items, model)
 if (METH == "MAP") {
    theta <- results$df |> dplyr::filter(set == "train") |>
-     dplyr::select(theta) |> as.matrix()
+     dplyr::select(F1) |> as.matrix()
    colnames(theta) <- "F1"
    theta.train <- theta[-indices, , drop=F]
    theta.test <- theta[indices, , drop = F]
    theta.val <- results$df |> dplyr::filter(set == "test") |>
-     dplyr::select(theta) |> as.matrix()
+     dplyr::select(F1) |> as.matrix()
    colnames(theta.val) <- "F1"
 } else {
    theta <- get.theta(model, method=METH)
@@ -499,14 +500,14 @@ sfs.base <- score.stats(df.score.base)
 
 # get item infos, remove outliers and plot distributions
 info.items <- collect.item.info(model, theta.train, colnames(data))
-#info.items <- info.items |>
+# info.items <- info.items |>
 #  dplyr::select(!as.character(items$item[items$outlier]))
 items <- merge(items, summarize.info(info.items), by="item")
 
 # run hyperparameter search using rBayesianOptimization
 if (LAMBDA == 0){
    gprint("Skipping hyperparameter search (LAMBDA = 0)")
-   hyperparams <- list(n_max=1L, threshold=0, n_quant=150L)
+   hyperparams <- default.hyperparams
    opt.results <- hyperparams
 } else {
    gprint("🔍 Running hyperparameter search...")
@@ -520,6 +521,7 @@ data.val.sub <- data.val[,as.character(final$items$item)]
 theta.val.sub <- get.theta(final$model, method=METH, resp=data.val.sub)
 rownames(theta.val.sub) <- rownames(data.val.sub)
 df.score.val <- get.score.table(final$theta.train, theta.val.sub, scores.train, scores.val)
+sfs.val <- score.stats(df.score.val)
 
 # misc plots
 ceiling <- max(rowSums(info.items[,-1]))
@@ -586,14 +588,15 @@ out <- list(
    hyperparams = hyperparams,
    opt.results = opt.results,
    sfs.full = sfs.base,
-   sfs.sub = final$sfs,
+   sfs.sub = sfs.val,
    df.score.base = df.score.base,
    df.score.val = df.score.val
 )
 
+#compare.score.stats(sfs.base, sfs.val)
+gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).
+       RMSE = {round(sfs.val$rmse, 2)}")
 outpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}.rds")
 saveRDS(out, outpath)
-gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).")
-compare.score.stats(sfs.base, final$sfs)
 gprint("💾 Saved results to {outpath}")
 p.pred
