@@ -4,17 +4,23 @@
 # =============================================================================
 # custom utils, args, path, seed
 here::i_am("paper/figures/niceplots.R")
-box::use(../../analysis/utils[mkdir, gprint, gpath], ggplot2[...])
+box::use(../../analysis/utils[mkdir, gprint, gpath, mytheme], ggplot2[...])
 
 # =============================================================================
+papertheme <- function(){
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18),
+        axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        plot.title = element_text(size = 20, hjust = 0.5),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 18),
+        plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+        panel.border = element_rect(size = 2))
+         
+}
 niceify <- function(p){
-   p <- p + 
-      theme(axis.title.x = element_text(size = 16),
-            axis.title.y = element_text(size = 16),
-            axis.text.x = element_text(size = 14),
-            axis.text.y = element_text(size = 14),
-            plot.title = element_text(size = 20, hjust = 0.5)
-            )
+   p <- p + papertheme()
    p[["layers"]][[3]][["aes_params"]][["size"]] <- 5
    p[["layers"]][[3]][["data"]][["x"]] <- 75
    p[["layers"]][[3]][["data"]][["y"]] <- 25
