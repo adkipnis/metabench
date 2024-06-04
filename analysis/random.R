@@ -116,9 +116,9 @@ out <- list(
    rmses.val = rmses,
    rmse.test = rmse.test
 )
-#
-# # save data
-# outpath <- gpath("analysis/reduced/{BM}-sub.rds")
-# saveRDS(out, outpath)
-# gprint("🏁 Saved subset data to {outpath}")
+
+ # save data
+ outpath <- gpath("analysis/reduced/{BM}-sub.rds")
+ saveRDS(out, outpath)
+ gprint("🏁 Saved subset data to {outpath}")
 
