@@ -9,7 +9,7 @@
 box::use(./utils[parse.args, gprint, gpath, mytheme, get.theta])
 parse.args(
    names = c("BM", "METH", "DIM"),
-   defaults = c("gsm8k", "MAP", 2),
+   defaults = c("gsm8k", "EAPsum", 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      METH = c("MAP", "EAPsum"),
@@ -75,11 +75,7 @@ refit <- function(result, data.train, data.test){
 
 refit.wrapper <- function(cvs){
   gprint("Refitting theta using {METH}...")
-  if (BM %in% c("hellaswag", "mmlu")){
-    datapath <- gpath("data/{BM}-sub.rds")
-  } else {
-    datapath <- gpath("data/{BM}-preproc-split.rds")
-  }  
+  datapath <- gpath("data/{BM}-sub.rds")
   all <- readRDS(datapath)
   data.train <- all$data.train
   data.test <- all$data.test
