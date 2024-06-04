@@ -4,21 +4,17 @@
 # =============================================================================
 box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
-set.seed(1)
-
 parse.args(
-   names = c("BM", "N"), 
-   defaults = c("mmlu", 400),
+   names = c("BM", "N", "SEED"), 
+   defaults = c("mmlu", 400, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     N = seq(0, 400, 1) 
+     N = seq(0, 400, 1)
    )
 )
 N <- as.numeric(N)
-Saveplots <- T
-here::i_am("analysis/random.R")
-set.seed(1)
-
+SEED <- as.numeric(N)
+set.seed(SEED)
 
 # =============================================================================
 # helper functions
