@@ -23,16 +23,41 @@ niceify <- function(p){
 # =============================================================================
 # evlolutionary algorithm
 mmlu.evo <- readRDS(gpath("plots/mmlu-reduced.rds"))[[3]]
-mmlu.rand <- readRDS(gpath("plots/mmlu-reduced.rds"))[[4]]
-(mmlu.evo <- niceify(mmlu.evo) + labs(x = "Score", y = "Predicted", title = "MMLU (Evo)"))
-(mmlu.rand <- niceify(mmlu.rand) + labs(x = "Score", y = "Predicted", title = "MMLU (Random)"))
-
+mmlu.evo.data <- mmlu.evo$data |> dplyr::select(means, p) |> dplyr::mutate(bm = "MMLU")
 hs.evo <- readRDS(gpath("plots/hellaswag-reduced.rds"))[[3]]
-hs.rand <- readRDS(gpath("plots/hellaswag-reduced.rds"))[[4]]
-(hs.evo <- niceify(hs.evo) + labs(x = "Score", y = "Predicted", title = "HellaSwag (Evo)"))
-(hs.rand <- niceify(hs.rand) + labs(x = "Score", y = "Predicted", title = "HellaSwag (Random)"))
+hs.evo.data <- hs.evo$data |> dplyr::select(means, p) |> dplyr::mutate(bm = "HellaSwag")
+evo <- rbind(mmlu.evo.data, hs.evo.data)
 
-(p.evo <- cowplot::plot_grid(hs.evo, hs.rand, mmlu.evo, mmlu.rand, ncol = 2, labels = "AUTO"))
+plot.evo <- function(df.scores){
+  sfs <- df.scores |>
+    dplyr::mutate(error = p - means) |>
+    dplyr::group_by(bm)  |>
+    dplyr::summarise(rmse = sqrt(mean(error^2)))
+  rmse.1 <- sfs[sfs$bm=="MMLU",]$rmse
+  rmse.2 <- sfs[sfs$bm!="MMLU",]$rmse
+  idx <- df.scores$bm == "MMLU"
+  df.scores$bm[idx] = glue::glue("MMLU (RMSE = {round(rmse.1,2)})")
+  df.scores$bm[!idx] = glue::glue("HellaSwag (RMSE = {round(rmse.2,2)})")
+  
+  box::use(ggplot2[...], latex2exp[TeX])
+  ggplot(df.scores, aes(x = means, y = p, color = bm)) +
+    geom_point(alpha = 0.5) +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
+    coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+    scale_color_manual(values = c("#E69F00", "#56B4E9")) +
+    labs(
+      x = "Score",
+      y = "Predicted",
+      color = "",
+      title = glue::glue("Evolutionary Subsampling")
+    ) +
+    # positon of the legend in left upper corner
+    mytheme() +
+    theme(legend.position = "inside",
+          legend.position.inside = c(0.75, 0.25))
+}
+plot.evo(evo) |> niceify()
 
-outpath <- gpath("paper/figures/evo.pdf")
-ggplot2::ggsave(outpath, p.evo, width = 12, height = 8)
+#(p.evo <- cowplot::plot_grid(hs.evo, hs.rand, mmlu.evo, mmlu.rand, ncol = 2, labels = "AUTO"))
+#outpath <- gpath("paper/figures/evo.pdf")
+#ggplot2::ggsave(outpath, p.evo, width = 12, height = 8)
