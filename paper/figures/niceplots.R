@@ -89,41 +89,61 @@ ggplot2::ggsave(outpath, p.evo, width = 7, height = 5)
 
 # =============================================================================
 # IRT score reconstruction
-arc.irt <- readRDS(gpath("plots/arc-EAPsum-1-cv.rds"))[[3]] |> niceify() + labs(title = "ARC")
+arc.irt <- readRDS(gpath("plots/arc-EAPsum-1-cv.rds"))[[2]] |> niceify() + labs(title = "ARC")
 gsm8k.irt <- readRDS(gpath("plots/gsm8k-MAP-2-cv.rds"))[[1]] |> niceify() + labs(title = "GSM8K")
-hs.irt <- readRDS(gpath("plots/hellaswag-MAP-1-cv.rds"))[[3]] |> niceify() + labs(title = "HellaSwag")
-mmlu.irt <- readRDS(gpath("plots/mmlu-MAP-2-cv.rds"))[[1]] |> niceify() + labs(title = "MMLU")
+hs.irt <- readRDS(gpath("plots/hellaswag-MAP-1-cv.rds"))[[2]] |> niceify() + labs(title = "HellaSwag")
+mmlu.irt <- readRDS(gpath("plots/mmlu-EAPsum-1-cv.rds"))[[3]] |> niceify() + labs(title = "MMLU")
 tfqa.irt <- readRDS(gpath("plots/truthfulqa-EAPsum-1-cv.rds"))[[1]] |> niceify() + labs(title = "TruthfulQA")
-wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv.rds"))[[3]] |> niceify() + labs(title = "Winogrande")
+wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv.rds"))[[2]] |> niceify() + labs(title = "Winogrande")
 (p.irt <- cowplot::plot_grid(arc.irt, gsm8k.irt, hs.irt, mmlu.irt, tfqa.irt, wg.irt))
 outpath <- gpath("paper/figures/score.full.pdf")
 ggplot2::ggsave(outpath, p.irt, width = 12, height = 8)
 
 # =============================================================================
 # IRT score reconstruction - reduced
-
-plot.score <- function(df.score, bm){
+plot.score <- function(result, bm, color){
    box::use(ggplot2[...])
-   df.plot <- df.score |>
+   df.plot <- result$df.score.val |>
       dplyr::filter(set == "test") |>
       dplyr::mutate(error = p - score)
+   n.items <- nrow(result$items)
    rmse <- sqrt(mean(df.plot$error^2))
-   text <- glue::glue("RMSE = {round(rmse, 3)}")
+   text <- glue::glue("RMSE = {round(rmse, 2)}")
    ggplot(df.plot, aes(x = score, y = p)) +
          geom_abline(intercept = 0,
                      slope = 1,
                      linetype = "dashed") +
-         geom_point(alpha = 0.5) +
+         geom_point(alpha = 0.5, color = color) +
          coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
-         annotate("text", x = 75, y = 25, label = text, size = 3) +
+         annotate("text", x = 75, y = 25, label = text, size = 5) +
          labs(
-            title = glue::glue("{bm}"),
+            title = glue::glue("{bm} (n = {n.items})"),
             x = "Score",
             y = "Predicted",
             ) +
          mytheme() +
          papertheme()
 }
+arc.sub <- readRDS(gpath("analysis/reduced/arc-4PL-EAPsum-0.01.rds"))
+gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-4PL-EAPsum-0.01.rds"))
+hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-4PL-MAP-0.rds"))
+mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-4PL-EAPsum-0.rds"))
+tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.015.rds"))
+wg.sub <- readRDS(gpath("analysis/reduced/winogrande-2PL-MAP-0.rds"))
+
+p.arc <- plot.score(arc.sub, "ARC", cbPalette[1])
+p.gsm8k <- plot.score(gsm8k.sub, "GSM8K", cbPalette[2])
+p.hs <- plot.score(hs.sub, "HellaSwag", cbPalette[3])
+p.mmlu <- plot.score(mmlu.sub, "MMLU", cbPalette[4])
+p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbPalette[5])
+p.wg <- plot.score(wg.sub, "Winogrande", cbPalette[6])
+
+(p.sub <- cowplot::plot_grid(p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg))
+outpath <- gpath("paper/figures/score.sub.pdf")
+ggplot2::ggsave(outpath, p.sub, width = 12, height = 8)
+
+ 
+
 # =============================================================================
 # IRT score reconstruction - meta
 
