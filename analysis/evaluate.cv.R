@@ -2,17 +2,18 @@
 #   1. Score Recovery (Train Set)
 #   2. Score Recovery (Test Set)
 #
-# usage: Rscript evaluate.cv.R {benchmark} {theta-method}
+# usage: Rscript evaluate.cv.R {benchmark} {theta-method} {dimension}
 
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, mytheme, get.theta])
 parse.args(
-   names = c("BM", "METHOD"),
-   defaults = c("arc", "MAP"),
+   names = c("BM", "METH", "DIM"),
+   defaults = c("gsm8k", "MAP", 2),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     METHOD = c("MAP", "EAPsum")
+     METH = c("MAP", "EAPsum"),
+     DIM = c(1, 2)
    )
 )
 here::i_am("analysis/evaluate.cv.R")
@@ -35,33 +36,45 @@ cv.collect <- function(results) {
   dfs
 }
 
+fit.gam <- function(df.train){
+  # get columns that start with F
+  if ("F2" %in% colnames(df.train)){
+    formula <- "score ~ s(F1, bs = 'ad') + s(F2, bs = 'ad')"
+  } else {
+    formula <- "score ~ s(F1, bs = 'ad')"
+  }
+  mgcv::gam(as.formula(formula), data = df.train)
+}
+
 refit <- function(result, data.train, data.test){
   # load data
   model <- result$model
   df <- result$df
-  train <- df |> dplyr::filter(set == "train")
-  test <- df |> dplyr::filter(set == "test")
+  train <- df |> dplyr::filter(set == "train") |> dplyr::select(-F1)
+  test <- df |> dplyr::filter(set == "test") |> dplyr::select(-F1)
   
   # refit theta
-  if (METHOD != "MAP"){
-    train$theta <- get.theta(model, method = METHOD, resp = data.train)[,1]
-    test$theta <- get.theta(model, method = METHOD, resp = data.test)[,1]
-  }
+  if (METH != "MAP"){
+    theta.train <- get.theta(model, method = METH, resp = data.train)
+    train <- cbind(train, theta.train)
+    theta.test <- get.theta(model, method = METH, resp = data.test)
+    test <- cbind(test, theta.test)
+    }
   
   # refit gam
-  mod.score <- mgcv::gam(score ~ s(theta), data = train)
+  mod.score <- fit.gam(train)
   train$p <- predict(mod.score, train)
   test$p <- predict(mod.score, test)
   
   # export
   result$df <- rbind(train, test) |>
-    dplyr::mutate(rank.theta = rank(theta),
+    dplyr::mutate(rank.theta = rank(F1),
                   perc.theta = rank.theta/max(rank.theta))
   result
 }
 
 refit.wrapper <- function(cvs){
-  gprint("Refitting theta using {METHOD}...")
+  gprint("Refitting theta using {METH}...")
   if (BM %in% c("hellaswag", "mmlu")){
     datapath <- gpath("data/{BM}-sub.rds")
   } else {
@@ -83,12 +96,14 @@ refit.wrapper <- function(cvs){
 }
 
 evaluate.fit <- function(df.score) {
-   df.score |> 
+   out <-df.score |> 
       dplyr::group_by(type, set) |>
       dplyr::summarize(
             rmse = sqrt(mean(error^2)),
             mae = mean(abs(error)),
-            r = cor(theta, score, method = "spearman"),
+            r = cor(F1, score, method = "spearman"),
+            r2 = ifelse("F2" %in% colnames(df.score),
+                        cor(F2, score, method = "spearman"), NA),
             .groups = 'drop')
 }
 
@@ -98,12 +113,11 @@ plot.theta.score <- function(df.score, itemtype){
       dplyr::filter(set == "test", type == itemtype)
    sfs <- evaluate.fit(df.plot)
    text <- glue::glue(
-     "RMSE = {round(sfs$rmse, 3)}\nMAE = {round(sfs$mae, 3)}\nr = {round(sfs$r, 3)}")
-   x.label <- 0.8 * diff(range(df.plot$theta)) + min(df.plot$theta)
+     "r = {round(sfs$r, 3)}")
+   x.label <- 0.8 * diff(range(df.plot$F1)) + min(df.plot$F1)
    y.label <- 0.1 * diff(range(df.plot$score)) + min(df.plot$score)
-   ggplot(df.plot, aes(x = theta, y = score)) +
+   ggplot(df.plot, aes(x = F1, y = score)) +
       geom_point(alpha = 0.5) +
-      geom_line(aes(y = p), color = "red") +
       ylim(0,100) +
       annotate("text", x = x.label, y = y.label, label = text, size = 3) +
       labs(
@@ -117,7 +131,12 @@ plot.theta.score <- function(df.score, itemtype){
 plot.perc <- function(df.score, itemtype){
    box::use(ggplot2[...], latex2exp[TeX])
    df.plot <- df.score |>
-     dplyr::filter(set == "test", type == itemtype)
+      dplyr::filter(type == itemtype) |>
+     dplyr::mutate(rank.theta = rank(F1),
+                   perc.theta = rank.theta/max(rank.theta),
+                   rank.score = rank(score),
+                   perc.score = rank.score/max(rank.score)) |>
+     dplyr::filter(set == "test") 
    ggplot(df.plot, aes(x = 100 * perc.theta, y = 100 * perc.score)) +
       geom_point(alpha = 0.5) +
       geom_abline(intercept = 0,
@@ -137,14 +156,17 @@ plot.score <- function(df.score, itemtype){
    box::use(ggplot2[...])
    df.plot <- df.score |>
       dplyr::filter(set == "test", type == itemtype)
+   sfs <- evaluate.fit(df.plot)
+   text <- glue::glue("RMSE = {round(sfs$rmse, 3)}")
    ggplot(df.plot, aes(x = score, y = p)) +
          geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
                      linetype = "dashed") +
          coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+         annotate("text", x = 75, y = 25, label = text, size = 3) +
          labs(
-            title = glue::glue("Score Reconstruction ({itemtype})"),
+            title = glue::glue("{BM} ({itemtype}-{METH}-{DIM})"),
             x = "Score",
             y = "Predicted",
             ) +
@@ -170,13 +192,18 @@ plot.error <- function(df.score, itemtype){
 
 # =============================================================================
 # load cv results
-cvs <- list(
-   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-cv.rds")),
-   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-cv.rds")),
-   "3PLu" = readRDS(gpath("analysis/models/{BM}-3PLu-cv.rds")),
-   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-cv.rds"))
-)
-if (METHOD == "EAPsum"){
+if (DIM == 1){
+  cvs <- list(
+   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv.rds")),
+   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-{DIM}-cv.rds")),
+   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-{DIM}-cv.rds"))
+   )
+} else {
+  cvs <- list(
+    "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv.rds"))
+  )
+}
+if (METH == "EAPsum"){
   cvs <- refit.wrapper(cvs)
 }
 df.score <- cv.collect(cvs)
@@ -184,40 +211,42 @@ df.score <- cv.collect(cvs)
 # evaluate
 sfs <- evaluate.fit(df.score)
 print(sfs)
+
+# main paper plots
+p.2 <- plot.score(df.score, "2PL")
+p.3 <- plot.score(df.score, "3PL")
+p.4 <- plot.score(df.score, "4PL")
+saveRDS(list(p.2, p.3, p.4), gpath("plots/{BM}-{METH}-{DIM}-cv.rds"))
+
+# overview plots
+p.ps <- cowplot::plot_grid(
+   p.2, p.3, p.4,
+  nrow = 1)
+
 p.ts <- cowplot::plot_grid(
   plot.theta.score(df.score, "2PL"),
   plot.theta.score(df.score, "3PL"),
-  plot.theta.score(df.score, "3PLu"),
   plot.theta.score(df.score, "4PL"),
   nrow = 1)
 
 p.pc <- cowplot::plot_grid(
   plot.perc(df.score, "2PL"),
   plot.perc(df.score, "3PL"),
-  plot.perc(df.score, "3PLu"),
   plot.perc(df.score, "4PL"),
-  nrow = 1)
-
-p.ps <- cowplot::plot_grid(
-  plot.score(df.score, "2PL"),
-  plot.score(df.score, "3PL"),
-  plot.score(df.score, "3PLu"),
-  plot.score(df.score, "4PL"),
   nrow = 1)
 
 p.er <- cowplot::plot_grid(
   plot.error(df.score, "2PL"),
   plot.error(df.score, "3PL"),
-  plot.error(df.score, "3PLu"),
   plot.error(df.score, "4PL"),
   nrow = 1, align = "h")
 
 p <- cowplot::plot_grid(
-  p.ts, p.pc, p.ps, p.er, ncol = 1
+  p.ps, p.ts, p.pc,  p.er, ncol = 1
 )
 
 # save
-outpath <- gpath("plots/{BM}-cv-{METHOD}.png")
+outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv.png")
 ggplot2::ggsave(outpath, p, width = 16, height = 16)
 gprint("💾 Saved plot to {outpath}")
 
