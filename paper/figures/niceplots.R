@@ -5,6 +5,7 @@
 # custom utils, args, path, seed
 here::i_am("paper/figures/niceplots.R")
 box::use(../../analysis/utils[mkdir, gprint, gpath, mytheme], ggplot2[...])
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442")
 
 # =============================================================================
 papertheme <- function(){
