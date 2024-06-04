@@ -102,6 +102,28 @@ ggplot2::ggsave(outpath, p.irt, width = 12, height = 8)
 # =============================================================================
 # IRT score reconstruction - reduced
 
+plot.score <- function(df.score, bm){
+   box::use(ggplot2[...])
+   df.plot <- df.score |>
+      dplyr::filter(set == "test") |>
+      dplyr::mutate(error = p - score)
+   rmse <- sqrt(mean(df.plot$error^2))
+   text <- glue::glue("RMSE = {round(rmse, 3)}")
+   ggplot(df.plot, aes(x = score, y = p)) +
+         geom_abline(intercept = 0,
+                     slope = 1,
+                     linetype = "dashed") +
+         geom_point(alpha = 0.5) +
+         coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+         annotate("text", x = 75, y = 25, label = text, size = 3) +
+         labs(
+            title = glue::glue("{bm}"),
+            x = "Score",
+            y = "Predicted",
+            ) +
+         mytheme() +
+         papertheme()
+}
 # =============================================================================
 # IRT score reconstruction - meta
 
