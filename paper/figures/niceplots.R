@@ -33,19 +33,17 @@ mmlu.evo.data <- mmlu.evo$data |> dplyr::select(means, p) |> dplyr::mutate(bm = 
 hs.evo <- readRDS(gpath("plots/hellaswag-reduced.rds"))[[3]]
 hs.evo.data <- hs.evo$data |> dplyr::select(means, p) |> dplyr::mutate(bm = "HellaSwag")
 evo <- rbind(mmlu.evo.data, hs.evo.data)
-
-plot.evo <- function(df.scores){
-  sfs <- df.scores |>
+sfs <- evo |>
     dplyr::mutate(error = p - means) |>
     dplyr::group_by(bm)  |>
     dplyr::summarise(rmse = sqrt(mean(error^2)))
-  rmse.1 <- sfs[sfs$bm=="MMLU",]$rmse
-  rmse.2 <- sfs[sfs$bm!="MMLU",]$rmse
-  idx <- df.scores$bm == "MMLU"
-  df.scores$bm[idx] = glue::glue("MMLU (rmse = {round(rmse.1,2)})")
-  df.scores$bm[!idx] = glue::glue("HellaSwag (rmse = {round(rmse.2,2)})")
+
+rmse.mmlu <- sfs[sfs$bm=="MMLU",]$rmse
+rmse.hs <- sfs[sfs$bm!="MMLU",]$rmse
   
+plot.evo <- function(df.scores){
   box::use(ggplot2[...], latex2exp[TeX])
+  
   ggplot(df.scores, aes(x = means, y = p, color = bm)) +
     geom_point(alpha = 0.5) +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
@@ -55,19 +53,36 @@ plot.evo <- function(df.scores){
       x = "Score",
       y = "Predicted",
       color = "",
-      title = glue::glue("Evolutionary Subsampling")
+      title = glue::glue("Evolutionary")
     ) +
     # positon of the legend in left upper corner
     mytheme() +
     papertheme() +
-    theme(legend.position = "inside",
-          legend.position.inside = c(0.65, 0.25),
-          legend.background = element_rect(fill = NA))
+    theme(legend.position = "None")
 }
-p.evo <- plot.evo(evo) 
+p.samp <- plot.evo(evo) 
 
+# baseline comparison
+hs.rand <- readRDS(gpath("paper/figures/hellaswag-random-rmses.rds"))
+mmlu.rand <-  readRDS(gpath("paper/figures/mmlu-random-rmses.rds"))
+rand <- data.frame(rmse = hs.rand, bm = "HellaSwag")
+rand <- rbind(rand, data.frame(rmse = mmlu.rand, bm = "MMLU"))
+
+# box and whiskers plot
+p.rand <- ggplot(rand, aes(x = bm, y = rmse, fill = bm)) +
+  geom_violin(draw_quantiles = c(0.5)) +
+   labs(x="", y = "RMSE", title = "Random") +
+   scale_fill_manual(values = c("#E69F00", "#56B4E9")) +
+   geom_text(aes(x = 1, y = rmse.hs, label = "*"), color = "black", size = 8) +
+   geom_text(aes(x = 2, y = rmse.mmlu, label = "*"), color = "black", size = 8) +
+   ylim(0.5, 0.9) +
+   mytheme() +
+   papertheme() +
+  theme(legend.position = "none")
+
+(p.evo <- cowplot::plot_grid(p.samp, p.rand))
 outpath <- gpath("paper/figures/evo.pdf")
-ggplot2::ggsave(outpath, p.evo, width = 5, height = 5)
+ggplot2::ggsave(outpath, p.evo, width = 7, height = 5)
 
 # =============================================================================
 # IRT score reconstruction
