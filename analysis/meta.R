@@ -193,7 +193,7 @@ evaluate.score.pred <- function(scores.partial){
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
    plot.score.pred(scores.partial,
-     text = glue::glue("RMSE = {format(round(s$rmse, digits=2), nsmall = 2)}\nr = {format(round(r.p, digits=2), nsmall = 2)}"))
+     text = glue::glue("RMSE = {format(round(s$rmse, digits=3), nsmall = 3)}\nr = {format(round(r.p, digits=3), nsmall = 3)}"))
 }
 
 plot.score.pred <- function(scores.partial, text = ""){
@@ -227,6 +227,13 @@ scores.full.test <- lapply(names(benchmarks), function(n) collect.scores(n, trai
 scores.partial.train <- merge.skill(scores.full.train)
 scores.partial.test <- merge.skill(scores.full.test)
 numitems.orig <- get.numitems(benchmarks, "original")
+numitems.sum <- numitems.orig$arc * (nrow(scores.full.train[[1]]) + nrow(scores.full.test[[1]])) +
+   numitems.orig$gsm8k * (nrow(scores.full.train[[2]]) + nrow(scores.full.test[[2]])) +
+   numitems.orig$hellaswag * (nrow(scores.full.train[[3]]) + nrow(scores.full.test[[3]])) +
+   numitems.orig$mmlu * (nrow(scores.full.train[[4]]) + nrow(scores.full.test[[4]])) +
+   numitems.orig$truthfulqa * (nrow(scores.full.train[[5]]) + nrow(scores.full.test[[5]])) +
+   numitems.orig$winogrande * (nrow(scores.full.train[[6]]) + nrow(scores.full.test[[6]]))
+  
 
 # plot correlation matrix
 cor(scores.partial.train) |>
@@ -266,7 +273,7 @@ gprint("r(Factor1, Score) = {round(r.score,3)}")
 # # =============================================================================
 # collect theta estimates and construct covariance matrix
 benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
-                   gsm8k=list(mod="2PL", est="MAP", suffix = "2"),
+                   gsm8k=list(mod="2PL", est="MAP", suffix = "1"),
                    hellaswag=list(mod="3PL", est="MAP", suffix = "1"),
                    mmlu=list(mod="4PL", est="EAPsum", suffix = "1"),
                    truthfulqa=list(mod="2PL", est="EAPsum", suffix = "1"),
@@ -297,7 +304,7 @@ pred.theta.train <- cbind(thetas.partial.train, fs.theta.train$scores)
 pred.theta.test <- cbind(thetas.partial.test, fs.theta.test$scores)
 pred.theta.train$grand <- pred.score.train$grand
 pred.theta.test$grand <- pred.score.test$grand
-mod.theta <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k.1, bs="ad") + s(gsm8k.2, bs="ad") + s(hellaswag, bs="ad") +
+mod.theta <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k, bs="ad") + s(gsm8k, bs="ad") + s(hellaswag, bs="ad") +
                          s(mmlu, bs="ad") + s(truthfulqa, bs="ad") + s(winogrande, bs="ad"),
                        data = pred.theta.train)
 pred.theta.train$p <- predict(mod.theta)
@@ -313,6 +320,10 @@ p.full
 r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
 gprint("r(Factor1, Score) = {round(r.theta,3)}")
 
+pred.theta.train$set = "train"
+pred.theta.test$set = "test"
+luca <- rbind(pred.theta.train, pred.theta.test)
+write.csv(luca, "thetas.csv")
 # =============================================================================
 benchmarks <- list(arc=list(mod="4PL", est="EAPsum", lam=0.01),
                         gsm8k=list(mod="4PL", est="EAPsum", lam=0.01),

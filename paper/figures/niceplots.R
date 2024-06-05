@@ -61,8 +61,9 @@ plot.score <- function(result, bm, color){
   df.plot <- result$df.score.val |>
     dplyr::filter(set == "test")
   rmse <- get.rmse(result)
+  r <- cor(df.plot$theta, df.plot$score, method = "spearman")
   n.items <- nrow(result$items)
-  text <- glue::glue("RMSE = {round(rmse, 2)}")
+  text <- glue::glue("RMSE = {round(rmse, 3)},\nr = {round(r, 3)}")
   ggplot(df.plot, aes(x = score, y = p)) +
     geom_abline(intercept = 0,
                 slope = 1,
@@ -138,6 +139,14 @@ wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv.rds"))[[2]] |> niceify() +
 outpath <- gpath("paper/figures/score.full.pdf")
 ggplot2::ggsave(outpath, p.irt, width = 12, height = 8)
 
+arc.rmse <- readRDS(gpath("data/arc-sub.rds"))$rmse.test
+gsm8k.rmse <- readRDS(gpath("data/gsm8k-sub.rds"))$rmse.test
+hs.rmse <- readRDS(gpath("data/hellaswag-sub.rds"))$rmse.test
+mmlu.rmse <- readRDS(gpath("data/mmlu-sub.rds"))$rmse.test
+tfqa.rmse <- readRDS(gpath("data/truthfulqa-sub.rds"))$rmse.test
+wg.rmse <- readRDS(gpath("data/winogrande-sub.rds"))$rmse.test
+
+
 # =============================================================================
 # IRT score reconstruction - reduced
 
@@ -176,6 +185,17 @@ rand.list <- lapply(rand.list, function(x) data.frame(rmse = x))
 rand.list <- lapply(names(rand.list), function(x) cbind(rand.list[[x]], bm = x))
 rand <- do.call(rbind, rand.list)
 rand$bm <- factor(rand$bm, levels = c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "Winogrande", "metabench"))
+
+
+# percentage of entries that are smaller than 
+arc.better <- sum(get.rmse(arc.sub) <= rand.list[[1]]$rmse) / nrow(rand.list[[1]])
+gsm8k.better <- sum(get.rmse(gsm8k.sub) <= rand.list[[2]]$rmse) / nrow(rand.list[[2]])
+hs.better <- sum(get.rmse(hs.sub) <= rand.list[[3]]$rmse) / nrow(rand.list[[3]])
+mmlu.better <- sum(get.rmse(mmlu.sub) <= rand.list[[4]]$rmse) / nrow(rand.list[[4]])
+tfqa.better <- sum(get.rmse(tfqa.sub) <= rand.list[[5]]$rmse) / nrow(rand.list[[5]])
+wg.better <- sum(get.rmse(wg.sub) <= rand.list[[6]]$rmse) / nrow(rand.list[[6]])
+
+
 
 ds = 4.5
 v =0.8
