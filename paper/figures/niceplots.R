@@ -163,7 +163,8 @@ rand.list = list(
 rand.list <- lapply(rand.list, function(x) data.frame(rmse = x))
 rand.list <- lapply(names(rand.list), function(x) cbind(rand.list[[x]], bm = x))
 rand <- do.call(rbind, rand.list)
-plot.violin(rand) + ylim(1, 6) +
+
+p.rand <- plot.violin(rand) + ylim(1, 6) +
    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
    geom_text(aes(x = 1, y = get.rmse(arc.sub), label = "*"), color = "black", size = 8) +
    geom_text(aes(x = 2, y = get.rmse(gsm8k.sub), label = "*"), color = "black", size = 8) +
