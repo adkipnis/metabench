@@ -76,7 +76,7 @@ for (BM in benchmarks){
     datapath.model <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
     full <- readRDS(datapath.model)
     model <- full$model
-    
+    nextItem
     rm(full)
     
     item.bank <- generate.item.bank(model, BM, MOD)
@@ -130,7 +130,68 @@ for (BM in benchmarks){
 }
 
 rm(list = ls())
+gprint("✅ Simulation Finished!")
+
+
+# =============================================================================
+# Summarizing
+
+here::i_am("analysis/cat.R")
+gprint("⚙️ Producing summaries...")
+
+benchmarks <- c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande")
+models <- c("2PL", "3PL", "3PLu", "4PL")
+
+test.lengths <- data.frame(benchmark.model = c(), test.length = c())
+for (BM in benchmarks){
+  for (MOD in models){
+    datapath <- gpath("analysis/cat/catsim-{BM}-{MOD}.rds")
+    sim <- readRDS(datapath)
+    test.length <- sim$numberItems
+    df <- data.frame(benchmark.model = rep(paste0(BM, " (", MOD, ")"), length(test.length)), test.length = test.length)
+    test.lengths <- dplyr::bind_rows(test.lengths, df)
+  }
+}
+
+cat.accuracies <- data.frame(benchmark.model = c(), assigned.theta = c(), cat.estimated.theta = c())
+for (BM in benchmarks){
+  for (MOD in models){
+    datapath <- gpath("analysis/cat/catsim-{BM}-{MOD}.rds")
+    sim <- readRDS(datapath)
+    assigned.thetas <- sim$final.values.df$true.theta
+    estimated.thetas <- sim$final.values.df$estimated.theta
+    df <- data.frame(benchmark.model = rep(paste0(BM, " (", MOD, ")"), length(assigned.thetas)), assigned.theta = assigned.thetas, cat.estimated.theta = estimated.thetas)
+    cat.accuracies <- dplyr::bind_rows(cat.accuracies, df)
+  }
+}
+
+cat.accuracies.summary <- cat.accuracies |>
+  dplyr::group_by(benchmark.model) |>
+  dplyr::summarise(RMSE = ModelMetrics::rmse(actual = assigned.theta, predicted = cat.estimated.theta))
+
+test.lengths.summary <- test.lengths |>
+  dplyr::group_by(`benchmark.model`) |>
+  dplyr::summarise(mean.unadj = mean(test.length),
+                   median.unadj = median(test.length))
+
+test.lengths.prop.summary <- test.lengths |>
+  dplyr::group_by(benchmark.model) |>
+  dplyr::mutate(proportion.items = test.length/max(test.length)) |>
+  dplyr::arrange(proportion.items) |>
+  dplyr::transmute(proportion.items = proportion.items,
+                   benchmark.model = benchmark.model,
+                   proportion.llms = dplyr::row_number(),
+                   proportion.llms = proportion.llms/dplyr::n()) |>
+  dplyr::group_by(benchmark.model) |>
+  dplyr::summarise(mean.adj = mean(proportion.items),
+                   median.adj = median(proportion.items))
+
+overall.summary <- cat.accuracies.summary |>
+  dplyr::inner_join(test.lengths.summary) |>
+  dplyr::inner_join(test.lengths.prop.summary)
+
+outpath <- gpath("analysis/cat/overall-summaries.rds")
+saveRDS(overall.summary, outpath)
+
+rm(list = ls())
 gprint("✅ Finished!")
-
-
-
