@@ -70,10 +70,11 @@ rand <- data.frame(rmse = hs.rand, bm = "HellaSwag")
 rand <- rbind(rand, data.frame(rmse = mmlu.rand, bm = "MMLU"))
 
 plot.violin <- function(df){
-  ggplot(df, aes(x = bm, y = rmse, fill = bm)) +
+  ggplot(df, aes(y = bm, x = rmse, fill = bm)) +
     geom_violin(draw_quantiles = c(0.5)) +
-    labs(x="", y = "RMSE", title = "Random") +
+    labs(y="", x = "RMSE", title = "Random") +
     scale_fill_manual(values = cbPalette) +
+    scale_y_discrete(limits=rev) +
     mytheme() +
     papertheme() +
     theme(legend.position = "none")
@@ -148,33 +149,41 @@ p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbPalette[5])
 p.wg <- plot.score(wg.sub, "Winogrande", cbPalette[6])
 
 (p.sub <- cowplot::plot_grid(p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg))
-outpath <- gpath("paper/figures/score.sub.pdf")
-ggplot2::ggsave(outpath, p.sub, width = 12, height = 8)
 
 # violin plots for RMSE
 rand.list = list(
-   ARC = readRDS(gpath("data/arc-sub-150.rds"))$rmses.val,
-   GSM8K = readRDS(gpath("data/gsm8k-sub-189.rds"))$rmses.val,
-   HellaSwag = readRDS(gpath("data/hellaswag-sub-200.rds"))$rmses.val,
-   MMLU = readRDS(gpath("data/mmlu-sub-141.rds"))$rmses.val,
-   TruthfulQA = readRDS(gpath("data/truthfulqa-sub-65.rds"))$rmses.val,
-   Winogrande = readRDS(gpath("data/winogrande-sub-100.rds"))$rmses.val
+   ARC = readRDS(gpath("data/arc-sub-150.rds"))$rmses.test,
+   GSM8K = readRDS(gpath("data/gsm8k-sub-189.rds"))$rmses.test,
+   HellaSwag = readRDS(gpath("data/hellaswag-sub-200.rds"))$rmses.test,
+   MMLU = readRDS(gpath("data/mmlu-sub-141.rds"))$rmses.test,
+   TruthfulQA = readRDS(gpath("data/truthfulqa-sub-65.rds"))$rmses.test,
+   Winogrande = readRDS(gpath("data/winogrande-sub-100.rds"))$rmses.test
 )
 rand.list <- lapply(rand.list, function(x) data.frame(rmse = x))
 rand.list <- lapply(names(rand.list), function(x) cbind(rand.list[[x]], bm = x))
 rand <- do.call(rbind, rand.list)
 
-p.rand <- plot.violin(rand) + ylim(1, 6) +
+p.rand <- plot.violin(rand) + xlim(1, 6) +
    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-   geom_text(aes(x = 1, y = get.rmse(arc.sub), label = "*"), color = "black", size = 8) +
-   geom_text(aes(x = 2, y = get.rmse(gsm8k.sub), label = "*"), color = "black", size = 8) +
-   geom_text(aes(x = 3, y = get.rmse(hs.sub), label = "*"), color = "black", size = 8) +
-   geom_text(aes(x = 4, y = get.rmse(mmlu.sub), label = "*"), color = "black", size = 8) +
-   geom_text(aes(x = 5, y = get.rmse(tfqa.sub), label = "*"), color = "black", size = 8) +
-   geom_text(aes(x = 6, y = get.rmse(wg.sub), label = "*"), color = "black", size = 8)
-# make labels of x-axis vertical
- 
+   # geom_text(aes(y = 1, x = get.rmse(arc.sub), label = "*"), color = "black", size = 8) +
+   # geom_text(aes(y = 2, x = get.rmse(gsm8k.sub), label = "*"), color = "black", size = 8) +
+   # geom_text(aes(y = 3, x = get.rmse(hs.sub), label = "*"), color = "black", size = 8) +
+   # geom_text(aes(y = 4, x = get.rmse(mmlu.sub), label = "*"), color = "black", size = 8) +
+   # geom_text(aes(y = 5, x = get.rmse(tfqa.sub), label = "*"), color = "black", size = 8) +
+   # geom_text(aes(y = 6, x = get.rmse(wg.sub), label = "*"), color = "black", size = 8)
+   # adjust geom text by height
+   geom_text(aes(y = 6, x = get.rmse(arc.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
+   geom_text(aes(y = 5, x = get.rmse(gsm8k.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
+   geom_text(aes(y = 4, x = get.rmse(hs.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
+   geom_text(aes(y = 3, x = get.rmse(mmlu.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
+   geom_text(aes(y = 2, x = get.rmse(tfqa.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
+   geom_text(aes(y = 1, x = get.rmse(wg.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
+   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
 
+(p.sub.combined <- cowplot::plot_grid(p.sub, p.rand, nrow = 1, label_x = 0.01,
+                                      labels = "AUTO", rel_widths = c(3.5, 1)))
+outpath <- gpath("paper/figures/score.sub.pdf")
+ggplot2::ggsave(outpath, p.sub.combined, width = 14, height = 8)
 
 # =============================================================================
 # IRT score reconstruction - meta
