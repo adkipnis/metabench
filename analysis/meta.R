@@ -9,6 +9,22 @@ Saveplots <- T
 here::i_am("analysis/meta.R")
 set.seed(1)
 
+papertheme <- function(){
+  box::use(ggplot2[...])
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18),
+        axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        plot.title = element_text(size = 20, hjust = 0.5),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 18),
+        plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+        panel.border = element_rect(size = 2))
+  
+}
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442")
+
+
 # =============================================================================
 # helper functions
 
@@ -153,20 +169,20 @@ evaluate.score.pred <- function(scores.partial){
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
    plot.score.pred(scores.partial,
-     text = glue::glue("RMSE = {round(s$rmse, 3)}\nr = {round(r.p, 3)}"))
+     text = glue::glue("RMSE = {format(round(s$rmse, digits=2), nsmall = 2)}\nr = {format(round(r.p, digits=2), nsmall = 2)}"))
 }
 
 plot.score.pred <- function(scores.partial, text = ""){
    box::use(ggplot2[...])
-   x.label <- 0.9 * diff(range(scores.partial$grand)) + min(scores.partial$grand)
-   y.label <- 0.1 * diff(range(scores.partial$p)) + min(scores.partial$p)
-   ggplot(scores.partial, aes(x=grand, y=p)) +
-      geom_point(alpha=0.3) +
+   ggplot(scores.partial, aes(x=grand, y=p, color=color)) +
       geom_abline(intercept=0, slope=1, linetype="dashed") +
+      geom_point(alpha=0.5) +
       xlim(0,100) + ylim(0, 100) +
-      annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+      annotate("text", x = 75, y = 25, label = text, size = 5) +
       labs(x="Score", y="Predicted") +
-      mytheme()
+      mytheme()+
+     papertheme()+
+     theme(legend.position = "None")
 }
 
 
@@ -262,9 +278,10 @@ pred.theta.train$p <- predict(mod.theta)
 pred.theta.test$p <- predict(mod.theta, pred.theta.test)
 
 # evaluate grand sum prediction from factor scores
+pred.theta.test$color <- runif(nrow(pred.sub.test))
 p.full <- evaluate.score.pred(pred.theta.test) +
-  ggplot2::ggtitle(glue::glue(
-    "Score prediction from latent abilities (IRT, n = {numitems.theta$sum})"))
+  ggplot2::scale_colour_gradientn(colours = cbPalette) +
+  ggplot2::ggtitle(glue::glue("metabench  (n = {numitems.theta$sum})"))
 p.full
 
 r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
@@ -305,9 +322,12 @@ mod.sub <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
 # mod.theta <- fit.score(pred.theta.train, fa.theta)
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
+
+# plot
+pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
-  ggplot2::ggtitle(glue::glue(
-    "Score prediction from latent abilities (IRT, n = {numitems.sub$sum})"))
+  ggplot2::scale_colour_gradientn(colours = cbPalette) +
+  ggplot2::ggtitle(glue::glue("metabench-r  (n = {numitems.sub$sum})"))
 p.sub
 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
@@ -317,6 +337,6 @@ gprint("r(Factor1, Score) = {round(r.sub,3)}")
 
 # =============================================================================
 # summary
-p <- cowplot::plot_grid(p.base, p.full, p.sub,
+p <- cowplot::plot_grid(p.full, p.sub,
                         ncol = 1, labels = "AUTO", align = "v")
-ggplot2::ggsave(gpath("plots/meta-prediction.png"), p, width = 8, height = 12)
+pggplot2::ggsave(gpath("plots/meta-prediction.png"), p, width = 8, height = 12)
