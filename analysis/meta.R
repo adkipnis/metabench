@@ -33,6 +33,30 @@ rowmerge <- function(df1, df2){
      tibble::column_to_rownames("Row.names")
 }
 
+collect.data <- function(benchmark, train=T){
+  datapath <- gpath("data/{benchmark}-preproc-split.rds")
+  all <- readRDS(datapath)
+  if (train) {
+    data <- all$data.train
+  } else {
+    data <- all$data.test
+  }
+  data
+}
+
+subsample.data.score <- function(benchmark, train=T){
+   n <- numitems.sub[[benchmark]]
+   if (train){
+     data <- data.full.train[[benchmark]]
+   } else {
+     data <- data.full.test[[benchmark]]
+   }
+   indices <- sample(1:ncol(data), n, replace = F)
+   score.s <- data.frame(rowMeans(data[, indices]) * 100)
+   colnames(score.s) <- benchmark
+   score.s
+}
+
 collect.theta <- function(benchmark, train=T){
   model.type <- benchmarks[[benchmark]]$mod
   theta.type <- benchmarks[[benchmark]]$est
@@ -229,6 +253,8 @@ pred.score.train$p <- predict(mod.score, pred.score.train)
 pred.score.test$p <- predict(mod.score, pred.score.test)
 
 n = numitems.orig$gsm8k + numitems.orig$hellaswag
+
+pred.score.test$color = 1
 p.base <- evaluate.score.pred(pred.score.test) +
   ggplot2::ggtitle(glue::glue(
     "(GSM8K + HellaSwag, n = {n})"))
@@ -271,17 +297,17 @@ pred.theta.train <- cbind(thetas.partial.train, fs.theta.train$scores)
 pred.theta.test <- cbind(thetas.partial.test, fs.theta.test$scores)
 pred.theta.train$grand <- pred.score.train$grand
 pred.theta.test$grand <- pred.score.test$grand
-mod.theta <- mgcv::gam(grand ~ s(arc) + s(gsm8k.1) + s(gsm8k.2) + s(hellaswag) +
-                         s(mmlu) + s(truthfulqa) + s(winogrande),
+mod.theta <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k.1, bs="ad") + s(gsm8k.2, bs="ad") + s(hellaswag, bs="ad") +
+                         s(mmlu, bs="ad") + s(truthfulqa, bs="ad") + s(winogrande, bs="ad"),
                        data = pred.theta.train)
 pred.theta.train$p <- predict(mod.theta)
 pred.theta.test$p <- predict(mod.theta, pred.theta.test)
 
 # evaluate grand sum prediction from factor scores
-pred.theta.test$color <- runif(nrow(pred.sub.test))
+pred.theta.test$color <- runif(nrow(pred.theta.test))
 p.full <- evaluate.score.pred(pred.theta.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette) +
-  ggplot2::ggtitle(glue::glue("metabench  (n = {numitems.theta$sum})"))
+  ggplot2::ggtitle(glue::glue("metabench (n = {numitems.theta$sum})"))
 p.full
 
 r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
@@ -316,8 +342,8 @@ pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
 pred.sub.train$grand <- pred.score.train$grand
 pred.sub.test$grand <- pred.score.test$grand
-mod.sub <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
-                         s(mmlu) + s(truthfulqa) + s(winogrande),
+mod.sub <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k, bs="ad") + s(hellaswag, bs="ad") +
+                         s(mmlu, bs="ad") + s(truthfulqa, bs="ad") + s(winogrande, bs="ad"),
                        data = pred.sub.train)
 # mod.theta <- fit.score(pred.theta.train, fa.theta)
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
@@ -327,7 +353,7 @@ pred.sub.test$p <- predict(mod.sub, pred.sub.test)
 pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette) +
-  ggplot2::ggtitle(glue::glue("metabench-r  (n = {numitems.sub$sum})"))
+  ggplot2::ggtitle(glue::glue("metabench-r (n = {numitems.sub$sum})"))
 p.sub
 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
@@ -338,5 +364,32 @@ gprint("r(Factor1, Score) = {round(r.sub,3)}")
 # =============================================================================
 # summary
 p <- cowplot::plot_grid(p.full, p.sub,
-                        ncol = 1, labels = "AUTO", align = "v")
-pggplot2::ggsave(gpath("plots/meta-prediction.png"), p, width = 8, height = 12)
+                        ncol = 1, labels = c("B", "C"), align = "v")
+ggplot2::ggsave(gpath("paper/figures/meta-prediction.pdf"), p, width = 4, height = 7)
+saveRDS(list(p.full, p.sub), gpath("plots/meta-prediction.rds"))
+# =============================================================================
+# comparison to random subsampling
+data.full.train <- lapply(names(benchmarks), collect.data)
+data.full.test <- lapply(names(benchmarks), function(n) collect.data(n, train = F))
+names(data.full.train) <- names(data.full.test) <- names(benchmarks)
+
+rmses <- matrix(NA, nrow = 1000)
+for (i in 1:1000){
+  scores.train.r <- lapply(names(benchmarks), subsample.data.score)
+  scores.test.r <- lapply(names(benchmarks), function(n) subsample.data.score(n, train = F))
+  scores.train.r <- merge.skill(scores.train.r)
+  scores.test.r <- merge.skill(scores.test.r)
+  
+  # check relation to grand sum
+  scores.train.r$grand.r <- rowMeans(scores.train.r)
+  scores.test.r$grand.r <- rowMeans(scores.test.r)
+  scores.train.r$grand <- pred.score.train$grand
+  scores.test.r$grand <- pred.score.test$grand
+  mod.score.r <- mgcv::gam(grand ~ s(grand.r, bs="ad"),
+                           data = scores.train.r)
+  scores.train.r$p <- predict(mod.score.r, scores.train.r)
+  scores.test.r$p <- predict(mod.score.r, scores.test.r)
+  rmses[i] <- scores.test.r |> dplyr::mutate(error = grand - p) |>
+    dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+}
+saveRDS(list(rmses.test = rmses), gpath("data/meta-random-rmses.rds"))
