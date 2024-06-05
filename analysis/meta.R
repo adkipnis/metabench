@@ -9,43 +9,71 @@ Saveplots <- T
 here::i_am("analysis/meta.R")
 set.seed(1)
 
+papertheme <- function(){
+  box::use(ggplot2[...])
+  theme(axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18),
+        axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        plot.title = element_text(size = 20, hjust = 0.5),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 18),
+        plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+        panel.border = element_rect(size = 2))
+  
+}
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442")
+
+
 # =============================================================================
 # helper functions
-add.mmlu <- function(){
-   # list all mmlu_*.rds files in data folder
-   mmlu.files <- list.files(gpath("data"), pattern="mmlu_.*_preproc.rds", full.names=T)
-   mmlu.benchmarks <- gsub("_preproc.rds", "", basename(mmlu.files))
-   # write list where each key is from mmlu.benchmarks and the value is "3PL"
-   out <- list()
-   for (benchmark in mmlu.benchmarks){
-      out[[benchmark]] <- "3PL"
-   }
-   out
-}
 
 rowmerge <- function(df1, df2){
    merge(df1, df2, by="row.names") |>
      tibble::column_to_rownames("Row.names")
 }
 
+collect.data <- function(benchmark, train=T){
+  datapath <- gpath("data/{benchmark}-preproc-split.rds")
+  all <- readRDS(datapath)
+  if (train) {
+    data <- all$data.train
+  } else {
+    data <- all$data.test
+  }
+  data
+}
+
+subsample.data.score <- function(benchmark, train=T){
+   n <- numitems.sub[[benchmark]]
+   if (train){
+     data <- data.full.train[[benchmark]]
+   } else {
+     data <- data.full.test[[benchmark]]
+   }
+   indices <- sample(1:ncol(data), n, replace = F)
+   score.s <- data.frame(rowMeans(data[, indices]) * 100)
+   colnames(score.s) <- benchmark
+   score.s
+}
+
 collect.theta <- function(benchmark, train=T){
   model.type <- benchmarks[[benchmark]]$mod
   theta.type <- benchmarks[[benchmark]]$est
-  fitpath <- gpath("analysis/models/{benchmark}-{model.type}-cv.rds")
+  suffix <- benchmarks[[benchmark]]$suffix
+  fitpath <- gpath("analysis/models/{benchmark}-{model.type}-{suffix}-cv.rds")
   results <- readRDS(fitpath)
   model <- results$model
   if (train) {
-    theta <- results$df |> dplyr::filter(set == "train") |> dplyr::select(theta)
+    theta <- results$df |> dplyr::filter(set == "train") |>
+      dplyr::select(matches("^F")) 
   } else {
-    theta <- results$df |> dplyr::filter(set == "test") |> dplyr::select(theta)
+    theta <- results$df |> dplyr::filter(set == "test") |>
+      dplyr::select(matches("^F")) 
   }
   
   if (theta.type != "MAP") {
-    if (benchmark %in% c("hellaswag", "mmlu")) {
-      datapath <- gpath("data/{benchmark}-sub.rds")
-    } else {
-      datapath <- gpath("data/{benchmark}-preproc-split.rds")
-    }
+    datapath <- gpath("data/{benchmark}-sub.rds")
     all <- readRDS(datapath)
     if (train) {
       data <- all$data.train
@@ -56,7 +84,11 @@ collect.theta <- function(benchmark, train=T){
     theta.new <- as.data.frame(theta.new)
     rownames(theta.new) <- rownames(theta)
   }
-  colnames(theta) <- benchmark
+  if (ncol(theta) == 2){
+     colnames(theta) <- paste0(benchmark, c(".1", ".2"))
+  } else {
+     colnames(theta) <- benchmark
+  }
   as.data.frame(theta)
 }
 
@@ -87,11 +119,7 @@ merge.skill <- function(skill.full){
 }
 
 collect.scores <- function(benchmark, train = T){
-   if (benchmark %in% c("hellaswag", "mmlu")){
-      datapath <- gpath("data/{benchmark}-sub.rds")
-   } else {
-      datapath <- gpath("data/{benchmark}-preproc-split.rds")
-   }
+   datapath <- gpath("data/{benchmark}-sub.rds")
    all <- readRDS(datapath)
    if (train){
      scores <- all$scores.train
@@ -113,11 +141,7 @@ collect.numitems <- function(benchmark, type) {
       all <- readRDS(datapath)
       numitems <- all$max.points.orig
    } else if (type == "preprocessed"){
-     if (benchmark %in% c("hellaswag", "mmlu")){
-       datapath <- gpath("data/{benchmark}-sub.rds")
-     } else {
-       datapath <- gpath("data/{benchmark}-preproc-split.rds")
-     }
+     datapath <- gpath("data/{benchmark}-sub.rds")
      all <- readRDS(datapath)
      numitems <- ncol(all$data.train)
    } else if (type == "reduced") {
@@ -169,20 +193,20 @@ evaluate.score.pred <- function(scores.partial){
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
    plot.score.pred(scores.partial,
-     text = glue::glue("RMSE = {round(s$rmse, 3)}\nMAE = {round(s$mae, 3)}\nr = {round(r.p, 3)}"))
+     text = glue::glue("RMSE = {format(round(s$rmse, digits=2), nsmall = 2)}\nr = {format(round(r.p, digits=2), nsmall = 2)}"))
 }
 
 plot.score.pred <- function(scores.partial, text = ""){
    box::use(ggplot2[...])
-   x.label <- 0.9 * diff(range(scores.partial$grand)) + min(scores.partial$grand)
-   y.label <- 0.1 * diff(range(scores.partial$p)) + min(scores.partial$p)
-   ggplot(scores.partial, aes(x=grand, y=p)) +
-      geom_point(alpha=0.3) +
+   ggplot(scores.partial, aes(x=grand, y=p, color=color)) +
       geom_abline(intercept=0, slope=1, linetype="dashed") +
+      geom_point(alpha=0.5) +
       xlim(0,100) + ylim(0, 100) +
-      annotate("text", x = x.label, y = y.label, label = text, size = 3) +
+      annotate("text", x = 75, y = 25, label = text, size = 5) +
       labs(x="Score", y="Predicted") +
-      mytheme()
+      mytheme()+
+     papertheme()+
+     theme(legend.position = "None")
 }
 
 
@@ -191,12 +215,12 @@ plot.score.pred <- function(scores.partial, text = ""){
 # get ceiling for score prediction
 
 # load scores
-benchmarks <- list(arc=list(mod="4PL", est="MAP", lam=0.005),
-                   gsm8k=list(mod="2PL", est="MAP", lam=0.005),
-                   hellaswag=list(mod="3PL", est="MAP", lam=0.005),
-                   mmlu=list(mod="3PL", est="MAP", lam=0.005),
-                   truthfulqa=list(mod="2PL", est="EAPsum", lam=0.005),
-                   winogrande=list(mod="4PL", est="MAP", lam=0.005))
+benchmarks <- list(arc=list(mod="3PL", est="EAPsum"),
+                   gsm8k=list(mod="2PL", est="MAP"),
+                   hellaswag=list(mod="3PL", est="MAP"),
+                   mmlu=list(mod="4PL", est="EAPsum"),
+                   truthfulqa=list(mod="2PL", est="EAPsum"),
+                   winogrande=list(mod="3PL", est="EAPsum"))
 
 scores.full.train <- lapply(names(benchmarks), collect.scores)
 scores.full.test <- lapply(names(benchmarks), function(n) collect.scores(n, train = F))
@@ -229,9 +253,11 @@ pred.score.train$p <- predict(mod.score, pred.score.train)
 pred.score.test$p <- predict(mod.score, pred.score.test)
 
 n = numitems.orig$gsm8k + numitems.orig$hellaswag
+
+pred.score.test$color = 1
 p.base <- evaluate.score.pred(pred.score.test) +
   ggplot2::ggtitle(glue::glue(
-    "Score prediction from fewer benchmarks (GSM8K + HellaSwag, n = {n})"))
+    "(GSM8K + HellaSwag, n = {n})"))
 p.base
 
 r.score <- cor(pred.score.test$MR1, pred.score.test$grand)
@@ -239,6 +265,13 @@ gprint("r(Factor1, Score) = {round(r.score,3)}")
 
 # # =============================================================================
 # collect theta estimates and construct covariance matrix
+benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
+                   gsm8k=list(mod="2PL", est="MAP", suffix = "2"),
+                   hellaswag=list(mod="3PL", est="MAP", suffix = "1"),
+                   mmlu=list(mod="4PL", est="EAPsum", suffix = "1"),
+                   truthfulqa=list(mod="2PL", est="EAPsum", suffix = "1"),
+                   winogrande=list(mod="3PL", est="EAPsum", suffix = "1"))
+
 thetas.full.train <- lapply(names(benchmarks), collect.theta)
 thetas.full.test <- lapply(names(benchmarks), function(n) collect.theta(n, train = F))
 thetas.partial.train <- Reduce(rowmerge, thetas.full.train)
@@ -264,22 +297,29 @@ pred.theta.train <- cbind(thetas.partial.train, fs.theta.train$scores)
 pred.theta.test <- cbind(thetas.partial.test, fs.theta.test$scores)
 pred.theta.train$grand <- pred.score.train$grand
 pred.theta.test$grand <- pred.score.test$grand
-mod.theta <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
-                         s(mmlu) + s(truthfulqa) + s(winogrande),
+mod.theta <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k.1, bs="ad") + s(gsm8k.2, bs="ad") + s(hellaswag, bs="ad") +
+                         s(mmlu, bs="ad") + s(truthfulqa, bs="ad") + s(winogrande, bs="ad"),
                        data = pred.theta.train)
 pred.theta.train$p <- predict(mod.theta)
 pred.theta.test$p <- predict(mod.theta, pred.theta.test)
 
 # evaluate grand sum prediction from factor scores
+pred.theta.test$color <- runif(nrow(pred.theta.test))
 p.full <- evaluate.score.pred(pred.theta.test) +
-  ggplot2::ggtitle(glue::glue(
-    "Score prediction from latent abilities (IRT, n = {numitems.theta$sum})"))
+  ggplot2::scale_colour_gradientn(colours = cbPalette) +
+  ggplot2::ggtitle(glue::glue("metabench (n = {numitems.theta$sum})"))
 p.full
 
 r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
 gprint("r(Factor1, Score) = {round(r.theta,3)}")
 
 # =============================================================================
+benchmarks <- list(arc=list(mod="4PL", est="EAPsum", lam=0.01),
+                        gsm8k=list(mod="4PL", est="EAPsum", lam=0.01),
+                        hellaswag=list(mod="4PL", est="MAP", lam=0),
+                        mmlu=list(mod="4PL", est="EAPsum", lam=0),
+                        truthfulqa=list(mod="2PL", est="EAPsum", lam=0.015),
+                        winogrande=list(mod="2PL", est="MAP", lam=0))
 # collect theta estimates from reduced benchmarks
 thetas.sub.full.train <- lapply(names(benchmarks), collect.theta.reduced)
 thetas.sub.full.test <- lapply(names(benchmarks), function(n) collect.theta.reduced(n, train=F))
@@ -295,22 +335,25 @@ cor(thetas.sub.partial.train)|>
 # exploratory factor analysis
 fa.sub <- do.fa(thetas.sub.partial.train, 1)
 fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
-fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.theta)
+fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.sub)
 
 # check relation to grand sum
 pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
 pred.sub.train$grand <- pred.score.train$grand
 pred.sub.test$grand <- pred.score.test$grand
-mod.sub <- mgcv::gam(grand ~ s(arc) + s(gsm8k) + s(hellaswag) +
-                         s(mmlu) + s(truthfulqa) + s(winogrande),
+mod.sub <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k, bs="ad") + s(hellaswag, bs="ad") +
+                         s(mmlu, bs="ad") + s(truthfulqa, bs="ad") + s(winogrande, bs="ad"),
                        data = pred.sub.train)
 # mod.theta <- fit.score(pred.theta.train, fa.theta)
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
+
+# plot
+pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
-  ggplot2::ggtitle(glue::glue(
-    "Score prediction from latent abilities (IRT, n = {numitems.sub$sum})"))
+  ggplot2::scale_colour_gradientn(colours = cbPalette) +
+  ggplot2::ggtitle(glue::glue("metabench-r (n = {numitems.sub$sum})"))
 p.sub
 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
@@ -320,6 +363,33 @@ gprint("r(Factor1, Score) = {round(r.sub,3)}")
 
 # =============================================================================
 # summary
-p <- cowplot::plot_grid(p.base, p.full, p.sub,
-                        ncol = 1, labels = "AUTO", align = "v")
-ggplot2::ggsave(gpath("plots/meta-prediction.png"), p, width = 8, height = 12)
+p <- cowplot::plot_grid(p.full, p.sub,
+                        ncol = 1, labels = c("B", "C"), align = "v")
+ggplot2::ggsave(gpath("paper/figures/meta-prediction.pdf"), p, width = 4, height = 7)
+saveRDS(list(p.full, p.sub), gpath("plots/meta-prediction.rds"))
+# =============================================================================
+# comparison to random subsampling
+data.full.train <- lapply(names(benchmarks), collect.data)
+data.full.test <- lapply(names(benchmarks), function(n) collect.data(n, train = F))
+names(data.full.train) <- names(data.full.test) <- names(benchmarks)
+
+rmses <- matrix(NA, nrow = 1000)
+for (i in 1:1000){
+  scores.train.r <- lapply(names(benchmarks), subsample.data.score)
+  scores.test.r <- lapply(names(benchmarks), function(n) subsample.data.score(n, train = F))
+  scores.train.r <- merge.skill(scores.train.r)
+  scores.test.r <- merge.skill(scores.test.r)
+  
+  # check relation to grand sum
+  scores.train.r$grand.r <- rowMeans(scores.train.r)
+  scores.test.r$grand.r <- rowMeans(scores.test.r)
+  scores.train.r$grand <- pred.score.train$grand
+  scores.test.r$grand <- pred.score.test$grand
+  mod.score.r <- mgcv::gam(grand ~ s(grand.r, bs="ad"),
+                           data = scores.train.r)
+  scores.train.r$p <- predict(mod.score.r, scores.train.r)
+  scores.test.r$p <- predict(mod.score.r, scores.test.r)
+  rmses[i] <- scores.test.r |> dplyr::mutate(error = grand - p) |>
+    dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+}
+saveRDS(list(rmses.test = rmses), gpath("data/meta-random-rmses.rds"))
