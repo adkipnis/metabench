@@ -71,7 +71,7 @@ plot.score <- function(result, bm, color){
     coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
     annotate("text", x = 75, y = 25, label = text, size = 5) +
     labs(
-      title = glue::glue("{bm} (n = {n.items})"),
+      title = glue::glue("{bm} (d = {n.items})"),
       x = "Score",
       y = "Predicted",
     ) +
@@ -155,7 +155,7 @@ p.hs <- plot.score(hs.sub, "HellaSwag", cbPalette[3]) + labs(x = "", y = "")
 p.mmlu <- plot.score(mmlu.sub, "MMLU", cbPalette[4])
 p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbPalette[5]) + labs(y = "")
 p.wg <- plot.score(wg.sub, "Winogrande", cbPalette[6]) + labs(y = "")
-p.mb <- readRDS(gpath("plots/meta-prediction.rds"))[[2]] + papertheme() + labs(y ="")
+p.mb <- readRDS(gpath("plots/meta-prediction.rds"))[[2]] + papertheme() + labs(y ="", title = "metabench (d = 845)")
 rmse.mb <- as.character(p.mb[["layers"]][[3]][["computed_geom_params"]][["label"]]) 
 rmse.mb <- gsub("\n.*", "", rmse.mb)
 rmse.mb <- as.numeric(gsub("[^0-9.]", "", rmse.mb))
@@ -177,22 +177,26 @@ rand.list <- lapply(names(rand.list), function(x) cbind(rand.list[[x]], bm = x))
 rand <- do.call(rbind, rand.list)
 rand$bm <- factor(rand$bm, levels = c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "Winogrande", "metabench"))
 
+ds = 4.5
+v =0.8
+color = "#444444"
+la = "*"
 p.rand <- plot.violin(rand) + scale_x_continuous(limits=c(0.5,6), breaks = seq(1,6)) +
    # theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-   geom_text(aes(y = 7, x = get.rmse(arc.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
-   geom_text(aes(y = 6, x = get.rmse(gsm8k.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
-   geom_text(aes(y = 5, x = get.rmse(hs.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
-   geom_text(aes(y = 4, x = get.rmse(mmlu.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
-   geom_text(aes(y = 3, x = get.rmse(tfqa.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
-   geom_text(aes(y = 2, x = get.rmse(wg.sub), label = "*"), color = "black", size = 8, vjust = 0.8) +
-   geom_text(aes(y = 1, x = rmse.mb, label = "*"), color = "black", size = 8, vjust = 0.8) +
+   geom_text(aes(y = 7, x = get.rmse(arc.sub), label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 6, x = get.rmse(gsm8k.sub), label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 5, x = get.rmse(hs.sub), label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 4, x = get.rmse(mmlu.sub), label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 3, x = get.rmse(tfqa.sub), label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 2, x = get.rmse(wg.sub), label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 1, x = rmse.mb, label = la), color = color, size = ds, vjust = v) +
    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
-
+p.rand
 (p.right <- cowplot::plot_grid(p.rand, p.mb, ncol = 1, align= "v", labels = c("B", "C"), label_x = 0.05))
 (p.sub.combined <- cowplot::plot_grid(p.sub, p.right, nrow = 1, label_x = 0,
                                       labels = c("A", NA), rel_widths = c(3, 1)))
 outpath <- gpath("paper/figures/score.sub.pdf")
-ggplot2::ggsave(outpath, p.sub.combined, width = 15, height = 8)
+ggplot2::ggsave(outpath, p.sub.combined, width = 15, height = 8, dpi = 500)
 
 # =============================================================================
 # IRT score reconstruction - meta
