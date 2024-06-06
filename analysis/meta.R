@@ -320,10 +320,6 @@ p.full
 r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
 gprint("r(Factor1, Score) = {round(r.theta,3)}")
 
-pred.theta.train$set = "train"
-pred.theta.test$set = "test"
-luca <- rbind(pred.theta.train, pred.theta.test)
-write.csv(luca, "thetas.csv")
 # =============================================================================
 benchmarks <- list(arc=list(mod="4PL", est="EAPsum", lam=0.01),
                         gsm8k=list(mod="4PL", est="EAPsum", lam=0.01),
@@ -345,12 +341,16 @@ cor(thetas.sub.partial.train)|>
 
 # exploratory factor analysis
 fa.sub <- do.fa(thetas.sub.partial.train, 1)
+do.fa(thetas.sub.partial.train, 1)
 fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
 fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.sub)
 
-# check relation to grand sum
+# check relation to grand sum or other benchmarks
 pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
+
+# pred.sub.train$grand <- pred.score.train$mmlu
+# pred.sub.test$grand <- pred.score.test$mmlu
 pred.sub.train$grand <- pred.score.train$grand
 pred.sub.test$grand <- pred.score.test$grand
 mod.sub <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k, bs="ad") + s(hellaswag, bs="ad") +
@@ -364,13 +364,14 @@ pred.sub.test$p <- predict(mod.sub, pred.sub.test)
 pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette) +
-  ggplot2::ggtitle(glue::glue("metabench-r (n = {numitems.sub$sum})"))
+  ggplot2::ggtitle(glue::glue("metabench (d = {numitems.sub$sum})"))
 p.sub
 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
 gprint("r(Factor1, Score) = {round(r.sub,3)}")
 
 # cor(cbind(pred.sub.test$MR1, pred.theta.test$MR1, pred.score.test$MR1))
+# saveRDS(p.sub, gpath("plots/meta-prediction.rds"))
 
 # =============================================================================
 # summary

@@ -158,13 +158,20 @@ tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.015.rds"))
 wg.sub <- readRDS(gpath("analysis/reduced/winogrande-2PL-MAP-0.rds"))
 
 
-p.arc <- plot.score(arc.sub, "ARC", cbPalette[1]) + labs(x = "")
-p.gsm8k <- plot.score(gsm8k.sub, "GSM8K", cbPalette[2]) + labs(x = "", y = "")
-p.hs <- plot.score(hs.sub, "HellaSwag", cbPalette[3]) + labs(x = "", y = "")
-p.mmlu <- plot.score(mmlu.sub, "MMLU", cbPalette[4])
-p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbPalette[5]) + labs(y = "")
-p.wg <- plot.score(wg.sub, "Winogrande", cbPalette[6]) + labs(y = "")
-p.mb <- readRDS(gpath("plots/meta-prediction.rds"))[[2]] + papertheme() + labs(y ="", title = "metabench (d = 845)")
+# p.arc <- plot.score(arc.sub, "ARC", cbPalette[1]) + labs(x = "")
+# p.gsm8k <- plot.score(gsm8k.sub, "GSM8K", cbPalette[2]) + labs(x = "", y = "")
+# p.hs <- plot.score(hs.sub, "HellaSwag", cbPalette[3]) + labs(x = "", y = "")
+# p.mmlu <- plot.score(mmlu.sub, "MMLU", cbPalette[4])
+# p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbPalette[5]) + labs(y = "")
+# p.wg <- plot.score(wg.sub, "Winogrande", cbPalette[6]) + labs(y = "")
+
+p.arc <- readRDS(gpath("plots/meta-arc.rds")) + scale_color_gradientn(colors = cbPalette[[1]]) + labs(x = "", title = "ARC") + papertheme()
+p.gsm8k <- readRDS(gpath("plots/meta-gsm8k.rds")) + scale_color_gradientn(colors = cbPalette[[2]]) + labs(x = "", y = "", title = "GSM8K")+ papertheme()
+p.hs <- readRDS(gpath("plots/meta-hellaswag.rds")) + scale_color_gradientn(colors = cbPalette[[3]]) + labs(x = "", y = "", title = "HellaSwag")+ papertheme()
+p.mmlu <- readRDS(gpath("plots/meta-mmlu.rds")) + scale_color_gradientn(colors = cbPalette[[4]]) + labs(title = "MMLU")+ papertheme()
+p.tfqa <- readRDS(gpath("plots/meta-truthfulqa.rds")) + scale_color_gradientn(colors = cbPalette[[5]]) + labs(y = "", title = "TruthfulQA")+ papertheme()
+p.wg <- readRDS(gpath("plots/meta-winogrande.rds")) + scale_color_gradientn(colors = cbPalette[[6]]) + labs(y = "", title = "Winogrande")+ papertheme()
+p.mb <- readRDS(gpath("plots/meta-prediction.rds")) + papertheme() + labs(y ="", title = "metabench (d = 845)")
 rmse.mb <- as.character(p.mb[["layers"]][[3]][["computed_geom_params"]][["label"]]) 
 rmse.mb <- gsub("\n.*", "", rmse.mb)
 rmse.mb <- as.numeric(gsub("[^0-9.]", "", rmse.mb))
@@ -195,7 +202,18 @@ mmlu.better <- sum(get.rmse(mmlu.sub) <= rand.list[[4]]$rmse) / nrow(rand.list[[
 tfqa.better <- sum(get.rmse(tfqa.sub) <= rand.list[[5]]$rmse) / nrow(rand.list[[5]])
 wg.better <- sum(get.rmse(wg.sub) <= rand.list[[6]]$rmse) / nrow(rand.list[[6]])
 
+# percentage of entries that are smaller than 
+arc.better <- sum(1.421 <= rand.list[[1]]$rmse) / nrow(rand.list[[1]])
+gsm8k.better <- sum(1.786 <= rand.list[[2]]$rmse) / nrow(rand.list[[2]])
+hs.better <- sum(1.122 <= rand.list[[3]]$rmse) / nrow(rand.list[[3]])
+mmlu.better <- sum(1.590 <= rand.list[[4]]$rmse) / nrow(rand.list[[4]])
+tfqa.better <- sum(1.791 <= rand.list[[5]]$rmse) / nrow(rand.list[[5]])
+wg.better <- sum(1.559 <= rand.list[[6]]$rmse) / nrow(rand.list[[6]])
 
+# best random rmse
+best.rand <- t(sapply(rand.list, function(df) min(df$rmse)))
+colnames(best.rand) <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "Winogrande", "metabench")
+best.rand
 
 ds = 4.5
 v =0.8
@@ -203,12 +221,12 @@ color = "#444444"
 la = "*"
 p.rand <- plot.violin(rand) + scale_x_continuous(limits=c(0.5,6), breaks = seq(1,6)) +
    # theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-   geom_text(aes(y = 7, x = get.rmse(arc.sub), label = la), color = color, size = ds, vjust = v) +
-   geom_text(aes(y = 6, x = get.rmse(gsm8k.sub), label = la), color = color, size = ds, vjust = v) +
-   geom_text(aes(y = 5, x = get.rmse(hs.sub), label = la), color = color, size = ds, vjust = v) +
-   geom_text(aes(y = 4, x = get.rmse(mmlu.sub), label = la), color = color, size = ds, vjust = v) +
-   geom_text(aes(y = 3, x = get.rmse(tfqa.sub), label = la), color = color, size = ds, vjust = v) +
-   geom_text(aes(y = 2, x = get.rmse(wg.sub), label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 7, x = 1.421, label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 6, x = 1.786, label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 5, x = 1.112, label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 4, x = 1.590, label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 3, x = 1.791, label = la), color = color, size = ds, vjust = v) +
+   geom_text(aes(y = 2, x = 1.559, label = la), color = color, size = ds, vjust = v) +
    geom_text(aes(y = 1, x = rmse.mb, label = la), color = color, size = ds, vjust = v) +
    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
 p.rand
@@ -280,3 +298,5 @@ loadings <- c(1, 1, 2.5, 0.5)
 (p.icc <- cowplot::plot_grid(p.icc1, p.icc2, ncol = 1, rel_heights = c(2, 1.7), align = "v"))
 outpath <- gpath("paper/figures/icc.pdf")
 ggplot2::ggsave(outpath, p.icc, width = 5.5, height = 8)
+
+
