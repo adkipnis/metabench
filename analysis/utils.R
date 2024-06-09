@@ -136,17 +136,21 @@ evaluate.fa.fit <- function(res.fa){
 }
 
 #" @export
-mytheme <- function() {
+mytheme <- function(){
    box::use(ggplot2[...])
    theme_bw() +
-      theme(
-        axis.title.x = element_text(
-            size = 10, margin = margin(t = 10)),
-         axis.title.y = element_text(
-            size = 10, margin = margin(r = 10)),
-         axis.text.x = element_text(size = 10),
-         axis.text.y = element_text(size = 10),
-      )
+   theme(axis.title.x = element_text(size = 18, margin = margin(t = 10)),
+        axis.title.y = element_text(size = 18, margin = margin(r = 10)),
+        axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        plot.title = element_text(size = 20, hjust = 0.5),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 18),
+        plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
+        panel.border = element_rect(size = 2))
 }
 
-
+#" @export
+cbPalette <- function(){
+ c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#FFFFFF")
+}
