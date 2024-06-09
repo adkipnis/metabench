@@ -13,14 +13,19 @@ parse.args(
    )
 )
 N <- as.numeric(N)
-
+set.seed(0)
 # =============================================================================
 # helper functions
 
 predict.scores <- function(df.scores, mod.score){
-   df.scores$p <- predict(mod.score, df.scores)
+   preds <- predict(mod.score, df.scores, se.fit = T)
+   df.scores$p <- preds$fit
+   df.scores$p.low <- preds$fit + qnorm(0.005) * preds$se.fit
+   df.scores$p.high <- preds$fit + qnorm(0.995) * preds$se.fit
    df.scores |>
-      dplyr::mutate(error = means - p)
+      dplyr::mutate(error = means - p,
+                    ci.size = p.high - p.low,
+                    in.ci = (means >= p.low) & (means <= p.high))
 }
 
 subsample <- function(data, k){
@@ -45,7 +50,7 @@ subsample.wrapper <- function(seed){
    # train GAM on train data and predict on test data
    mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
    df.val <- predict.scores(df.val, mod.score)
-   
+
    # test on test data
    data.test.r <- data.test[,indices.rand]
    scores.test.r <- rowMeans(data.test.r)
@@ -57,9 +62,22 @@ subsample.wrapper <- function(seed){
       indices.rand = indices.rand,
       mod.score = mod.score,
       rmse.val = sqrt(mean(df.val$error^2)),
+      rmse.val.ci.size = mean(df.val$ci.size),
+      rmse.val.ci.coverage = mean(df.val$in.ci),
       rmse.test = sqrt(mean(df.test$error^2)),
+      rmse.test.ci.size = mean(df.test$ci.size),
+      remse.test.ci.coverage = mean(df.test$in.ci),
       seed = seed
    )
+}
+
+bind.results <- function(results){
+  results.tmp <- results
+  results.tmp <- lapply(results.tmp, function(x) x[-c(1, 2)])
+  # bind all rows to numeric data frame
+  out <- as.data.frame(do.call(rbind, results.tmp))
+  out <- as.data.frame(lapply(out, as.numeric))
+  out 
 }
 
 # =============================================================================
@@ -96,25 +114,26 @@ doParallel::registerDoParallel(mu.cluster)
 # =============================================================================
 # run subsampling
 gprint("🔁 Running 1000 subsampling iterations with {N} items...")
-results <- foreach(i = 1:1000) %dopar% {
+res.full <- foreach(i = 1:100) %dopar% {
    subsample.wrapper(i)
 }
 parallel::stopCluster(mu.cluster)
-rmses.val <- sapply(results, function(x) x$rmse.val)
-rmses.test <- sapply(results, function(x) x$rmse.test)
+res <- bind.results(res.full)
 
 # plot distribution of RMSEs
-plot(density(rmses.test))
-median(rmses.test)
-min(rmses.test)
+plot(density(res$rmse.test))
+median(res$rmse.test)
+min(res$rmse.test)
 
 # get best result
-min.index <- which.min(rmses.val)
-gprint("📊 Best Validation RMSE: {round(rmses.val[min.index], 3)}")
-rmse.test <- rmses.test[min.index]
-gprint("📊 Test RMSE: {round(rmse.test, 3)}")
-indices.rand <- results[[min.index]]$indices.rand
-mod.score <- results[[min.index]]$mod.score
+min.index <- which.min(res$rmse.val)
+gprint("📊 Best Validation RMSE: {round(res$rmse.val[min.index], 3)}")
+rmse.test <- res$rmse.test[min.index]
+rmse.test.ci <- res$rmse.test.ci.size[min.index]
+rmse.test.coverage <- res$remse.test.ci.coverage[min.index]
+gprint("📊 Test RMSE: {round(rmse.test, 3)}, mean 99%-CI size: {round(rmse.test.ci,3)}, CI-coverage: {round(100 * rmse.test.coverage, 1)}% ")
+indices.rand <- res.full[[min.index]]$indices.rand
+mod.score <- res.full[[min.index]]$mod.score
 
 # collect results
 data.train.s <- data[,indices.rand]
@@ -129,8 +148,8 @@ out <- list(
    max.points.orig = full$max.points.orig,
    items = items.s,
    mod.score = mod.score,
-   rmses.val = rmses.val,
-   rmses.test = rmses.test,
+   rmses.val = res$rmse.val,
+   rmses.test = res$rmse.test,
    rmse.test = rmse.test
 )
 
