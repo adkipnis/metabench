@@ -8,6 +8,6 @@ analysis/archive
 analysis/itemfits
 analysis/reduced*
 analysis/cat/*
-data
+data*
 plots*
 *_old
