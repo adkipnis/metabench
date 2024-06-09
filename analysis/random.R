@@ -108,13 +108,13 @@ if (N > ncol(data.train)){
 # setup parallel processing
 box::use(doParallel[...], foreach[...])
 n.cores <- parallel::detectCores() - 1
-mu.cluster <- parallel::makeCluster(n.cores, type = "FORK")
+mu.cluster <- parallel::makeCluster(n.cores, type = "PSOCK")
 doParallel::registerDoParallel(mu.cluster)
 
 # =============================================================================
 # run subsampling
-gprint("🔁 Running 1000 subsampling iterations with {N} items...")
-res.full <- foreach(i = 1:1000) %dopar% {
+gprint("🔁 Running 10000 subsampling iterations with {N} items...")
+res.full <- foreach(i = 1:10000) %dopar% {
    subsample.wrapper(i)
 }
 parallel::stopCluster(mu.cluster)
