@@ -9,7 +9,7 @@ parse.args(
    defaults = c("arc", 350),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     N = seq(0, 400, 1)
+     N = seq(0, 500, 1)
    )
 )
 N <- as.numeric(N)
@@ -114,24 +114,23 @@ doParallel::registerDoParallel(mu.cluster)
 # =============================================================================
 # run subsampling
 gprint("🔁 Running 1000 subsampling iterations with {N} items...")
-res.full <- foreach(i = 1:100) %dopar% {
+res.full <- foreach(i = 1:1000) %dopar% {
    subsample.wrapper(i)
 }
 parallel::stopCluster(mu.cluster)
 res <- bind.results(res.full)
 
 # plot distribution of RMSEs
-plot(density(res$rmse.test))
-median(res$rmse.test)
-min(res$rmse.test)
+# plot(density(res$rmse.test))
 
 # get best result
 min.index <- which.min(res$rmse.val)
-gprint("📊 Best Validation RMSE: {round(res$rmse.val[min.index], 3)}")
+gprint("📊 Best Validation RMSE: {round(res$rmse.val[min.index], 3)}, Median: {round(median(res$rmse.val), 3)}")
+gprint("📊 Best Test RMSE: {round(min(res$rmse.test), 3)}, Median: {round(median(res$rmse.test), 3)}")
 rmse.test <- res$rmse.test[min.index]
 rmse.test.ci <- res$rmse.test.ci.size[min.index]
 rmse.test.coverage <- res$remse.test.ci.coverage[min.index]
-gprint("📊 Test RMSE: {round(rmse.test, 3)}, mean 99%-CI size: {round(rmse.test.ci,3)}, CI-coverage: {round(100 * rmse.test.coverage, 1)}% ")
+gprint("📊 Test RMSE of chosen set: {round(rmse.test, 3)}, mean 99%-CI size: {round(rmse.test.ci,3)}, CI-coverage: {round(100 * rmse.test.coverage, 1)}% ")
 indices.rand <- res.full[[min.index]]$indices.rand
 mod.score <- res.full[[min.index]]$mod.score
 
