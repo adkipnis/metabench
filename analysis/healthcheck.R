@@ -1,14 +1,6 @@
-# script to install all dependencies and check data health
+# script to check data health
+# usage: Rscript healthcheck.R
 
-# =============================================================================
-# install dependencies
-packages <- c("tibble", "MASS", # base
-              "readr", "here", "glue", "box", "latex2exp", # utilities
-              "doParallel", "foreach", "parallel", # parallel processing
-              "tidyr", "dplyr", "ggplot2", "cowplot", "corrplot", # tidyverse/plots
-              "mirt", "caret", "rBayesianOptimization", "psych", "catR") # data analysis
-install.packages(setdiff(packages, rownames(installed.packages())), 
-                 repos='http://cran.us.r-project.org')
 # =============================================================================
 # custom utils, args, path
 box::use(./utils[parse.args, gpath, gprint, df2data])
