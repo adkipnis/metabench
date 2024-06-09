@@ -4,6 +4,7 @@
 # install dependencies
 packages <- c("tibble", "MASS", # base
               "readr", "here", "glue", "box", "latex2exp", # utilities
+              "doParallel", "foreach", "parallel", # parallel processing
               "tidyr", "dplyr", "ggplot2", "cowplot", "corrplot", # tidyverse/plots
               "mirt", "caret", "rBayesianOptimization", "psych", "catR") # data analysis
 install.packages(setdiff(packages, rownames(installed.packages())), 

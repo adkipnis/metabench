@@ -6,15 +6,13 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N"), 
-   defaults = c("gsm8k", 230),
+   defaults = c("arc", 350),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 400, 1)
    )
 )
 N <- as.numeric(N)
-SEED <- 1
-set.seed(SEED)
 
 # =============================================================================
 # helper functions
@@ -25,19 +23,47 @@ predict.scores <- function(df.scores, mod.score){
       dplyr::mutate(error = means - p)
 }
 
-evaluate.prediction <- function(df.scores){
-  df.scores |> 
-    dplyr::summarise(RMSE = sqrt(mean(error^2)) )
-}
-
 subsample <- function(data, k){
   n <- ncol(data)
   sort(sample(1:n, k, replace = F))
 }
 
+subsample.wrapper <- function(seed){
+   set.seed(seed)
+   
+   # subsample same items from train and test data
+   indices.rand <- subsample(data.train, N)
+   data.train.r <- data.train[,indices.rand]
+   data.val.r <- data.val[,indices.rand]
+
+   # recalculate mean scores and prepare score dfs
+   scores.train.r <- rowMeans(data.train.r)
+   df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
+   scores.val.r <- rowMeans(data.val.r)
+   df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
+
+   # train GAM on train data and predict on test data
+   mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
+   df.val <- predict.scores(df.val, mod.score)
+   
+   # test on test data
+   data.test.r <- data.test[,indices.rand]
+   scores.test.r <- rowMeans(data.test.r)
+   df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
+   df.test <- predict.scores(df.test, mod.score)
+
+   # export results
+   list(
+      indices.rand = indices.rand,
+      mod.score = mod.score,
+      rmse.val = sqrt(mean(df.val$error^2)),
+      rmse.test = sqrt(mean(df.test$error^2)),
+      seed = seed
+   )
+}
 
 # =============================================================================
-# prepare hellaswag
+# prepare data
 gprint("🚰 Loading {BM}...")
 full <- readRDS(gpath("data/{BM}-preproc-split.rds"))
 data <- full$data.train
@@ -60,46 +86,35 @@ if (N > ncol(data.train)){
   quit()
 }
 
-rmses.val <- matrix(NA, 1000)
-rmses.test <- matrix(NA, 1000)
-index.list <- list()
-mod.list <- list()
+# =============================================================================
+# setup parallel processing
+box::use(doParallel[...], foreach[...])
+n.cores <- parallel::detectCores() - 1
+mu.cluster <- parallel::makeCluster(n.cores, type = "FORK")
+doParallel::registerDoParallel(mu.cluster)
 
-gprint("🔁 Running 1000 subsampling iterations with {N} items with seed {SEED}...")
-for (i in 1:1000){
-# subsample same items from train and test data
-   indices.rand <- subsample(data.train, N)
-   data.train.r <- data.train[,indices.rand]
-   data.val.r <- data.val[,indices.rand]
-
-# recalculate mean scores and prepare score dfs
-   scores.train.r <- rowMeans(data.train.r)
-   df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
-   scores.val.r <- rowMeans(data.val.r)
-   df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
-
-# train GAM on train data and predict on test data
-   mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
-   df.val <- predict.scores(df.val, mod.score)
-   
-# test on test data
-   data.test.r <- data.test[,indices.rand]
-   scores.test.r <- rowMeans(data.test.r)
-   df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
-   df.test <- predict.scores(df.test, mod.score)
-
-   # save results
-   rmses.val[i,] <- sqrt(mean(df.val$error^2))
-   rmses.test[i,] <- sqrt(mean(df.test$error^2))
-   index.list[[i]] <- indices.rand
-   mod.list[[i]] <- mod.score
+# =============================================================================
+# run subsampling
+gprint("🔁 Running 1000 subsampling iterations with {N} items...")
+results <- foreach(i = 1:1000) %dopar% {
+   subsample.wrapper(i)
 }
+parallel::stopCluster(mu.cluster)
+rmses.val <- sapply(results, function(x) x$rmse.val)
+rmses.test <- sapply(results, function(x) x$rmse.test)
 
-# get smallest RMSE
+# plot distribution of RMSEs
+plot(density(rmses.test))
+median(rmses.test)
+min(rmses.test)
+
+# get best result
 min.index <- which.min(rmses.val)
 gprint("📊 Best Validation RMSE: {round(rmses.val[min.index], 3)}")
-rmse.test <- rmses.test[min.index,]
+rmse.test <- rmses.test[min.index]
 gprint("📊 Test RMSE: {round(rmse.test, 3)}")
+indices.rand <- results[[min.index]]$indices.rand
+mod.score <- results[[min.index]]$mod.score
 
 # collect results
 data.train.s <- data[,indices.rand]
@@ -118,9 +133,6 @@ out <- list(
    rmses.test = rmses.test,
    rmse.test = rmse.test
 )
-plot(density(rmses.test))
-median(rmses.test)
-min(rmses.test)
 
 # save data
 outpath <- gpath("data/{BM}-sub-{N}.rds")
