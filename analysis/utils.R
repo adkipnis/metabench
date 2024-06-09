@@ -147,7 +147,10 @@ mytheme <- function(){
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 18),
         plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
-        panel.border = element_rect(size = 2))
+        panel.border = element_rect(size = 2),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 16, face = "bold"),
+        strip.placement = "outside")
 }
 
 #" @export
