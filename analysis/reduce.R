@@ -272,7 +272,7 @@ optimize.hyperparameters <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-datapath <- gpath("data/{BM}-sub.rds")
+datapath <- gpath("data/{BM}-sub-350.rds")
 full <- readRDS(datapath)
 items <- full$items
 items$item <- as.character(items$item)
