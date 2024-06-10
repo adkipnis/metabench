@@ -14,6 +14,7 @@
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
+box::use(./reduce.utils[...])
 parse.args(
    names = c("BM", "MOD", "METH", "N_QUANT", "LAMBDA"),
    defaults = c("winogrande", "2PL", "MAP", 100, 0.0),
@@ -79,82 +80,6 @@ score.stats <- function(df.score){
     )
 }
 
-plot.theta.score <- function(df.score, suffix=""){
-   box::use(ggplot2[...], latex2exp[TeX])
-   df.plot <- df.score |> dplyr::filter(set == "test")
-   sfs <- score.stats(df.plot)
-   text <- glue::glue(
-     "RMSE = {round(sfs$rmse, 3)}\nMAE = {round(sfs$mae, 3)}\nr = {round(sfs$r, 3)}")
-   x.label <- 0.8 * diff(range(df.plot$theta)) + min(df.plot$theta)
-   y.label <- 0.1 * diff(range(df.plot$score)) + min(df.plot$score)
-   ggplot(df.plot, aes(x = theta, y = score)) +
-      geom_point(alpha = 0.5) +
-      geom_line(aes(y = p), color = "red") +
-      ylim(0,100) +
-      annotate("text", x = x.label, y = y.label, label = text, size = 3) +
-      labs(
-         title = glue::glue("Theta vs. Score {suffix}"),
-         x = TeX("$\\theta$"),
-         y = "Score",
-      ) +
-      mytheme()
-}
-
-plot.perc <- function(df.score, suffix=""){
-   box::use(ggplot2[...], latex2exp[TeX])
-   df.plot <- df.score |>
-     dplyr::filter(set == "test")
-   ggplot(df.plot, aes(x = 100 * perc.theta, y = 100 * perc.score)) +
-      geom_point(alpha = 0.5) +
-      geom_abline(intercept = 0,
-                  slope = 1,
-                  linetype = "dashed") +
-      coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
-         labs(
-            title = glue::glue("Percentile Comparison {suffix}"),
-            x = TeX("$\\% \\theta$"),
-            y = "% Score",
-            ) +
-         mytheme()
-}
-
-plot.score <- function(df.score, suffix = ""){
-   box::use(ggplot2[...])
-   df.plot <- df.score |>
-      dplyr::filter(set == "test")
-   ggplot(df.plot, aes(x = score, y = p)) +
-         geom_point(alpha = 0.5) +
-         geom_abline(intercept = 0,
-                     slope = 1,
-                     linetype = "dashed") +
-         coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
-         labs(
-            title = glue::glue("Score Reconstruction {suffix}"),
-            x = "Score",
-            y = "Predicted",
-            ) +
-         mytheme()
-}
-
-plot.score.error <- function(df.score, suffix = "", ylim = NULL){
-   box::use(ggplot2[...], latex2exp[TeX])
-   df.plot <- df.score |>
-      dplyr::filter(set == "test")
-   ymax <- ifelse(is.null(ylim), max(abs(df.plot$error)), ylim)
-   ggplot(df.plot, aes(x = theta, y = error)) +
-         geom_point(alpha = 0.5) +
-         geom_abline(intercept = 0,
-                     slope = 0,
-                     linetype = "dashed") +
-         coord_cartesian(ylim = c(-ymax, ymax)) +
-         labs(
-            title = glue::glue("Theta vs. Error {suffix}"),
-            x = "Theta",
-            y = "Error",
-            ) +
-         mytheme()
-}
-
 compare.score.stats <- function(sfs, sfs.sub){
    out <- list()
    for (key in names(sfs)) {
@@ -166,7 +91,6 @@ compare.score.stats <- function(sfs, sfs.sub){
           Δ (MAE + 1.96 SD): {round(out$ub, 3)}
           Δ Total SSE: {round(out$sse, 3)}")
 }
-
 
 # -----------------------------------------------------------------------------
 # Item info
@@ -186,81 +110,11 @@ collect.item.info <- function(model, theta, itemnames){
    info.items
 }
 
-plot.theta <- function(theta, suffix=""){
-   box::use(ggplot2[...], latex2exp[TeX])
-   as.data.frame(theta) |> 
-      ggplot(aes(x = F1)) +
-         geom_density(color="black") +
-         labs(
-            title = glue::glue("Theta Distribution ({suffix})"),
-            x = TeX("$\\theta$"),
-            y = TeX("$f(\\theta)$"),
-            ) +
-         mytheme()
-}
-
-plot.testinfo <- function(model, theta, ylim=NULL, title="Testinfo") {
-   box::use(ggplot2[...], latex2exp[TeX])
-   info.test <- mirt::testinfo(model, Theta = theta)
-   ymax <- ifelse(is.null(ylim), max(info.test), ylim)
-   data.frame(theta=theta, info=info.test) |>
-      ggplot(aes(x = F1, y = info)) +
-      # increase linewidth
-         geom_line(linewidth = 1) +
-         ylim(0, ymax) +
-         labs(
-            title = title,
-            x = TeX("$\\theta$"),
-            y = TeX("$I(\\theta)$"),
-            ) +
-         mytheme()
-}
-
-plot.expected.testinfo <- function(info.items, index.set, ylim=NULL, title="Expected Testinfo"){
-   box::use(ggplot2[...], latex2exp[TeX])
-   quantiles <- info.items$theta
-   info.sub <- info.items[, as.character(index.set$item)]
-   info.sub$cum <- rowSums(info.sub)
-   info.sub$theta <- quantiles
-   ymax <- ifelse(is.null(ylim), max(info.sub$cum), ylim)
-   info.sub |>
-      ggplot(aes(x = theta, y = cum)) +
-         geom_line() +
-         ylim(0, ymax) +
-         labs(
-            title = title,
-            x = TeX("$\\theta$"),
-            y = TeX("$I(\\theta)$"),
-            ) +
-         mytheme()
-}
-
 get.info.quantiles <- function(info.items, theta.grid, steps=40){
   theta.quantiles <- quantile(theta.grid, probs = 0:steps/steps, type=4)
   data.frame(quantile=theta.quantiles) |>
     tibble::rownames_to_column(var="percent") |>
     dplyr::mutate(index = findInterval(theta.quantiles, info.items$theta))
-}
-
-plot.quantiles <- function(info.quantiles, theta) {
-   box::use(ggplot2[...], latex2exp[TeX])
-   n <- nrow(info.quantiles)
-   info.ecdf <- info.quantiles
-   info.ecdf$F <- ecdf(theta)(info.ecdf$quantile)
-   info.ecdf$type <- "ecdf"
-   info.quantiles$F <- 1:n/n
-   info.quantiles$type <- "quantile"
-   rbind(info.ecdf, info.quantiles) |> 
-      ggplot(aes(x=quantile, y=F, color=type)) +
-         geom_line() +
-         scale_color_manual(values=c("darkorange", "black")) +
-         labs(
-            x = TeX("$\\theta$"),
-            y = TeX("$F(\\theta)$"),
-            title = "Quantiles vs. ECDF",
-            fill = "source"
-         ) +
-         mytheme()
 }
 
 # -----------------------------------------------------------------------------
@@ -278,22 +132,6 @@ summarize.info <- function(info.items){
       )
 }
 
-# select.items <- function(items, info.quantiles, n_max=6L, threshold=3.0){
-#    index.set <- list()
-#    # iterate over quantiles (get the current and next quantile)
-#    for (i in 1:nrow(info.quantiles)) {
-#       q0 <- info.quantiles$quantile[i]
-#       q1 <- info.quantiles$quantile[i+1]
-#       selection <- items |>
-#          dplyr::filter(info.argmax >= q0 & info.argmax < q1 & info.max >= threshold) |>
-#          dplyr::arrange(dplyr::desc(info.max)) |>
-#          utils::head(n_max)
-#       index.set[[i]] <- selection
-#       items <- items[!items$item %in% selection$item,] # remove from search space
-#    }
-#    do.call(rbind, index.set) |>
-#       dplyr::arrange(info.argmax)
-# }
 select.items <- function(items, info.items, info.quantiles, threshold=0.1){
   info.tmp <- info.items
   rownames(info.tmp) <- NULL
@@ -338,42 +176,6 @@ compare.parameters <- function(model, model.sub){
    df.comparison
 }
 
-plot.recovery.d <- function(df.comparison){
-   box::use(ggplot2[...], latex2exp[TeX])
-   df.comparison |> 
-      ggplot(aes(x = d.x, y = d.y)) +
-         geom_point(alpha = 0.5) +
-         labs(
-            title = "Difficulty Recovery",
-            x = "Full Difficulty",
-            y = "Subtest Difficulty",
-            ) +
-         mytheme()
-}
-
-plot.recovery.a1 <- function(df.comparison){
-   box::use(ggplot2[...], latex2exp[TeX])
-   df.comparison |> 
-      ggplot(aes(x = a1.x, y = a1.y)) +
-         geom_point(alpha = 0.5) +
-         labs(
-            title = "Loading Recovery",
-            x = "Full Loading",
-            y = "Subtest Loading",
-            ) +
-         mytheme()
-}
-
-plot.estimates <- function(model.sub, theta.sub){
-   param.compare <- compare.parameters(model, model.sub)
-   cowplot::plot_grid(
-      plot.theta(theta.train, "Original"),
-      plot.recovery.d(param.compare),
-      plot.theta(theta.sub, "Reduced"),
-      plot.recovery.a1(param.compare),
-      align = "v"
-   )
-}
 # -----------------------------------------------------------------------------
 # hyperparameter search
 
