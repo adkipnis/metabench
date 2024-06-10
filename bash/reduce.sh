@@ -31,11 +31,7 @@ fi
 
 source $HOME/.bashrc
 benchmarks=("arc" "gsm8k" "hellaswag" "mmlu" "truthfulqa" "winogrande")
-models=("3PL" "2PL" "3PL" "3PL" "2PL" "4PL")
-methods=("MAP" "EAPsum" "MAP" "EAPsum" "EAPsum" "EAPsum")
 task_index=$((SLURM_ARRAY_TASK_ID-1))
 benchmark=${benchmarks[$task_index]}
-model=${models[$task_index]}
-method=${methods[$task_index]}
-echo "Running task $SLURM_ARRAY_TASK_ID: $benchmark $model $method"
-LC_ALL=C.UTF-8 Rscript ../analysis/reduce.R $benchmark $model $method $lambda
+echo "Running task $SLURM_ARRAY_TASK_ID: $benchmark"
+LC_ALL=C.UTF-8 Rscript ../analysis/reduce.R $benchmark $model 250 0.001

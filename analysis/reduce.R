@@ -21,13 +21,14 @@ parse.args(
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N_QUANT = seq(100, 500, 1),
-    LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
+     LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
    )
 )
 Saveplots <- T
 here::i_am("analysis/reduce.R")
 mkdir("analysis/reduced")
 set.seed(1)
+
 # for Bayesian Optimization
 N_ITER <- 15
 N_QUANT <- as.numeric(N_QUANT)
