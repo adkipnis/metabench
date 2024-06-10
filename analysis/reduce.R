@@ -1,6 +1,6 @@
 # Get the information per item and construct a reduced test set:
 #   1. load data and fits
-#   2. remove itemfit outliers
+#   2. (remove itemfit outliers)
 #   3. evaluate full score prediction (upper bound)
 #   4. get item information
 #   5. run hyperparameter search for subtest creation:
@@ -9,19 +9,17 @@
 #      - evaluate subtest parameter recovery
 #      - evaluate subtest score prediction
 #   6. final run with best hyperparameters
-# usage: Rscript reduce.R {benchmark} {model} {method} {lambda}
+# usage: Rscript reduce.R {benchmark} {number of theta partitions} {lambda}
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[parse.args, mkdir, gprint, gpath, mytheme, run.mirt, get.theta])
+box::use(./utils[parse.args, mkdir, gprint, gpath, run.mirt, get.theta])
 box::use(./reduce.utils[...])
 parse.args(
-   names = c("BM", "MOD", "METH", "N_QUANT", "LAMBDA"),
-   defaults = c("winogrande", "2PL", "MAP", 100, 0.0),
+   names = c("BM", "N_QUANT", "LAMBDA"),
+   defaults = c("winogrande", 100, 0.0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     MOD = c("2PL", "3PL", "4PL"),
-     METH = c("MAP", "EAPsum"), # for theta estimation
      N_QUANT = seq(100, 500, 1),
     LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
    )
@@ -32,9 +30,11 @@ mkdir("analysis/reduced")
 set.seed(1)
 # for Bayesian Optimization
 N_ITER <- 15
-N_QUANT <- as.numeric(N_QUANT) 
+N_QUANT <- as.numeric(N_QUANT)
 LAMBDA <- as.numeric(LAMBDA)
-default.hyperparams <- list(threshold=0.0, gridtype=1L) # 1 theta, 2 range
+model.types <- c("2PL", "3PL", "4PL")
+theta.types <- c("MAP", "EAPsum")
+default.hyperparams <- list(model.type=1L, theta.type=1L, grid.type=1L, threshold=0.0)
 
 # =============================================================================
 # helper functions
