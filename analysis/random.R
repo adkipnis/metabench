@@ -6,7 +6,7 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N"), 
-   defaults = c("arc", 350),
+   defaults = c("truthfulqa", 100),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 500, 1)
@@ -14,6 +14,7 @@ parse.args(
 )
 N <- as.numeric(N)
 set.seed(0)
+
 # =============================================================================
 # helper functions
 
@@ -48,7 +49,14 @@ subsample.wrapper <- function(seed){
    df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
 
    # train GAM on train data and predict on test data
-   mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
+   # increase number of iterations for gam
+   mod.score <- tryCatch({
+     mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
+   }, error = function(e) {
+     gprint("{e}
+            Using thin plate splines instead of adaptive method.")
+     mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
+   })
    df.val <- predict.scores(df.val, mod.score)
 
    # test on test data
