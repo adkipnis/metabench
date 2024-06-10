@@ -9,19 +9,19 @@
 #      - evaluate subtest parameter recovery
 #      - evaluate subtest score prediction
 #   6. final run with best hyperparameters
-# usage: Rscript reduce.R {benchmark} {number of theta partitions} {lambda}
+# usage: Rscript reduce.R {benchmark} {lambda} {number of theta partitions}
 
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[parse.args, mkdir, gprint, gpath, run.mirt, get.theta])
 box::use(./reduce.utils[...])
 parse.args(
-   names = c("BM", "N_QUANT", "LAMBDA"),
-   defaults = c("winogrande", 100, 0.0),
+   names = c("BM", "LAMBDA", "N_QUANT"),
+   defaults = c("arc", 0.0, 200),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     N_QUANT = seq(100, 500, 1),
-     LAMBDA = seq(0, 1, 0.001) # penalty for subtest size (0 = no penalty)
+     LAMBDA = seq(0, 1, 0.001), # penalty for subtest size (0 = no penalty)
+     N_QUANT = seq(100, 500, 1)
    )
 )
 Saveplots <- T
@@ -30,7 +30,7 @@ mkdir("analysis/reduced")
 set.seed(1)
 
 # for Bayesian Optimization
-N_ITER <- 30
+N_ITER <- 30 # number of search iterations after initial pass
 N_QUANT <- as.numeric(N_QUANT)
 LAMBDA <- as.numeric(LAMBDA)
 model.types <- c("2PL", "3PL", "4PL")
