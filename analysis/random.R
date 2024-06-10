@@ -49,15 +49,7 @@ subsample.wrapper <- function(seed){
    df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
 
    # train GAM on train data and predict on test data
-   # increase number of iterations for gam
-   mod.score <- tryCatch({
-     mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
-   }, error = function(e) {
-     print(e)
-     print("Using thin plate splines instead of adaptive method.")
-     mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
-   })
-   df.val <- predict.scores(df.val, mod.score)
+   mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
 
    # test on test data
    data.test.r <- data.test[,indices.rand]
