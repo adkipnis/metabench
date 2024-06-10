@@ -97,7 +97,7 @@ make.df.score <- function(scores, theta) {
 get.score.table <- function(theta.train, theta.test, scores.train, scores.test){
    df.train <- make.df.score(scores.train, theta.train)
    df.test <- make.df.score(scores.test, theta.test)
-   mod.score <- mgcv::gam(score ~ s(theta), data = df.train)
+   mod.score <- mgcv::gam(score ~ s(theta, bs = "ad"), data = df.train)
    df.train$p <- predict(mod.score, df.train)
    df.test$p <- predict(mod.score, df.test)
    df.train$set <- "train"
