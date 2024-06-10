@@ -46,6 +46,44 @@ merge.params <- function(items, model){
       dplyr::left_join(items, by="item")
 }
 
+collect.theta.map <- function(results, indices){
+   theta.map <- results$df |> dplyr::filter(set == "train") |>
+      dplyr::select(F1) |> as.matrix()
+   theta.map.test <- results$df |> dplyr::filter(set == "test") |>
+      dplyr::select(F1) |> as.matrix()
+   colnames(theta.map) <- colnames(theta.map.test) <- "F1"
+   theta.map.train <- theta.map[-indices, , drop=F]
+   theta.map.val <- theta.map[indices, , drop=F]
+   list(train = theta.map.train,
+        val = theta.map.val,
+        test = theta.map.val)
+}
+
+collect.theta.eapsum <- function(model, indices, data.test){
+   theta <- get.theta(model, method="EAPsum")
+   theta.train <- theta[-indices, , drop=F]
+   theta.val <- theta[indices, , drop=F]
+   theta.test <- get.theta(model, method="EAPsum", resp=data.test)
+   list(train = theta.train,
+        val = theta.val,
+        test = theta.test)
+}
+
+collect.all <- function(model.type){
+   fitpath <- gpath("analysis/models/{BM}-{model.type}-1-cv.rds")
+   results <- readRDS(fitpath)
+   model <- results$model
+   thetas.map <- collect.theta.map(results, indices)
+   tryCatch({
+       thetas.eapsum <- collect.theta.eapsum(model, indices, data.test)
+   }, error = function(e){
+      print(e)
+      thetas.eapsum <- NULL
+   })
+   items.full <- merge.params(items, model)
+   list(model = model, MAP = thetas.map, EAPsum = thetas.eapsum, items = items.full)
+}
+
 # -----------------------------------------------------------------------------
 # Score prediction
 make.df.score <- function(scores, theta) {
