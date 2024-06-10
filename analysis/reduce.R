@@ -30,7 +30,7 @@ mkdir("analysis/reduced")
 set.seed(1)
 
 # for Bayesian Optimization
-N_ITER <- 30 # number of search iterations after initial pass
+N_ITER <- 60 # number of search iterations after initial pass
 N_QUANT <- as.numeric(N_QUANT)
 LAMBDA <- as.numeric(LAMBDA)
 model.types <- c("2PL", "3PL", "4PL")
