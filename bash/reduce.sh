@@ -34,4 +34,4 @@ benchmarks=("arc" "gsm8k" "hellaswag" "mmlu" "truthfulqa" "winogrande")
 task_index=$((SLURM_ARRAY_TASK_ID-1))
 benchmark=${benchmarks[$task_index]}
 echo "Running task $SLURM_ARRAY_TASK_ID: $benchmark"
-LC_ALL=C.UTF-8 Rscript ../analysis/reduce.R $benchmark $model 250 0.001
+LC_ALL=C.UTF-8 Rscript ../analysis/reduce.R $benchmark $model 250 $lambda
