@@ -106,30 +106,6 @@ get.score.table <- function(theta.train, theta.test, scores.train, scores.test){
       dplyr::mutate(error = score - p)
 }
 
-score.stats <- function(df.score){
-  df.score |>
-    dplyr::filter(set == "test") |>
-    dplyr::summarise(
-      mae = mean(abs(error)),
-      ub = mean(abs(error)) + 1.96 * sd(abs(error)),
-      rmse = sqrt(mean(error^2)),
-      sse = sum(error^2),
-      r = cor(theta, score, method = "spearman")
-    )
-}
-
-compare.score.stats <- function(sfs, sfs.sub){
-   out <- list()
-   for (key in names(sfs)) {
-      out[[key]] <- sfs.sub[[key]] - sfs[[key]]
-   }
-   gprint("📊 Score error change (subtest - full, negative means improvement):
-          Δ RMSE: {round(out$rmse, 3)}
-          Δ MAE: {round(out$mae, 3)}
-          Δ (MAE + 1.96 SD): {round(out$ub, 3)}
-          Δ Total SSE: {round(out$sse, 3)}")
-}
-
 # -----------------------------------------------------------------------------
 # Item info
 
@@ -196,26 +172,7 @@ select.items <- function(items, info.items, info.quantiles, threshold=0.1){
 }
 
 # -----------------------------------------------------------------------------
-# parameter recovery
-
-compare.parameters <- function(model, model.sub){
-   get.estimates <- function(model){
-      mirt::coef(model, simplify=T, rotate="none")$items |>
-         data.frame() |>
-         tibble::rownames_to_column(var='item')
-   }
-   estimates <- get.estimates(model)
-   estimates.sub <- get.estimates(model.sub)
-   df.comparison <- merge(estimates, estimates.sub, by='item')
-   r1 <- cor(df.comparison$d.x, df.comparison$d.y)
-   r2 <- cor(df.comparison$a1.x, df.comparison$a1.y)
-   gprint("Correlation difficulty: {round(r1, 2)}")
-   gprint("Correlation loading: {round(r2, 2)}")
-   df.comparison
-}
-
-# -----------------------------------------------------------------------------
-# hyperparameter search
+# Hyperparameter search
 
 create.subtest <- function(data, items, info.items, info.quantiles, hyper) {
    index.set <- select.items(items, info.items, info.quantiles, threshold=hyper$threshold)
@@ -269,23 +226,23 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
         sfs = sfs.sub)
 }
 
-grid.search <- function(){
-  results <- list()
-  i <- 1
-  for (gridtype in c(1,2)){
-    for (threshold in seq(0, 0.3, 0.05)){
-      hyperparams <- list(threshold=threshold, gridtype=gridtype)
-      res <- hyperparam.wrapper(hyperparams, internal=T)
-      n.items <- nrow(res$items)
-      score <- res$sfs$rmse + as.numeric(LAMBDA) * n.items
-      results[[i]] <- data.frame(n = n.items, RMSE = res$sfs$rmse, score = score,
-                           gridtype = gridtype, threshold = threshold)
-      gprint("n = {n.items}, RMSE = {round(res$sfs$rmse, 2)}, score = {round(score,2)}, threshold = {round(threshold,4)}, gridtype = {gridtype}")
-      i <- i + 1
-    }
-  }
-  do.call(rbind, results)
-}
+# grid.search <- function(){
+#   results <- list()
+#   i <- 1
+#   for (gridtype in c(1,2)){
+#     for (threshold in seq(0, 0.3, 0.05)){
+#       hyperparams <- list(threshold=threshold, gridtype=gridtype)
+#       res <- hyperparam.wrapper(hyperparams, internal=T)
+#       n.items <- nrow(res$items)
+#       score <- res$sfs$rmse + as.numeric(LAMBDA) * n.items
+#       results[[i]] <- data.frame(n = n.items, RMSE = res$sfs$rmse, score = score,
+#                            gridtype = gridtype, threshold = threshold)
+#       gprint("n = {n.items}, RMSE = {round(res$sfs$rmse, 2)}, score = {round(score,2)}, threshold = {round(threshold,4)}, gridtype = {gridtype}")
+#       i <- i + 1
+#     }
+#   }
+#   do.call(rbind, results)
+# }
 
 optimize.hyperparameters <- function(){
    box::use(rBayesianOptimization[...])
