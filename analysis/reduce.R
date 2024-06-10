@@ -181,45 +181,70 @@ create.subtest <- function(data, items, info.items, info.quantiles, hyper) {
 }
 
 hyperparam.wrapper <- function(hyperparams, internal=T){
-   # 0. prepare
-   if (hyperparams$gridtype == 1){
-     theta.grid <- theta[,1]
+   # 0. unpack
+   model.type <- model.types[[hyperparams$model.type]]
+   theta.type <- theta.types[[hyperparams$theta.type]]
+   all <- models[[model.type]] 
+   model <- all$model
+   thetas <- all[[theta.type]]
+   theta.train <- thetas$train
+   theta.val <- thetas$val
+   items <- all$items
+
+   # fail gracefully if thetas are missing
+   if (is.null(theta.train)){
+     return(list(sfs = data.frame(rmse = 9999), items = items[1,]))
+   }
+
+   # 1. get theta grid
+   if (hyperparams$grid.type == 1){
+     theta.grid <- rbind(theta.train, theta.val)[,1]
    } else {
-     theta.range <- range(theta[,1])
+     theta.range <- range(rbind(theta.train, theta.val)[,1])
      theta.grid <- seq(theta.range[1], theta.range[2], length.out = N_QUANT)
    }
+
+  # alternative: rank absolute errors and find the corresponding thetas
+  # get 68th percentile of absolute errors by size
+  # df.score.base$se <- df.score.base$error^2
+  # critical.thetas <- df.score.base |> dplyr::arrange(se) |> head(50) |>
+  #  dplyr::select(theta, se) |> dplyr::arrange(theta)
+
    info.items <- collect.item.info(model, theta.grid, colnames(data))
    items <- merge(items, summarize.info(info.items), by="item")
   
-   # 1. create subtest
+   # 2. create subtest
    info.quantiles <- get.info.quantiles(info.items, theta.grid, steps=N_QUANT)
-   subtest <- create.subtest(data.train, items, info.items, info.quantiles, hyperparams)
+   subtest <- create.subtest(data.train, items, info.items, info.quantiles,
+                             hyperparams)
    data.train.sub <- subtest$data
-   data.test.sub <- data.test[colnames(data.train.sub)]
+   data.val.sub <- data.val[colnames(data.train.sub)]
    items.sub <- subtest$items
    
-   # fail gracefully if the set becomes too
+   # fail gracefully if the set becomes too small
    if (ncol(data.frame(data.train.sub)) < 10){
      return(list(sfs = data.frame(rmse = 9999), items = items[1,]))
    }
    
-   # 2. fit subtest
+   # 3. fit subtest
    ncycles <- ifelse(internal, 500, 1000)
-   model.sub <- run.mirt(data.train.sub, 1, MOD, tol = 1e-4, ncycles=ncycles)
-   theta.train.sub <- get.theta(model.sub, method=METH, resp=data.train.sub)
+   model.sub <- run.mirt(data.train.sub, 1, model.type,
+                         tol=1e-4, ncycles=ncycles)
+   theta.train.sub <- get.theta(model.sub, theta.type, data.train.sub)
+   theta.val.sub <- get.theta(model.sub, theta.type, data.val.sub)
    rownames(theta.train.sub) <- rownames(data.train.sub)
-   theta.test.sub <- get.theta(model.sub, method=METH, resp=data.test.sub)
-   rownames(theta.test.sub) <- rownames(data.test.sub)
+   rownames(theta.val.sub) <- rownames(data.val.sub)
 
-   # 3. evaluate subtest
-   score.table.sub <- get.score.table(theta.train.sub, theta.test.sub, scores.train, scores.test)
+   # 4. evaluate subtest
+   score.table.sub <- get.score.table(
+     theta.train.sub, theta.val.sub, scores.train, scores.val)
    sfs.sub <- score.stats(score.table.sub)
      
-   # 4. return results
+   # 5. return results
    list(items = items.sub,
         model = model.sub,
         theta.train = theta.train.sub,
-        theta.test = theta.test.sub,
+        theta.val = theta.val.sub,
         info.items = info.items,
         info.quantiles = info.quantiles,
         df.score = score.table.sub,
@@ -246,8 +271,9 @@ hyperparam.wrapper <- function(hyperparams, internal=T){
 
 optimize.hyperparameters <- function(){
    box::use(rBayesianOptimization[...])
-   objective <- function(threshold, gridtype) {
-     hyperparams <- list(threshold=threshold, gridtype=gridtype)
+   objective <- function(model.type, theta.type, grid.type, threshold) {
+     hyperparams <- list(model.type=model.type, theta.type=theta.type,
+                         grid.type=grid.type, threshold=threshold)
      res <- hyperparam.wrapper(hyperparams, internal=T)
      sfs <- res$sfs
      score <- sfs$rmse + as.numeric(LAMBDA) * nrow(res$items) # minimize this
@@ -255,8 +281,13 @@ optimize.hyperparameters <- function(){
   }
   BayesianOptimization(
    objective,
-   bounds = list(threshold = c(0, 5), gridtype = c(1L, 2L)),
-   init_points = 5,
+   bounds = list(
+     model.type = c(1L, 3L),
+     theta.type = c(1L, 2L),
+     grid.type = c(1L, 2L),
+     threshold = c(0, 5)
+     ),
+   init_points = 2,
    n_iter = N_ITER,
    acq = "ucb", 
    kappa = 2.576,
