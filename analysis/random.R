@@ -53,8 +53,8 @@ subsample.wrapper <- function(seed){
    mod.score <- tryCatch({
      mgcv::gam(means ~ s(sub.score, bs = "ad"), data = df.train)
    }, error = function(e) {
-     gprint("{e}
-            Using thin plate splines instead of adaptive method.")
+     print(e)
+     print("Using thin plate splines instead of adaptive method.")
      mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
    })
    df.val <- predict.scores(df.val, mod.score)
