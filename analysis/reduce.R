@@ -375,7 +375,18 @@ gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coeffici
 outpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved results to {outpath}")
+
+# =============================================================================
 # misc plots
+title <- cowplot::ggdraw() +
+  cowplot::draw_label(
+    glue::glue("{BM} ({model.type} {theta.type}, lambda={LAMBDA})"),
+    fontface = 'bold', size = 24) +
+  ggplot2::theme(plot.margin = ggplot2::margin(0, 0, 0, 7),
+                 plot.background = ggplot2::element_rect(
+                   fill="white", color="white"))
+
+# 1. test info and parameter recovery
 ceiling <- max(rowSums(info.items[,-1]))
 p.testinfo <- cowplot::plot_grid(
   plot.expected.testinfo(info.items, items, ceiling,
@@ -386,69 +397,46 @@ p.testinfo <- cowplot::plot_grid(
                 glue::glue("Reduced Testinfo (n = {nrow(final$items)})")),
   nrow = 1
 )
-# TODO: scatterplot of theta with marginal distributions
-p.estimates <- plot.estimates(final$model, final$theta.train)
+p.estimates <- plot.estimates(model, final$model, theta.train, final$theta.train)
 p.misc <- cowplot::plot_grid(
   p.testinfo,
   p.estimates,
   ncol = 1
 )
-plotpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}-info.png")
+p.misc <- cowplot::plot_grid(title, p.misc, ncol = 1, rel_heights = c(0.05, 1))
+plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-info.png")
 ggplot2::ggsave(plotpath, p.misc, width = 16, height = 16)
 
-# prediction plots
+
+# 2. score prediction plots
 p.ts <- cowplot::plot_grid(
-  plot.theta.score(df.score.base, "(Full)"),
-  plot.theta.score(final$df.score, "(Subset)"),
-  plot.theta.score(df.score.val, "(Validation)"),
+  plot.theta.score(df.score.base, "\n(Validation - Full)"),
+  plot.theta.score(final$df.score, "\n(Validation - Subset)"),
+  plot.theta.score(df.score.test, "\n(Test - Subset)"),
   nrow = 1
 )
 p.perc <- cowplot::plot_grid(
-  plot.perc(df.score.base, "(Full)"),
-  plot.perc(final$df.score, "(Subset)"),
-  plot.perc(df.score.val, "(Validation)"),
+  plot.perc(df.score.base, "\n(Validation - Full)"),
+  plot.perc(final$df.score, "\n(Validation - Subset)"),
+  plot.perc(df.score.test, "\n(Test - Subset)"),
   nrow = 1
 )
 p.score <- cowplot::plot_grid(
-  plot.score(df.score.base, "(Full)"),
-  plot.score(final$df.score, "(Subset)"),
-  plot.score(df.score.val, "(Validation)"),
+  plot.score(df.score.base, "\n(Validation - Full)"),
+  plot.score(final$df.score, "\n(Validation - Subset)"),
+  plot.score(df.score.test, "\n(Test - Subset)"),
   nrow = 1
 )
-ceiling <- max(abs(df.score.val$error))
+ceiling <- max(abs(df.score.test$error))
 p.error <- cowplot::plot_grid(
-  plot.score.error(df.score.base, "(Full)", ceiling),
-  plot.score.error(final$df.score, "(Subset)", ceiling),
-  plot.score.error(df.score.val, "(Validation)", ceiling),
+  plot.score.error(df.score.base, "\n(Validation - Full)", ceiling),
+  plot.score.error(final$df.score, "\n(Validation - Subset)", ceiling),
+  plot.score.error(df.score.test, "\n(Test - Subset)", ceiling),
   nrow = 1
 ) 
 p.pred <- cowplot::plot_grid(
   p.ts, p.perc, p.score, p.error, ncol = 1
 )
-plotpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}-pred.png")
-ggplot2::ggsave(plotpath, p.pred, width = 16, height = 16)
-
-
-# save results
-out <- list(
-   items = merge.params(final$items, final$model),
-   model = final$model,
-   theta.train = final$theta.train,
-   theta.test = final$theta.test,
-   theta.val = theta.val.sub,
-   info.items.orig = info.items,
-   hyperparams = hyperparams,
-   opt.results = opt.results,
-   sfs.full = sfs.base,
-   sfs.sub = sfs.val,
-   df.score.base = df.score.base,
-   df.score.val = df.score.val
-)
-
-#compare.score.stats(sfs.base, sfs.val)
-gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).
-       RMSE = {round(sfs.val$rmse, 2)}")
-outpath <- gpath("analysis/reduced/{BM}-{MOD}-{METH}-{LAMBDA}.rds")
-saveRDS(out, outpath)
-gprint("💾 Saved results to {outpath}")
-p.pred
+p.pred <- cowplot::plot_grid(title, p.pred, ncol = 1, rel_heights = c(0.05, 1))
+plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-pred.png")
+ggplot2::ggsave(plotpath, p.pred, width = 16, height = 19)
