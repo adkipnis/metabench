@@ -1,3 +1,44 @@
+box::use(./utils[mytheme])
+
+#" @export
+score.stats <- function(df.score){
+  df.score |>
+    dplyr::filter(set == "test") |>
+    dplyr::summarise(
+      mae = mean(abs(error)),
+      ub = mean(abs(error)) + 1.96 * stats::sd(abs(error)),
+      rmse = sqrt(mean(error^2)),
+      sse = sum(error^2),
+      r = stats::cor(theta, score, method = "spearman")
+    )
+}
+
+#" @export
+compare.score.stats <- function(sfs, sfs.sub){
+   out <- list()
+   for (key in names(sfs)) {
+      out[[key]] <- sfs.sub[[key]] - sfs[[key]]
+   }
+   gprint("📊 Score error change (subtest - full, negative means improvement):
+          Δ RMSE: {round(out$rmse, 3)}
+          Δ MAE: {round(out$mae, 3)}
+          Δ (MAE + 1.96 SD): {round(out$ub, 3)}
+          Δ Total SSE: {round(out$sse, 3)}")
+}
+
+compare.parameters <- function(model, model.sub){
+   get.estimates <- function(model){
+      mirt::coef(model, simplify=T, rotate="none")$items |>
+         data.frame() |>
+         tibble::rownames_to_column(var='item')
+   }
+   estimates <- get.estimates(model)
+   estimates.sub <- get.estimates(model.sub)
+   df.comparison <- merge(estimates, estimates.sub, by='item')
+   r1 <- stats::cor(df.comparison$d.x, df.comparison$d.y)
+   r2 <- stats::cor(df.comparison$a1.x, df.comparison$a1.y)
+   df.comparison
+}
 
 #" @export
 plot.theta.score <- function(df.score, suffix=""){
@@ -182,7 +223,7 @@ plot.recovery.a1 <- function(df.comparison){
 }
 
 #" @export
-plot.estimates <- function(model.sub, theta.sub){
+plot.estimates <- function(model, model.sub, theta.train, theta.sub){
    param.compare <- compare.parameters(model, model.sub)
    cowplot::plot_grid(
       plot.theta(theta.train, "Original"),
