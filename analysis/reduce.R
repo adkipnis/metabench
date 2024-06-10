@@ -30,7 +30,7 @@ mkdir("analysis/reduced")
 set.seed(1)
 
 # for Bayesian Optimization
-N_ITER <- 15
+N_ITER <- 30
 N_QUANT <- as.numeric(N_QUANT)
 LAMBDA <- as.numeric(LAMBDA)
 model.types <- c("2PL", "3PL", "4PL")
@@ -288,7 +288,7 @@ optimize.hyperparameters <- function(){
      grid.type = c(1L, 2L),
      threshold = c(0, 5)
      ),
-   init_points = 2,
+   init_points = 15,
    n_iter = N_ITER,
    acq = "ucb", 
    kappa = 2.576,
