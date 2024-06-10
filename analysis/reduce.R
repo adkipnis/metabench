@@ -306,53 +306,22 @@ data <- full$data.train
 scores <- full$scores.train / full$max.points.orig * 100
 indices <- caret::createDataPartition(scores, p = 0.1, list = F)
 data.train <- data[-indices,]
-data.test <- data[indices,]
-data.val <- full$data.test
+data.val <- data[indices,]
+data.test <- full$data.test
 scores.train <- scores[-indices]
-scores.test <- scores[indices]
-scores.val <- full$scores.test / full$max.points.orig * 100
+scores.val <- scores[indices]
+scores.test <- full$scores.test / full$max.points.orig * 100
 rm(full)
 
 # prepare model and thetas
 gprint("🚰 Loading {BM} fits...")
-fitpath <- gpath("analysis/models/{BM}-{MOD}-{1}-cv.rds")
-results <- readRDS(fitpath)
-model <- results$model
-items <- merge.params(items, model)
-if (METH == "MAP") {
-   theta <- results$df |> dplyr::filter(set == "train") |>
-     dplyr::select(F1) |> as.matrix()
-   colnames(theta) <- "F1"
-   theta.train <- theta[-indices, , drop=F]
-   theta.test <- theta[indices, , drop = F]
-   theta.val <- results$df |> dplyr::filter(set == "test") |>
-     dplyr::select(F1) |> as.matrix()
-   colnames(theta.val) <- "F1"
-} else {
-   theta <- get.theta(model, method=METH)
-   # split theta but keep column dims
-   theta.train <- theta[-indices, , drop=F]
-   theta.test <- theta[indices, , drop=F]
-   theta.val <- get.theta(model, method=METH, resp=data.val)
-}
-rm(results)
-
-# summarize score
-df.score.base <- get.score.table(theta.train, theta.val, scores.train, scores.val)
-sfs.base <- score.stats(df.score.base)
-
-# rank absolute errors and find the corresponding thetas
-# get 68th percentile of absolute errors by size
-# df.score.base$se <- df.score.base$error^2
-# critical.thetas <- df.score.base |> dplyr::arrange(se) |> head(50) |>
-#  dplyr::select(theta, se) |> dplyr::arrange(theta)
-
+models <- setNames(lapply(model.types, collect.all), model.types)
 
 # run hyperparameter search using rBayesianOptimization
 if (LAMBDA == 0){
    gprint("Skipping hyperparameter search (LAMBDA = 0)")
    hyperparams <- default.hyperparams
-   opt.results <- hyperparams
+   opt.results <- NULL
 } else {
    gprint("🔍 Running hyperparameter search...")
    opt.results <- optimize.hyperparameters()
@@ -362,15 +331,50 @@ if (LAMBDA == 0){
   #hyperparams <- as.list(opt.results[mindex,])
 }
 final <- hyperparam.wrapper(hyperparams, internal = F)
+
+# unpack results
+model.type <- model.types[[hyperparams$model.type]]
+theta.type <- theta.types[[hyperparams$theta.type]]
+model <- models[[model.type]]$model
+theta.train <- models[[model.type]][[theta.type]]$train
+theta.val <- models[[model.type]][[theta.type]]$val
+items <- models[[model.type]]$items
 info.items <- final$info.items
 
-# evaluation on validation set
-data.val.sub <- data.val[,as.character(final$items$item)]
-theta.val.sub <- get.theta(final$model, method=METH, resp=data.val.sub)
-rownames(theta.val.sub) <- rownames(data.val.sub)
-df.score.val <- get.score.table(final$theta.train, theta.val.sub, scores.train, scores.val)
-sfs.val <- score.stats(df.score.val)
+# summarize base score
+df.score.base <- get.score.table(theta.train, theta.val,
+                                 scores.train, scores.val)
+sfs.base <- score.stats(df.score.base)
 
+# evaluation on test set
+data.test.sub <- data.test[,as.character(final$items$item)]
+theta.test.sub <- get.theta(final$model, method=theta.type, resp=data.test.sub)
+rownames(theta.test.sub) <- rownames(data.test.sub)
+df.score.test <- get.score.table(final$theta.train, theta.test.sub,
+                                 scores.train, scores.test)
+sfs.test <- score.stats(df.score.test)
+
+# save results
+out <- list(
+   items = merge.params(final$items, final$model),
+   model = final$model,
+   theta.train = final$theta.train,
+   theta.val = final$theta.val,
+   theta.test = theta.test.sub,
+   info.items.orig = info.items,
+   hyperparams = hyperparams,
+   opt.results = opt.results,
+   sfs.base = sfs.base,
+   sfs.sub = sfs.test,
+   df.score.base = df.score.base,
+   df.score.sub = df.score.test
+)
+
+gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).
+       RMSE = {round(sfs.test$rmse, 3)}")
+outpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}.rds")
+saveRDS(out, outpath)
+gprint("💾 Saved results to {outpath}")
 # misc plots
 ceiling <- max(rowSums(info.items[,-1]))
 p.testinfo <- cowplot::plot_grid(
