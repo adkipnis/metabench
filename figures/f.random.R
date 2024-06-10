@@ -45,7 +45,7 @@ results$rmse.val <- as.numeric(results$rmse.val)
 results$rmse.test <- as.numeric(results$rmse.test)
 
 # plot development
-(p <- plot.development(results, benchmarks, sizes))
+p <- plot.development(results, benchmarks, sizes)
 outpath <- gpath("plots/random-rmses.pdf")
 ggplot2::ggsave(outpath, p, width = 8, height = 6)
-
+gprint("Saved plot to {outpath}.")
