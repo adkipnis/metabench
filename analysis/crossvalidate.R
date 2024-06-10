@@ -68,7 +68,7 @@ cross.validate <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-datapath <- gpath("data/{BM}-sub.rds")
+datapath <- gpath("data/{BM}-sub-350.rds")
 preproc <- readRDS(datapath)
 data.train <- preproc$data.train
 data.test <- preproc$data.test
