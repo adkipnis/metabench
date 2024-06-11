@@ -6,7 +6,7 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N"), 
-   defaults = c("truthfulqa", 100),
+   defaults = c("gsm8k", 350),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 500, 1)
@@ -38,15 +38,18 @@ subsample.wrapper <- function(seed){
    set.seed(seed)
    
    # subsample same items from train and test data
-   indices.rand <- subsample(data.train, N)
-   rmses.val <- c()
+   indices.rand <- subsample(data.test, N)
+   mod.scores <- list()
+   rmses.val <- matrix(NA, ncol = 1, nrow = length(folds))
+   rmses.test <- matrix(NA, ncol = 1, nrow = length(folds))
 
-   for (fold in folds){
+   for (i in seq_along(folds)){
       # split subjects
+      fold <- folds[[i]]
       data.train <- full$data.train[fold,]
       data.val <- full$data.train[-fold,]
-      scores.train <- full$scores.train[fold]
-      scores.val <- full$scores.train[-fold]
+      scores.train <- full$scores.train[fold] / nc * 100
+      scores.val <- full$scores.train[-fold] / nc * 100
 
       # split off items
       data.train.r <- data.train[,indices.rand]
@@ -58,17 +61,21 @@ subsample.wrapper <- function(seed){
       df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
       df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
 
-      # train GAM on train data and predict on validation fold
-      mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)}
+      # train GAM ensemble on train data and predict on validation fold
+      mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
       df.val <- predict.scores(df.val, mod.score)
-      rmses.val <- c(rmses.val, sqrt(mean(df.val$error^2)))
+      mod.scores[[i]] <- mod.score
+      rmses.val[i] <- sqrt(mean(df.val$error^2))
    }
 
-   # test on test data
+   # test ensemble on test data
    data.test.r <- data.test[,indices.rand]
    scores.test.r <- rowMeans(data.test.r)
    df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
-   df.test <- predict.scores(df.test, mod.score)
+   for (i in seq_along(mod.scores)){
+      df.test <- predict.scores(df.test, mod.scores[[i]])
+      rmses.test[i] <- sqrt(mean(df.test$error^2))
+   }
 
    # export results
    list(
