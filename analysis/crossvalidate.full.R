@@ -41,7 +41,6 @@ fit.gam <- function(df.train){
 cross.validate <- function(){
   # fit model
   gprint("⚙️ Fitting {MOD} model with {D}-dimensional ability to training fold...")
-  #gprint("RMSE raw: {round(preproc$rmse.test,3)}")
   model <- run.mirt(data.train, as.numeric(D), MOD)
 
   # train performance
@@ -68,7 +67,11 @@ cross.validate <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-datapath <- gpath("data/{BM}-preproc-split.rds")
+if (BM %in% c("hellaswag", "mmlu")){
+   datapath <- gpath("data/{BM}-sub-1189.rds")
+} else {
+   datapath <- gpath("data/{BM}-preproc-split.rds")
+}
 preproc <- readRDS(datapath)
 data.train <- preproc$data.train
 data.test <- preproc$data.test
