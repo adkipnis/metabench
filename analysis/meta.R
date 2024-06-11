@@ -233,7 +233,7 @@ plot.corrmat <- function(scores.partial){
 # 1. Point scores
 # load scores
 benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
-                   gsm8k=list(mod="4PL", est="EAPsum", suffix = "1"),
+                   gsm8k=list(mod="2PL", est="EAPsum", suffix = "1"),
                    hellaswag=list(mod="3PL", est="MAP", suffix = "1"),
                    mmlu=list(mod="4PL", est="EAPsum", suffix = "1"),
                    truthfulqa=list(mod="2PL", est="EAPsum", suffix = "1"),
@@ -313,7 +313,6 @@ pred.theta.test$grand <- pred.score.test$grand
 mod.theta <- mgcv::gam(grand ~
                          s(arc, bs="ad") +
                          s(gsm8k, bs="ad") +
-                         s(gsm8k, bs="ad") +
                          s(hellaswag, bs="ad") +
                          s(mmlu, bs="ad") +
                          s(truthfulqa, bs="ad") +
@@ -346,7 +345,7 @@ gprint("r(Factor1, Score) = {round(r.theta,3)}")
 # )
 benchmarks <- list(
   arc = list(mod = "2PL", est = "MAP", lam = 0.005),
-  gsm8k = list(mod = "3PL", est = "EAPsum", lam = 0.005),
+  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
   hellaswag = list(mod = "3PL", est = "MAP", lam = 0.01),
   mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
   truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
@@ -377,8 +376,6 @@ fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.sub)
 pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
 
-# pred.sub.train$grand <- pred.score.train$mmlu
-# pred.sub.test$grand <- pred.score.test$mmlu
 pred.sub.train$grand <- pred.score.train$grand
 pred.sub.test$grand <- pred.score.test$grand
 mod.sub <- mgcv::gam(grand ~
@@ -404,6 +401,40 @@ saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
 # correlation between first factor and grand score 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
 gprint("r(Factor1, Score) = {round(r.sub,3)}")
+
+# =============================================================================
+# 3. Predict specific scores using all latent abilities
+plot.specific <- function(bm){
+  pred.sub.train$grand <- pred.score.train[[bm]]
+  pred.sub.test$grand <- pred.score.test[[bm]]
+  
+  mod.sub <- mgcv::gam(grand ~
+                         s(arc, bs="ad") +
+                         s(gsm8k, bs="ad") +
+                         s(hellaswag, bs="ad") +
+                         s(mmlu, bs="ad") +
+                         s(truthfulqa, bs="ad") +
+                         s(winogrande, bs="ad"),
+                       data = pred.sub.train)
+  pred.sub.train$p <- predict(mod.sub, pred.sub.train)
+  pred.sub.test$p <- predict(mod.sub, pred.sub.test)
+  
+  # plot
+  pred.sub.test$color <- runif(nrow(pred.sub.test))
+  p.sub <- evaluate.score.pred(pred.sub.test) +
+    ggplot2::scale_colour_gradientn(colours = cbPalette()) +
+    ggplot2::ggtitle(glue::glue("{bm}"))
+  saveRDS(p.sub, gpath("plots/mb-{bm}.rds"))
+  p.sub
+}
+p.arc <- plot.specific("arc")
+p.gsm8k <- plot.specific("gsm8k")
+p.hs <- plot.specific("hellaswag")
+p.mmlu <- plot.specific("mmlu")
+p.tfqa <- plot.specific("truthfulqa")
+p.wg <- plot.specific("winogrande")
+saveRDS(list(arc=p.arc, gsm8k=p.gsm8k, hs=p.hs, mmlu=p.mmlu, tfqa=p.tfqa, wg=p.wg),
+        gpath("plots/mb-specific.rds"))
 
 
 # =============================================================================
