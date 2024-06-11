@@ -20,7 +20,7 @@ source $HOME/.bashrc
 benchmarks=("arc" "gsm8k" "hellaswag" "mmlu" "truthfulqa" "winogrande")
 sizes=(50 100 150 200 250 300 350 400 450 500)
 task_index=$((SLURM_ARRAY_TASK_ID-1))
-b=${benchmarks[$task_index]}
+b=${models[$task_index]}
 
 for s in "${sizes[@]}"; do
   echo "Randomly subsampling $s items from $b"
