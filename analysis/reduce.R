@@ -60,8 +60,8 @@ collect.theta.map <- function(results, indices){
         test = theta.map.val)
 }
 
-collect.theta.eapsum <- function(model, indices, data.test){
-   theta <- get.theta(model, method="EAPsum")
+collect.theta.eapsum <- function(model, indices, data.train, data.test){
+   theta <- get.theta(model, method="EAPsum", resp=data)
    theta.train <- theta[-indices, , drop=F]
    theta.val <- theta[indices, , drop=F]
    theta.test <- get.theta(model, method="EAPsum", resp=data.test)
@@ -76,7 +76,7 @@ collect.all <- function(model.type){
    model <- results$model
    thetas.map <- collect.theta.map(results, indices)
    tryCatch({
-       thetas.eapsum <- collect.theta.eapsum(model, indices, data.test)
+       thetas.eapsum <- collect.theta.eapsum(model, indices, data.train, data.test)
    }, error = function(e){
       print(e)
       thetas.eapsum <- NULL
