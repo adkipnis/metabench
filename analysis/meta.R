@@ -406,27 +406,22 @@ gprint("r(Factor1, Score) = {round(r.sub,3)}")
 
 # =============================================================================
 # comparison to random subsampling
+# setup paral
+box::use(doParallel[...], foreach[...])
+n.cores <- parallel::detectCores() - 1
+mu.cluster <- parallel::makeCluster(n.cores, type = "FORK")
+doParallel::registerDoParallel(mu.cluster)
+
+# prepare data
 data.full.train <- lapply(names(benchmarks), collect.data)
 data.full.test <- lapply(names(benchmarks), function(n) collect.data(n, train = F))
 names(data.full.train) <- names(data.full.test) <- names(benchmarks)
 
-rmses <- matrix(NA, nrow = 1000)
-for (i in 1:1000){
-  scores.train.r <- lapply(names(benchmarks), subsample.data.score)
-  scores.test.r <- lapply(names(benchmarks), function(n) subsample.data.score(n, train = F))
-  scores.train.r <- merge.skill(scores.train.r)
-  scores.test.r <- merge.skill(scores.test.r)
-  
-  # check relation to grand sum
-  scores.train.r$grand.r <- rowMeans(scores.train.r)
-  scores.test.r$grand.r <- rowMeans(scores.test.r)
-  scores.train.r$grand <- pred.score.train$grand
-  scores.test.r$grand <- pred.score.test$grand
-  mod.score.r <- mgcv::gam(grand ~ s(grand.r, bs="ad"),
-                           data = scores.train.r)
-  scores.train.r$p <- predict(mod.score.r, scores.train.r)
-  scores.test.r$p <- predict(mod.score.r, scores.test.r)
-  rmses[i] <- scores.test.r |> dplyr::mutate(error = grand - p) |>
-    dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+# run subsampling
+gprint("🔁 Running 10000 subsampling iterations with for unreduced metabench...")
+
+rmses.full <- foreach(i = 1:100) %dopar% {
+   subsample.wrapper(i, "full")
 }
+
 saveRDS(list(rmses.test = rmses), gpath("data/meta-random-rmses.rds"))
