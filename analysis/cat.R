@@ -95,7 +95,7 @@ fit.gam <- function(df.train){
 best.models <- data.frame(benchmark.name = c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande"),
                           model.type = c("4PL", "3PL", "4PL", "2PL", "2PL", "4PL"))
 
-for (row in 6:nrow(best.models)){
+for (row in 1:nrow(best.models)){
   BM <- best.models$benchmark.name[row]
   MOD <- best.models$model.type[row]
     
