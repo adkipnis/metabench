@@ -163,7 +163,7 @@ gprint("{sum(items$exclude) - d.tmp} additional items are too easy.")
 d.tmp <- sum(items$exclude)
 
 # 2. part-whole correlation with full score should not be ~0
-limit <- ifelse(BM %in% c("truthfulqa", "winogrande"), 0.02, 0.05)
+limit <- ifelse(BM %in% c("winogrande"), 0.02, 0.05)
 items$exclude[items$disc < limit & items$disc > -limit] <- T
 gprint("{sum(items$exclude) - d.tmp} additional items have too low correlation with score.")
 
