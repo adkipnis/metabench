@@ -9,7 +9,7 @@ parse.args(
    defaults = c("gsm8k", 350),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
-     N = seq(0, 500, 1)
+     N = seq(0, 817, 1)
    )
 )
 N <- as.numeric(N)

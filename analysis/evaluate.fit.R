@@ -28,7 +28,8 @@ plot.theta.ests <- function(results){
    n <- length(results)
    thetas <- list()
    for (i in 1:n) {
-      thetas[[i]] <- data.frame(results[[i]]$df$theta)
+      thetas[[i]] <- results[[i]][['df']] |> dplyr::filter(set == "train") |> dplyr::select(F1)
+      # thetas[[i]] <- data.frame(results[[i]]$df$theta)
       thetas[[i]]$itemtype <- names(results)[i]
    }
    thetas <- do.call(rbind, thetas)
@@ -112,7 +113,7 @@ summarize.comparisons <- function(comparisons) {
 get.itemfit <- function(result){
    model <- result$model
    df <- result$df |> dplyr::filter(set == "train")
-   theta <- as.matrix(df$theta)
+   theta <- as.matrix(df$F1)
    itemtype <- model@Model[["itemtype"]][1]
    item.fit <- mirt::itemfit(model, fit_stats = 'infit', Theta = theta) |>
       dplyr::mutate(outlier = infit <= 0.5 |
@@ -184,10 +185,9 @@ plot.modelcomp <- function(comparisons) {
 # load fit results
 gprint("🚰 Loading {BM} fits...")
 results <- list(
-   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-cv.rds")),
-   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-cv.rds")),
-   "3PLu" = readRDS(gpath("analysis/models/{BM}-3PLu-cv.rds")),
-   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-cv.rds"))
+   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-1-cv.rds")),
+   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-1-cv.rds")),
+   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-1-cv.rds"))
 )
 
 # plot theta and params
