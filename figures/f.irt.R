@@ -81,7 +81,7 @@ rand.list = list(
    MMLU = readRDS(gpath("data/mmlu-sub-350.rds"))$rmses.test,
    TruthfulQA = readRDS(gpath("data/truthfulqa-sub-350.rds"))$rmses.test,
    Winogrande = readRDS(gpath("data/winogrande-sub-350.rds"))$rmses.test,
-   metabench = readRDS(gpath("data/meta-random-rmses.rds"))$rmses.test
+   metabench = readRDS(gpath("plots/metabench-full-rmses.rds"))$rmses.test
 )
 
 df.rand <- randlist2df(rand.list)
