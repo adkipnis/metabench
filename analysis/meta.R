@@ -99,7 +99,7 @@ collect.theta <- function(benchmark, train=T){
   }
   
   if (theta.type != "MAP") {
-    datapath <- gpath("data/{benchmark}-sub.rds")
+    datapath <- gpath("data/{benchmark}-sub-350.rds")
     all <- readRDS(datapath)
     if (train) {
       data <- all$data.train
@@ -127,10 +127,10 @@ collect.theta.reduced <- function(benchmark, train = T){
   model <- results$model
   if (train){
     theta.train <- results$theta.train[, 1, drop=F]
-    theta.test <- results$theta.test[, 1, drop=F]
-    theta <- rbind(theta.train, theta.test)
+    theta.val <- results$theta.val[, 1, drop=F]
+    theta <- rbind(theta.train, theta.val)
   } else {
-    theta <- results$theta.val[, 1, drop=F]
+    theta <- results$theta.test[, 1, drop=F]
   }
   colnames(theta) <- benchmark
   theta
@@ -190,25 +190,9 @@ get.numitems <- function(benchmarks, type){
    numitems
 }
 
-construct.covmat <- function(thetas){
-  # construct covariance matrix from list of thetas
-  n <- length(thetas)
-  covmat <- matrix(0, n, n)
-  rownames(covmat) <- colnames(covmat) <- names(benchmarks)
-  for (i in 1:n){
-     for (j in i:n){
-        df.cov <- rowmerge(thetas[[i]], thetas[[j]])
-        covmat[i, j] <- cov(df.cov[,1], df.cov[,2])
-     }
-  }
-  # make symmetric
-  covmat <- covmat + t(covmat) - diag(diag(covmat))
-  covmat
-}
-
 fit.score <- function(scores.partial, res.fa){
    pred.names <- colnames(scores.partial)[grepl("\\d$", colnames(scores.partial))]
-   formula <- paste0("grand ~ ", paste0("s(", pred.names, ")", collapse=" + "))
+   formula <- paste0("grand ~ ", paste0("s(", pred.names, ", bs = 'ad')", collapse=" + "))
    mgcv::gam(as.formula(formula), data = scores.partial)
 }
 
@@ -219,7 +203,7 @@ evaluate.score.pred <- function(scores.partial){
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
    plot.score.pred(scores.partial,
-     text = glue::glue("RMSE = {format(round(s$rmse, digits=3), nsmall = 3)}\nr = {format(round(r.p, digits=3), nsmall = 3)}"))
+     text = glue::glue("RMSE = {format(round(s$rmse, digits=3), nsmall = 3)}"))
 }
 
 plot.score.pred <- function(scores.partial, text = ""){
@@ -231,7 +215,6 @@ plot.score.pred <- function(scores.partial, text = ""){
       annotate("text", x = 75, y = 25, label = text, size = 5) +
       labs(x="Score", y="Predicted") +
       mytheme()+
-     papertheme()+
      theme(legend.position = "None")
 }
 
