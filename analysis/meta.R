@@ -218,76 +218,72 @@ plot.score.pred <- function(scores.partial, text = ""){
      theme(legend.position = "None")
 }
 
+plot.corrmat <- function(scores.partial){
+  scores.partial |>
+    setNames(benchmark.names) |>
+    cor() |>
+    corrplot::corrplot(method="color",
+                       cl.pos = 'b', col.lim = c(0, 1),
+                       addgrid.col = 'white', addCoef.col = 'grey50',
+                       tl.cex=0.8, tl.col="black", tl.pos='d')
+}
 
 
 # =============================================================================
-# get ceiling for score prediction
-
+# 1. Point scores
 # load scores
-benchmarks <- list(arc=list(mod="3PL", est="EAPsum"),
-                   gsm8k=list(mod="2PL", est="MAP"),
-                   hellaswag=list(mod="3PL", est="MAP"),
-                   mmlu=list(mod="4PL", est="EAPsum"),
-                   truthfulqa=list(mod="2PL", est="EAPsum"),
-                   winogrande=list(mod="3PL", est="EAPsum"))
+benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
+                   gsm8k=list(mod="4PL", est="EAPsum", suffix = "1"),
+                   hellaswag=list(mod="3PL", est="MAP", suffix = "1"),
+                   mmlu=list(mod="4PL", est="EAPsum", suffix = "1"),
+                   truthfulqa=list(mod="2PL", est="EAPsum", suffix = "1"),
+                   winogrande=list(mod="3PL", est="EAPsum", suffix = "1"))
 
 scores.full.train <- lapply(names(benchmarks), collect.scores)
 scores.full.test <- lapply(names(benchmarks), function(n) collect.scores(n, train = F))
 scores.partial.train <- merge.skill(scores.full.train)
 scores.partial.test <- merge.skill(scores.full.test)
 numitems.orig <- get.numitems(benchmarks, "original")
-numitems.sum <- numitems.orig$arc * (nrow(scores.full.train[[1]]) + nrow(scores.full.test[[1]])) +
-   numitems.orig$gsm8k * (nrow(scores.full.train[[2]]) + nrow(scores.full.test[[2]])) +
-   numitems.orig$hellaswag * (nrow(scores.full.train[[3]]) + nrow(scores.full.test[[3]])) +
-   numitems.orig$mmlu * (nrow(scores.full.train[[4]]) + nrow(scores.full.test[[4]])) +
-   numitems.orig$truthfulqa * (nrow(scores.full.train[[5]]) + nrow(scores.full.test[[5]])) +
-   numitems.orig$winogrande * (nrow(scores.full.train[[6]]) + nrow(scores.full.test[[6]]))
-  
 
 # plot correlation matrix
-cor(scores.partial.train) |>
-  corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
+pdf(file = gpath("plots/corrmat.scores.pdf"))
+plot.corrmat(scores.partial.train)
+dev.off()
 
 # exploratory factor analysis
 fa.score.1 <- do.fa(scores.partial.train, 1)
 fa.score.2 <- do.fa(scores.partial.train, 2)
-fa.score.3 <- do.fa(scores.partial.train, 3, verbose = F)
+# fa.score.3 <- do.fa(scores.partial.train, 3) # this throws an exception
 fa.score <- fa.score.2
 psych::fa.diagram(fa.score)
-fs.score.train <- psych::factor.scores(scores.partial.train, fa.score)
-fs.score.test <- psych::factor.scores(scores.partial.test, fa.score)
 sort(fa.score$uniquenesses, decreasing = T)
 
-# check relation to grand sum
+# check recovery using fewer full benchmarks
+fs.score.train <- psych::factor.scores(scores.partial.train, fa.score)
+fs.score.test <- psych::factor.scores(scores.partial.test, fa.score)
 pred.score.train <- cbind(scores.partial.train, fs.score.train$scores)
 pred.score.test <- cbind(scores.partial.test, fs.score.test$scores)
 pred.score.train$grand <- rowMeans(scores.partial.train)
 pred.score.test$grand <- rowMeans(scores.partial.test)
-mod.score <- mgcv::gam(grand ~ s(gsm8k) + s(hellaswag),
+mod.score <- mgcv::gam(grand ~ s(gsm8k, bs = "ad") + s(hellaswag, bs = "ad"),
                        data = pred.score.train)
 pred.score.train$p <- predict(mod.score, pred.score.train)
 pred.score.test$p <- predict(mod.score, pred.score.test)
-
 n = numitems.orig$gsm8k + numitems.orig$hellaswag
-
 pred.score.test$color = 1
 p.base <- evaluate.score.pred(pred.score.test) +
   ggplot2::ggtitle(glue::glue(
     "(GSM8K + HellaSwag, n = {n})"))
 p.base
 
+# correlation between first factor and grand score
 r.score <- cor(pred.score.test$MR1, pred.score.test$grand)
 gprint("r(Factor1, Score) = {round(r.score,3)}")
 
-# # =============================================================================
-# collect theta estimates and construct covariance matrix
-benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
-                   gsm8k=list(mod="2PL", est="MAP", suffix = "1"),
-                   hellaswag=list(mod="3PL", est="MAP", suffix = "1"),
-                   mmlu=list(mod="4PL", est="EAPsum", suffix = "1"),
-                   truthfulqa=list(mod="2PL", est="EAPsum", suffix = "1"),
-                   winogrande=list(mod="3PL", est="EAPsum", suffix = "1"))
 
+# =============================================================================
+# 2. Latent Abilities (350 items)
+# collect theta estimates and construct covariance matrix
 thetas.full.train <- lapply(names(benchmarks), collect.theta)
 thetas.full.test <- lapply(names(benchmarks), function(n) collect.theta(n, train = F))
 thetas.partial.train <- Reduce(rowmerge, thetas.full.train)
@@ -295,26 +291,33 @@ thetas.partial.test <- Reduce(rowmerge, thetas.full.test)
 numitems.theta <- get.numitems(benchmarks, "preprocessed")
 
 # plot correlation matrix
-cor(thetas.partial.train) |>
-   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
+pdf(file = gpath("plots/corrmat.thetas-f.pdf"))
+plot.corrmat(thetas.partial.train)
+dev.off()
 
 # exploratory factor analysis
 fa.theta.1 <- do.fa(thetas.partial.train, 1)
 fa.theta.2 <- do.fa(thetas.partial.train, 2)
-fa.theta <- fa.theta.1
+fa.theta <- fa.theta.1 # additional explained variance of second factor is slim
 psych::fa.diagram(fa.theta)
 fa.theta$loadings
-fs.theta.train <- psych::factor.scores(thetas.partial.train, fa.theta)
-fs.theta.test <- psych::factor.scores(thetas.partial.test, fa.theta)
 sort(fa.theta$uniquenesses, decreasing = T)
 
 # check relation to grand sum
+fs.theta.train <- psych::factor.scores(thetas.partial.train, fa.theta)
+fs.theta.test <- psych::factor.scores(thetas.partial.test, fa.theta)
 pred.theta.train <- cbind(thetas.partial.train, fs.theta.train$scores)
 pred.theta.test <- cbind(thetas.partial.test, fs.theta.test$scores)
 pred.theta.train$grand <- pred.score.train$grand
 pred.theta.test$grand <- pred.score.test$grand
-mod.theta <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k, bs="ad") + s(gsm8k, bs="ad") + s(hellaswag, bs="ad") +
-                         s(mmlu, bs="ad") + s(truthfulqa, bs="ad") + s(winogrande, bs="ad"),
+mod.theta <- mgcv::gam(grand ~
+                         s(arc, bs="ad") +
+                         s(gsm8k, bs="ad") +
+                         s(gsm8k, bs="ad") +
+                         s(hellaswag, bs="ad") +
+                         s(mmlu, bs="ad") +
+                         s(truthfulqa, bs="ad") +
+                         s(winogrande, bs="ad"),
                        data = pred.theta.train)
 pred.theta.train$p <- predict(mod.theta)
 pred.theta.test$p <- predict(mod.theta, pred.theta.test)
@@ -322,39 +325,54 @@ pred.theta.test$p <- predict(mod.theta, pred.theta.test)
 # evaluate grand sum prediction from factor scores
 pred.theta.test$color <- runif(nrow(pred.theta.test))
 p.full <- evaluate.score.pred(pred.theta.test) +
-  ggplot2::scale_colour_gradientn(colours = cbPalette) +
+  ggplot2::scale_colour_gradientn(colours = cbPalette()) +
   ggplot2::ggtitle(glue::glue("metabench (n = {numitems.theta$sum})"))
-p.full
+saveRDS(p.full, gpath("plots/metabench-full.rds"))
 
+# correlation between first factor and grand score
 r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
 gprint("r(Factor1, Score) = {round(r.theta,3)}")
 
 # =============================================================================
-benchmarks <- list(arc=list(mod="4PL", est="EAPsum", lam=0.01),
-                        gsm8k=list(mod="4PL", est="EAPsum", lam=0.01),
-                        hellaswag=list(mod="4PL", est="MAP", lam=0),
-                        mmlu=list(mod="4PL", est="EAPsum", lam=0),
-                        truthfulqa=list(mod="2PL", est="EAPsum", lam=0.015),
-                        winogrande=list(mod="2PL", est="MAP", lam=0))
+# 3. Latent Abilities (subsets)
+# benchmarks <- list(
+#   arc = list(mod = "2PL", est = "MAP", lam = 0.001),
+#   gsm8k = list(mod = "3PL", est = "EAPsum", lam = 0.005),
+#   hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
+#   mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
+#   truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
+#   winogrande = list(mod = "4PL", est = "MAP", lam = 0.001)
+# )
+benchmarks <- list(
+  arc = list(mod = "2PL", est = "MAP", lam = 0.005),
+  gsm8k = list(mod = "3PL", est = "EAPsum", lam = 0.005),
+  hellaswag = list(mod = "3PL", est = "MAP", lam = 0.01),
+  mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
+  truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
+  winogrande = list(mod = "4PL", est = "MAP", lam = 0.005)
+)
+
 # collect theta estimates from reduced benchmarks
 thetas.sub.full.train <- lapply(names(benchmarks), collect.theta.reduced)
 thetas.sub.full.test <- lapply(names(benchmarks), function(n) collect.theta.reduced(n, train=F))
-thetas.sub.partial.train <- merge.skill(thetas.sub.full.train)
-thetas.sub.partial.test <- merge.skill(thetas.sub.full.test)
+thetas.sub.partial.train <- Reduce(rowmerge, thetas.sub.full.train)
+thetas.sub.partial.test <- Reduce(rowmerge, thetas.sub.full.test)
 numitems.sub <- get.numitems(benchmarks, "reduced")
 numitems.sub
 
 # plot correlation matrix
-cor(thetas.sub.partial.train)|>
-   corrplot::corrplot(method="color", type="upper", tl.cex=0.5, order = "hclust")
+pdf(file = gpath("plots/corrmat.thetas-s.pdf"))
+plot.corrmat(thetas.sub.partial.train)
+dev.off()
 
 # exploratory factor analysis
 fa.sub <- do.fa(thetas.sub.partial.train, 1)
 do.fa(thetas.sub.partial.train, 1)
-fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
-fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.sub)
+fa.sub$loadings
 
 # check relation to grand sum or other benchmarks
+fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
+fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.sub)
 pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
 
@@ -362,8 +380,13 @@ pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
 # pred.sub.test$grand <- pred.score.test$mmlu
 pred.sub.train$grand <- pred.score.train$grand
 pred.sub.test$grand <- pred.score.test$grand
-mod.sub <- mgcv::gam(grand ~ s(arc, bs="ad") + s(gsm8k, bs="ad") + s(hellaswag, bs="ad") +
-                         s(mmlu, bs="ad") + s(truthfulqa, bs="ad") + s(winogrande, bs="ad"),
+mod.sub <- mgcv::gam(grand ~
+                       s(arc, bs="ad") +
+                       s(gsm8k, bs="ad") +
+                       s(hellaswag, bs="ad") +
+                       s(mmlu, bs="ad") +
+                       s(truthfulqa, bs="ad") +
+                       s(winogrande, bs="ad"),
                        data = pred.sub.train)
 # mod.theta <- fit.score(pred.theta.train, fa.theta)
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
@@ -372,22 +395,15 @@ pred.sub.test$p <- predict(mod.sub, pred.sub.test)
 # plot
 pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
-  ggplot2::scale_colour_gradientn(colours = cbPalette) +
+  ggplot2::scale_colour_gradientn(colours = cbPalette()) +
   ggplot2::ggtitle(glue::glue("metabench (d = {numitems.sub$sum})"))
-p.sub
+saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
 
+# correlation between first factor and grand score 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
 gprint("r(Factor1, Score) = {round(r.sub,3)}")
 
-# cor(cbind(pred.sub.test$MR1, pred.theta.test$MR1, pred.score.test$MR1))
-# saveRDS(p.sub, gpath("plots/meta-prediction.rds"))
 
-# =============================================================================
-# summary
-p <- cowplot::plot_grid(p.full, p.sub,
-                        ncol = 1, labels = c("B", "C"), align = "v")
-ggplot2::ggsave(gpath("paper/figures/meta-prediction.pdf"), p, width = 4, height = 7)
-saveRDS(list(p.full, p.sub), gpath("plots/meta-prediction.rds"))
 # =============================================================================
 # comparison to random subsampling
 data.full.train <- lapply(names(benchmarks), collect.data)
