@@ -81,16 +81,14 @@ subsample.wrapper <- function(seed){
    list(
       indices.rand = indices.rand,
       rmse.val = mean(rmses.val),
-      rmse.test = sqrt(mean(df.test$error^2)),
-      rmse.test.ci.size = mean(df.test$ci.size),
-      remse.test.ci.coverage = mean(df.test$in.ci),
+      rmse.test = mean(rmses.test),
       seed = seed
    )
 }
 
 bind.results <- function(results){
   results.tmp <- results
-  results.tmp <- lapply(results.tmp, function(x) x[-c(1, 2)])
+  results.tmp <- lapply(results.tmp, function(x) x[-1])
   # bind all rows to numeric data frame
   out <- as.data.frame(do.call(rbind, results.tmp))
   out <- as.data.frame(lapply(out, as.numeric))
@@ -139,11 +137,8 @@ min.index <- which.min(res$rmse.val)
 gprint("📊 Best Validation RMSE: {round(res$rmse.val[min.index], 3)}, Median: {round(median(res$rmse.val), 3)}")
 gprint("📊 Best Test RMSE: {round(min(res$rmse.test), 3)}, Median: {round(median(res$rmse.test), 3)}")
 rmse.test <- res$rmse.test[min.index]
-rmse.test.ci <- res$rmse.test.ci.size[min.index]
-rmse.test.coverage <- res$remse.test.ci.coverage[min.index]
-gprint("📊 Test RMSE of chosen set: {round(rmse.test, 3)}, mean 99%-CI size: {round(rmse.test.ci,3)}, CI-coverage: {round(100 * rmse.test.coverage, 1)}% ")
+gprint("📊 Test RMSE of chosen set: {round(rmse.test, 3)}")
 indices.rand <- res.full[[min.index]]$indices.rand
-mod.score <- res.full[[min.index]]$mod.score
 
 # collect results
 data.train.s <- data[,indices.rand]
@@ -157,8 +152,8 @@ out <- list(
    scores.test = full$scores.test,
    max.points.orig = full$max.points.orig,
    items = items.s,
-   mod.score = mod.score,
    rmses.val = res$rmse.val,
+   rmse.val = min(res$rmse.val),
    rmses.test = res$rmse.test,
    rmse.test = rmse.test
 )
