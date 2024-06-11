@@ -6,7 +6,7 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N"), 
-   defaults = c("truthfulqa", 100),
+   defaults = c("gsm8k", 350),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 500, 1)
@@ -41,20 +41,19 @@ subsample.wrapper <- function(seed){
    indices.rand <- subsample(data.train, N)
    data.train.r <- data.train[,indices.rand]
    data.val.r <- data.val[,indices.rand]
+   data.test.r <- data.test[,indices.rand]
 
    # recalculate mean scores and prepare score dfs
    scores.train.r <- rowMeans(data.train.r)
-   df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
    scores.val.r <- rowMeans(data.val.r)
-   df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
-
-   # train GAM on train data and predict on test data
-   mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
-
-   # test on test data
-   data.test.r <- data.test[,indices.rand]
    scores.test.r <- rowMeans(data.test.r)
+   df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
+   df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
    df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
+
+   # train GAM on train data and predict on val/test set
+   mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
+   df.val <- predict.scores(df.val, mod.score)
    df.test <- predict.scores(df.test, mod.score)
 
    # export results
@@ -74,7 +73,6 @@ subsample.wrapper <- function(seed){
 bind.results <- function(results){
   results.tmp <- results
   results.tmp <- lapply(results.tmp, function(x) x[-c(1, 2)])
-  # bind all rows to numeric data frame
   out <- as.data.frame(do.call(rbind, results.tmp))
   out <- as.data.frame(lapply(out, as.numeric))
   out 
