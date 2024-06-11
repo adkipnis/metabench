@@ -9,7 +9,7 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, rowmerge, mytheme])
 parse.args(names = c("BM"),
-           defaults = c("mmlu"),
+           defaults = c("truthfulqa"),
            legal = list(
              BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
             )
@@ -163,7 +163,7 @@ gprint("{sum(items$exclude) - d.tmp} additional items are too easy.")
 d.tmp <- sum(items$exclude)
 
 # 2. part-whole correlation with full score should not be ~0
-limit <- ifelse(BM == "winogrande", 0.02, 0.05)
+limit <- ifelse(BM %in% c("truthfulqa", "winogrande"), 0.02, 0.05)
 items$exclude[items$disc < limit & items$disc > -limit] <- T
 gprint("{sum(items$exclude) - d.tmp} additional items have too low correlation with score.")
 
