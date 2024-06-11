@@ -4,7 +4,7 @@
 
 # =============================================================================
 # custom utils, args, path, seed
-box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, get.theta, do.fa, do.fa.cov])
+box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, cbPalette, get.theta, do.fa, do.fa.cov])
 Saveplots <- T
 here::i_am("analysis/meta.R")
 set.seed(1)
@@ -145,7 +145,7 @@ merge.skill <- function(skill.full){
 }
 
 collect.scores <- function(benchmark, train = T){
-   datapath <- gpath("data/{benchmark}-sub.rds")
+   datapath <- gpath("data/{benchmark}-sub-350.rds")
    all <- readRDS(datapath)
    if (train){
      scores <- all$scores.train
@@ -167,7 +167,7 @@ collect.numitems <- function(benchmark, type) {
       all <- readRDS(datapath)
       numitems <- all$max.points.orig
    } else if (type == "preprocessed"){
-     datapath <- gpath("data/{benchmark}-sub.rds")
+     datapath <- gpath("data/{benchmark}-sub-350.rds")
      all <- readRDS(datapath)
      numitems <- ncol(all$data.train)
    } else if (type == "reduced") {
@@ -327,6 +327,7 @@ pred.theta.test$color <- runif(nrow(pred.theta.test))
 p.full <- evaluate.score.pred(pred.theta.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette()) +
   ggplot2::ggtitle(glue::glue("metabench (n = {numitems.theta$sum})"))
+p.full
 saveRDS(p.full, gpath("plots/metabench-full.rds"))
 
 # correlation between first factor and grand score
@@ -397,6 +398,7 @@ pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette()) +
   ggplot2::ggtitle(glue::glue("metabench (d = {numitems.sub$sum})"))
+p.sub
 saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
 
 # correlation between first factor and grand score 
@@ -417,11 +419,16 @@ data.full.train <- lapply(names(benchmarks), collect.data)
 data.full.test <- lapply(names(benchmarks), function(n) collect.data(n, train = F))
 names(data.full.train) <- names(data.full.test) <- names(benchmarks)
 
-# run subsampling
-gprint("🔁 Running 10000 subsampling iterations with for unreduced metabench...")
-
-rmses.full <- foreach(i = 1:100) %dopar% {
+# run subsampling for 350 item set
+gprint("🔁 Running 10000 subsampling iterations with for 350 metabench...")
+rmses.full <- foreach(i = 1:10000, .combine=c) %dopar% {
    subsample.wrapper(i, "full")
 }
+saveRDS(list(rmses.test = rmses.full), gpath("plots/metabench-full-rmses.rds"))
 
-saveRDS(list(rmses.test = rmses), gpath("data/meta-random-rmses.rds"))
+# run subsampling for reduced item set
+gprint("🔁 Running 10000 subsampling iterations with for reduced metabench...")
+rmses.sub <- foreach(i = 1:10000, .combine=c) %dopar% {
+  subsample.wrapper(i, "sub")
+}
+saveRDS(list(rmses.test = rmses.sub), gpath("plots/metabench-sub-rmses.rds"))
