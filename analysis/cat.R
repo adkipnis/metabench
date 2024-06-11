@@ -1,8 +1,11 @@
 # Get test items for each benchmark and adaptively test models to estimate theta:
+#   0. Load helper functions
 #   1. Load data and models
 #   2. Remove outlier items
 #   3. Estimate thetas given trained model for full dataset
 #   4. Simulate Computerized Adaptive Tests using real model responses
+#   5. Estimate score on full benchmark using CAT estimated thetas
+#   6. Summarize the CAT results
 
 
 # =============================================================================
@@ -25,10 +28,12 @@ generate.item.bank <- function(model, benchmark.name, model.type, filter.outlier
   
   gprint("🚰 Preparing CAT simulation with full set of {nrow(item.fits)} items on {benchmark.name} benchmark ({model.type} model)...")
   
-  item.fits <- item.fits |>
-    dplyr::filter(outlier == filter.outliers) 
-  
-  gprint("🚰 Keeping {nrow(item.fits)} that are not outliers...")
+  if (filter.outliers == TRUE){
+    item.fits <- item.fits |>
+      dplyr::filter(outlier == filter.outliers) 
+    
+    gprint("🚰 Keeping {nrow(item.fits)} that are not outliers...")
+  }
   
   # Generate item bank (matrix of model parameters per item) from reduced set
   item.bank <- mirt::coef(model, IRTpars=T, simplify=T)$items 
@@ -38,11 +43,9 @@ generate.item.bank <- function(model, benchmark.name, model.type, filter.outlier
 }
 
 generate.theta.response.matrix <- function(model, benchmark.name, item.bank){
-  if (benchmark.name %in% c("hellaswag", "mmlu")){
-    datapath <- gpath("data/{benchmark.name}-sub.rds")
-  } else {
-    datapath <- gpath("data/{benchmark.name}-preproc-split.rds")
-  }
+  
+  datapath <- gpath("data/{benchmark.name}-sub-350.rds")
+
   data <- readRDS(datapath)
   full.data <- dplyr::bind_rows(data$data.train, data$data.test)
   
@@ -60,11 +63,21 @@ generate.theta.response.matrix <- function(model, benchmark.name, item.bank){
   return(theta.response.matrix)
 }
 
+fit.gam <- function(df.train){
+  # get columns that start with F
+  if ("F2" %in% colnames(df.train)){
+    formula <- "score ~ s(F1, bs = 'ad') + s(F2, bs = 'ad')"
+  } else {
+    formula <- "score ~ s(F1, bs = 'ad')"
+  }
+  mgcv::gam(as.formula(formula), data = df.train)
+}
+
 # =============================================================================
-# load data
+# Run CAT simulations
 
 benchmarks <- c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande")
-models <- c("2PL", "3PL", "3PLu", "4PL")
+models <- c("2PL", "3PL", "4PL")
 
 for (BM in benchmarks){
   for (MOD in models){
@@ -73,10 +86,9 @@ for (BM in benchmarks){
     
     gprint("🚰 Loading data...")
     
-    datapath.model <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
+    datapath.model <- gpath("analysis/models/{BM}-{MOD}-1-cv.rds")
     full <- readRDS(datapath.model)
     model <- full$model
-    nextItem
     rm(full)
     
     item.bank <- generate.item.bank(model, BM, MOD)
@@ -110,37 +122,84 @@ for (BM in benchmarks){
       p <- plot(simulation,
                 save.plot = Saveplots,
                 save.options = c(gpath("analysis/cat/"),
-                                 paste0(c("/catsim", BM, MOD), collapse = "-"),
+                                 paste0(c("/catsim-350", BM, MOD), collapse = "-"),
                                  "pdf"
                                  )
                 )
 
-      outpath <- gpath("analysis/cat/catsim-{BM}-{MOD}.rds")
+      outpath <- gpath("analysis/cat/catsim-350-{BM}-{MOD}.rds")
       saveRDS(simulation, outpath)
       gprint("✅ Simulation success!")
-      rm(simulation)
+      rm(simulation, model, p, theta.response.matrix, thetas, item.bank)
     }, error = function(err){
       gprint("❌ Error in simulation!")
       if (verbose.errors) {
-        cat(paste("Error readout:\n", err))
+        grpint("Error readout: {err}")
       }
     })
-     
   }
 }
 
-rm(list = ls())
-gprint("✅ Simulation Finished!")
-
+gprint("✅ CAT simulation finished!")
 
 # =============================================================================
-# Summarizing
+# Recover overall benchmark score using CAT-estimated thetas
 
-here::i_am("analysis/cat.R")
-gprint("⚙️ Producing summaries...")
+gprint("⚙️ Attempting score recovery from estimated abilities...")
 
-benchmarks <- c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande")
-models <- c("2PL", "3PL", "3PLu", "4PL")
+rmses <- data.frame(benchmark.model = c(), rmse = c())
+for (BM in benchmarks){
+  for (MOD in models){
+    datapath <- gpath("analysis/cat/catsim-350-{BM}-{MOD}.rds")
+    sim <- readRDS(datapath)
+    estimated.thetas <- sim$thetas
+    rm(sim)
+    
+    datapath <- gpath("data/{BM}-sub-350.rds")
+    
+    preproc <- readRDS(datapath)
+    data.train <- preproc$data.train
+    data.test <- preproc$data.test
+    nc <- preproc$max.points.orig
+    scores.train <- preproc$scores.train / nc * 100
+    scores.test <- preproc$scores.test / nc * 100
+    
+    rm(preproc, data.train, data.test, nc)
+    
+    theta.train <- estimated.thetas[1:length(scores.train)]
+    theta.test <- estimated.thetas[(length(scores.train)+1):(length(scores.train)+length(scores.test))]
+    
+    df.train <- data.frame(score = scores.train, F1 = theta.train)
+    
+    mod.score <- fit.gam(df.train)
+    df.train$p <- predict(mod.score)
+    
+    df.test <- data.frame(score = scores.test, F1 = theta.test)
+    
+    df.test$p <- predict(mod.score, newdata = df.test)
+    
+    rmse <- df.test |>
+            dplyr::mutate(error = score - p) |>
+            dplyr::summarise(rmse = sqrt(mean(error^2)))
+    df <- data.frame(benchmark.model = paste0(BM, " (", MOD, ")"), rmse = rmse$rmse[1])
+    rmses <- dplyr::bind_rows(rmses, df)
+    
+    gprint("✅ RMSE for CAT simulations on score recovery for {BM} with model {MOD}...")
+    gprint("RMSE: {rmse$rmse[1]}")
+    
+    rm(theta.train, theta.test, df.train, df.test, mod.score, rmse, df)
+  }
+}
+
+outpath <- gpath("analysis/cat/score-recovery-rmse.rds")
+saveRDS(rmses, outpath)
+
+rm(outpath, rmses)
+
+# =============================================================================
+# Summarize test lengths and theta accuracies
+
+gprint("⚙️ Producing summaries of CAT simulations...")
 
 test.lengths <- data.frame(benchmark.model = c(), test.length = c())
 for (BM in benchmarks){
@@ -167,7 +226,7 @@ for (BM in benchmarks){
 
 cat.accuracies.summary <- cat.accuracies |>
   dplyr::group_by(benchmark.model) |>
-  dplyr::summarise(RMSE = ModelMetrics::rmse(actual = assigned.theta, predicted = cat.estimated.theta))
+  dplyr::summarise(RMSE = sqrt(mean((assigned.theta - cat.estimated.theta)^2)))
 
 test.lengths.summary <- test.lengths |>
   dplyr::group_by(`benchmark.model`) |>
