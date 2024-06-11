@@ -9,21 +9,6 @@ Saveplots <- T
 here::i_am("analysis/meta.R")
 set.seed(1)
 
-papertheme <- function(){
-  box::use(ggplot2[...])
-  theme(axis.title.x = element_text(size = 18),
-        axis.title.y = element_text(size = 18),
-        axis.text.x = element_text(size = 16),
-        axis.text.y = element_text(size = 16),
-        plot.title = element_text(size = 20, hjust = 0.5),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 18),
-        plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"),
-        panel.border = element_rect(size = 2))
-  
-}
-cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#F0E442")
-
 
 # =============================================================================
 # helper functions
