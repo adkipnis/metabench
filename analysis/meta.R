@@ -9,9 +9,14 @@ Saveplots <- T
 here::i_am("analysis/meta.R")
 set.seed(1)
 
+benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "Winogrande")
 
 # =============================================================================
 # helper functions
+napply <- function(some.names, some.func){
+  out <- lapply(some.names, some.func)
+  setNames(out, some.names)
+}
 
 rowmerge <- function(df1, df2){
    merge(df1, df2, by="row.names") |>
@@ -29,18 +34,54 @@ collect.data <- function(benchmark, train=T){
   data
 }
 
-subsample.data.score <- function(benchmark, train=T){
-   n <- numitems.sub[[benchmark]]
-   if (train){
-     data <- data.full.train[[benchmark]]
+subsample.data.score <- function(benchmark, seed, source = "full"){
+   if (source == "full"){
+     n <- numitems.theta[[benchmark]]
+   } else if (source == "sub"){
+     n <- numitems.sub[[benchmark]]
    } else {
-     data <- data.full.test[[benchmark]]
+     print("Unkown source provided, must be 'full' or 'sub'")
+     return()
    }
-   indices <- sample(1:ncol(data), n, replace = F)
-   score.s <- data.frame(rowMeans(data[, indices]) * 100)
-   colnames(score.s) <- benchmark
-   score.s
+   data <- data.full.train[[benchmark]]
+   set.seed(seed)
+   sample(1:ncol(data), n, replace = F)
 }
+
+subscores <- function(name, index.list){
+  data.train <- data.full.train[[name]]
+  data.test <- data.full.test[[name]]
+  indices <- index.list[[name]]
+  data.train.r <- data.train[,indices]
+  data.test.r <- data.test[,indices]
+  scores.train.r <- data.frame(rowMeans(data.train.r) * 100)
+  scores.test.r <- data.frame(rowMeans(data.test.r) * 100)
+  colnames(scores.test.r) <- colnames(scores.train.r) <- name
+  list(train = scores.train.r, test = scores.test.r)
+}
+
+subsample.wrapper <- function(seed, source){
+  subsampler <- function(x) subsample.data.score(x, seed, source)
+  index.list <- napply(names(benchmarks), subsampler)
+  scores.r <- napply(names(benchmarks), function(n) subscores(n, index.list))
+  scores.train.r <- napply(names(benchmarks), function(n) scores.r[[n]]$train)
+  scores.train.r <- Reduce(rowmerge, scores.train.r)
+  scores.test.r <- napply(names(benchmarks), function(n) scores.r[[n]]$test)
+  scores.test.r <- Reduce(rowmerge, scores.test.r)
+  
+  # check relation to grand sum
+  scores.train.r$grand.r <- rowMeans(scores.train.r)
+  scores.test.r$grand.r <- rowMeans(scores.test.r)
+  scores.train.r$grand <- pred.score.train$grand
+  scores.test.r$grand <- pred.score.test$grand
+  mod.score.r <- mgcv::gam(grand ~ s(grand.r, bs="ps"),
+                           data = scores.train.r)
+  scores.train.r$p <- predict(mod.score.r, scores.train.r)
+  scores.test.r$p <- predict(mod.score.r, scores.test.r)
+  scores.test.r |> dplyr::mutate(error = grand - p) |>
+    dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+}
+
 
 collect.theta <- function(benchmark, train=T){
   model.type <- benchmarks[[benchmark]]$mod
