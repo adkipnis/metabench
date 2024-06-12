@@ -19,6 +19,24 @@ plot.development <- function(results, benchmarks, sizes) {
     theme(legend.position = "None")
 }
 
+rename <- function(benchmark){
+   out <- benchmark
+   if (benchmark == "arc") {
+      out <- "ARC"
+   } else if (benchmark == "gsm8k") {
+      out <- "GSM8K"
+   } else if (benchmark == "hellaswag") {
+      out <- "HellaSwag"
+   } else if (benchmark == "mmlu") {
+      out <- "MMLU"
+   } else if (benchmark == "truthfulqa") {
+      out <- "TruthfulQA"
+   } else if (benchmark == "winogrande") {
+      out <- "Winogrande"
+   }
+   out
+}
+
 # =============================================================================
 # prepare data
 benchmarks <-
@@ -44,8 +62,11 @@ results$k <- as.numeric(results$k)
 results$rmse.val <- as.numeric(results$rmse.val)
 results$rmse.test <- as.numeric(results$rmse.test)
 
+# rename benchmark entries using the rename function
+results$benchmark <- sapply(results$benchmark, rename)
+
 # plot development
 p <- plot.development(results, benchmarks, sizes)
-outpath <- gpath("plots/random-rmses.pdf")
-ggplot2::ggsave(outpath, p, width = 8, height = 6)
+outpath <- gpath("figures/f.random.pdf")
+ggplot2::ggsave(outpath, p, width = 8, height = 5)
 gprint("Saved plot to {outpath}.")
