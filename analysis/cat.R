@@ -30,7 +30,7 @@ generate.item.bank <- function(model, benchmark.name, model.type, filter.outlier
   
   if (filter.outliers == TRUE){
     item.fits <- item.fits |>
-      dplyr::filter(outlier == filter.outliers) 
+      dplyr::filter(outlier == FALSE) 
     
     gprint("🚰 Keeping {nrow(item.fits)} that are not outliers...")
   }
@@ -89,16 +89,50 @@ fit.gam <- function(df.train){
   mgcv::gam(as.formula(formula), data = df.train)
 }
 
+sim.wrapper <- function(list.element){
+  theta.response.matrix <- list.element$theta.response.matrix
+  item.bank <- list.element$item.bank
+  BM <- list.element$benchmark.name
+  MOD <- list.element$model.type
+  method <- ifelse(BM == "hellaswag", "BM", "EAP")
+  simulation <- catR::simulateRespondents(thetas = theta.response.matrix$F1, 
+                                          itemBank = item.bank[,1:4], 
+                                          rmax = 1, 
+                                          start = list(theta = c(-1:1),
+                                                       randomesque = 1,
+                                                       startSelect = "MFI"), 
+                                          test = list(method = method, #MAP is appropriate for hellaswag, otherwise, EAP.
+                                                      priorDist = "norm",
+                                                      itemSelect = "MFI"), 
+                                          stop = list(rule = "precision", 
+                                                      thr = 0.1), 
+                                          final = list(method = method, 
+                                                       priorDist = "norm"), 
+                                          genSeed = sample.int(nrow(theta.response.matrix)), #generate seed list of random +ve ints
+                                          responsesMatrix = theta.response.matrix[-1]
+  )
+  output <- list(sim.results = simulation, benchmark.name = BM, model.type = MOD)
+  return(output)
+}
+
+# =============================================================================
+# setup parallel processing
+box::use(doParallel[...], foreach[...])
+n.cores <- 6
+mu.cluster <- parallel::makeCluster(n.cores, type = "FORK")
+doParallel::registerDoParallel(mu.cluster)
+
 # =============================================================================
 # Run CAT simulations
 
 best.models <- data.frame(benchmark.name = c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande"),
                           model.type = c("4PL", "3PL", "4PL", "2PL", "2PL", "4PL"))
 
+data <- list()
 for (row in 1:nrow(best.models)){
   BM <- best.models$benchmark.name[row]
   MOD <- best.models$model.type[row]
-    
+  
   set.seed(1) #reset one each iter
   
   gprint("🚰 Loading data...")
@@ -115,66 +149,60 @@ for (row in 1:nrow(best.models)){
   
   theta.response.matrix <- generate.theta.response.matrix(model, BM, MOD, item.bank, method = ifelse(BM == "hellaswag", "MAP", "EAPsum"))
   
-  gprint("⚙️ Simulating CAT...")
-  tryCatch({
-    simulation <- catR::simulateRespondents(thetas = theta.response.matrix$F1, 
-                                            itemBank = item.bank[,1:4], 
-                                            rmax = 1, 
-                                            start = list(theta = c(-1:1),
-                                                         randomesque = 1,
-                                                         startSelect = "MFI"), 
-                                            test = list(method = ifelse(BM == "hellaswag", "BM", "EAP"), #MAP is appropriate for hellaswag, otherwise, EAP.
-                                                        priorDist = "norm",
-                                                        itemSelect = "MFI"), 
-                                            stop = list(rule = "precision", 
-                                                        thr = 0.1), 
-                                            final = list(method = "BM", 
-                                                         priorDist = "norm"), 
-                                            genSeed = sample.int(nrow(theta.response.matrix)), #generate seed list of random +ve ints
-                                            responsesMatrix = theta.response.matrix[-1]
-    )
-    
-    p <- plot(simulation,
-              save.plot = Saveplots,
-              save.options = c(gpath("analysis/cat/"),
-                               paste0(c("/catsim-big", BM, MOD), collapse = "-"),
-                               "pdf"
-              )
-    )
-    
-    outpath <- gpath("analysis/cat/catsim-big-{BM}-{MOD}.rds")
-    saveRDS(simulation, outpath)
-    gprint("✅ Simulation success!")
-    rm(simulation, model, p, theta.response.matrix, thetas, item.bank)
-  }, error = function(err){
-    gprint("❌ Error in simulation!")
-    if (verbose.errors) {
-      gprint("Error readout: {err}")
-    }
-  })
+  bm.mod.list <- list(model = model,
+                      item.bank = item.bank,
+                      theta.response.matrix = theta.response.matrix,
+                      benchmark.name = BM,
+                      model.type = MOD)
+  
+  data[[length(data)+1]] <- bm.mod.list
 }
 
-gprint("✅ CAT simulation finished!")
+gprint("⚙️ Simulating CAT on {n.cores} cores...")
+sim.outputs <- foreach(i = 1:length(data)) %dopar% {
+  sim.wrapper(data[[i]])
+}
+parallel::stopCluster(mu.cluster)
+
+gprint("✅ Simulation success!")
+
+outpath <- gpath("analysis/cat/catsim-big-all.rds")
+saveRDS(sim.outputs, outpath)
+
 
 # =============================================================================
-# Recover overall benchmark score using CAT-estimated thetas
+# Run post simulation analyses
 
-gprint("⚙️ Attempting score recovery from estimated abilities...")
+if (!exists("sim.outputs")){
+  inpath <- gpath("analysis/cat/catsim-big-all.rds")
+  sim.outputs <- readRDS(inpath)
+}
 
 rmses <- data.frame(benchmark.model = c(), rmse = c())
-for (row in 1:nrow(best.models)){
-  BM <- best.models$benchmark.name[row]
-  MOD <- best.models$model.type[row]
+
+for (s in 1:length(sim.outputs)){
+  sim <- sim.outputs[[s]]$sim.results
+  BM <- sim.outputs[[s]]$BM
+  MOD <- sim.outputs[[s]]$MOD
   
-  datapath <- gpath("analysis/cat/catsim-big-{BM}-{MOD}.rds")
-  sim <- readRDS(datapath)
+  gprint("📊 Plotting simulation results for {BM} {MOD} model...")
+  p <- plot(sim,
+            save.plot = Saveplots,
+            save.options = c(gpath("analysis/cat/"),
+                             paste0(c("/catsim-big", BM, MOD), collapse = "-"),
+                             "pdf")
+            )
+  rm(p)
+  
+  gprint("⚙️ Computing RMSE for CAT simulations on score recovery for {BM} with model {MOD}...")
+  
   estimated.thetas <- sim$thetas
   rm(sim)
   
   if (benchmark.name == "mmlu") {
-    datapath <- gpath("data/{benchmark.name}-sub-1189.rds")
+    datapath <- gpath("data/{BM}-sub-1189.rds")
   } else {
-    datapath <- gpath("data/{benchmark.name}-preproc-split.rds")
+    datapath <- gpath("data/{BM}-preproc-split.rds")
   }
   
   preproc <- readRDS(datapath)
@@ -204,11 +232,7 @@ for (row in 1:nrow(best.models)){
   df <- data.frame(benchmark.model = paste0(BM, " (", MOD, ")"), rmse = rmse$rmse[1])
   rmses <- dplyr::bind_rows(rmses, df)
   
-  gprint("✅ RMSE for CAT simulations on score recovery for {BM} with model {MOD}...")
   gprint("RMSE: {rmse$rmse[1]}")
-  
-  rm(theta.train, theta.test, df.train, df.test, mod.score, rmse, df)
-  
 }
 
 outpath <- gpath("analysis/cat/big-score-recovery-rmse.rds")
@@ -219,25 +243,30 @@ rm(outpath, rmses)
 # =============================================================================
 # Summarize test lengths and theta accuracies
 
+if (!exists("sim.outputs")){
+  inpath <- gpath("analysis/cat/catsim-big-all.rds")
+  sim.outputs <- readRDS(inpath)
+}
+
 gprint("⚙️ Producing summaries of CAT simulations...")
 
 test.lengths <- data.frame(benchmark.model = c(), test.length = c())
-for (row in 1:nrow(best.models)){
-  BM <- best.models$benchmark.name[row]
-  MOD <- best.models$model.type[row]
-  datapath <- gpath("analysis/cat/catsim-big-{BM}-{MOD}.rds")
-  sim <- readRDS(datapath)
+for (s in 1:length(sim.outputs)){
+  sim <- sim.outputs[[s]]$sim.results
+  BM <- sim.outputs[[s]]$BM
+  MOD <- sim.outputs[[s]]$MOD
+  
   test.length <- sim$numberItems
   df <- data.frame(benchmark.model = rep(paste0(BM, " (", MOD, ")"), length(test.length)), test.length = test.length)
   test.lengths <- dplyr::bind_rows(test.lengths, df)
 }
 
 cat.accuracies <- data.frame(benchmark.model = c(), assigned.theta = c(), cat.estimated.theta = c())
-for (row in 1:nrow(best.models)){
-  BM <- best.models$benchmark.name[row]
-  MOD <- best.models$model.type[row]
-  datapath <- gpath("analysis/cat/catsim-big-{BM}-{MOD}.rds")
-  sim <- readRDS(datapath)
+for (s in 1:length(sim.outputs)){
+  sim <- sim.outputs[[s]]$sim.results
+  BM <- sim.outputs[[s]]$BM
+  MOD <- sim.outputs[[s]]$MOD
+  
   assigned.thetas <- sim$final.values.df$true.theta
   estimated.thetas <- sim$final.values.df$estimated.theta
   df <- data.frame(benchmark.model = rep(paste0(BM, " (", MOD, ")"), length(assigned.thetas)), assigned.theta = assigned.thetas, cat.estimated.theta = estimated.thetas)
@@ -273,4 +302,4 @@ outpath <- gpath("analysis/cat/big-overall-summaries.rds")
 saveRDS(overall.summary, outpath)
 
 rm(list = ls())
-gprint("✅ Finished!")
+gprint("🏁 Finished!")
