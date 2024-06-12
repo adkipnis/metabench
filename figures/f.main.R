@@ -64,7 +64,7 @@ add.asterisk <- function(x, y){
 # =============================================================================
 # prepare data
 arc.sub <- readRDS(gpath("analysis/reduced/arc-2PL-MAP-0.005.rds"))
-gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-3PL-EAPsum-0.005.rds"))
+gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005.rds"))
 hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.01.rds"))
 mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.01.rds"))
 tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.01.rds"))
@@ -87,25 +87,27 @@ p.reduced <- cowplot::plot_grid(
 
 # =============================================================================
 # 6-predictor plots
-p.arc <- readRDS(gpath("plots/mb-arc.rds")) +
-   scale_color_gradientn(colors = cbp[[1]]) +
-   labs(x = "", title = "ARC")
-# p.gsm8k <- readRDS(gpath("plots/meta-gsm8k.rds")) + scale_color_gradientn(colors = cbPalette[[2]]) + labs(x = "", y = "", title = "GSM8K")+ papertheme()
-# p.hs <- readRDS(gpath("plots/meta-hellaswag.rds")) + scale_color_gradientn(colors = cbPalette[[3]]) + labs(x = "", y = "", title = "HellaSwag")+ papertheme()
-# p.mmlu <- readRDS(gpath("plots/meta-mmlu.rds")) + scale_color_gradientn(colors = cbPalette[[4]]) + labs(title = "MMLU")+ papertheme()
-# p.tfqa <- readRDS(gpath("plots/meta-truthfulqa.rds")) + scale_color_gradientn(colors = cbPalette[[5]]) + labs(y = "", title = "TruthfulQA")+ papertheme()
-# p.wg <- readRDS(gpath("plots/meta-winogrande.rds")) + scale_color_gradientn(colors = cbPalette[[6]]) + labs(y = "", title = "Winogrande")+ papertheme()
-# p.mb <- readRDS(gpath("plots/meta-prediction.rds")) + papertheme() + labs(y ="", title = "metabench (d = 845)")
-# rmse.mb <- as.character(p.mb[["layers"]][[3]][["computed_geom_params"]][["label"]]) 
-# rmse.mb <- gsub("\n.*", "", rmse.mb)
-# rmse.mb <- as.numeric(gsub("[^0-9.]", "", rmse.mb))
-# 
+six <- readRDS(gpath("plots/mb-specific.rds"))
+p.arc.6 <- six$arc + ggplot2::scale_color_gradientn(colors = cbp[[1]]) +
+   ggplot2::labs(x = "", title = "ARC")
+p.gsm8k.6 <- six$gsm8k + ggplot2::scale_color_gradientn(colors = cbp[[2]]) +
+   ggplot2::labs(x = "", y = "", title = "GSM8K")
+p.hs.6 <- six$hs + ggplot2::scale_color_gradientn(colors = cbp[[3]]) + 
+   ggplot2::labs(x = "", y = "", title = "HellaSwag")
+p.mmlu.6 <- six$mmlu + ggplot2::scale_color_gradientn(colors = cbp[[4]]) + 
+   ggplot2::labs(title = "MMLU")
+p.tfqa.6 <- six$tfqa + ggplot2::scale_color_gradientn(colors = cbp[[5]]) + 
+   ggplot2::labs(y = "", title = "TruthfulQA")
+p.wg.6 <- six$wg + ggplot2::scale_color_gradientn(colors = cbp[[6]]) + 
+   ggplot2::labs(y = "", title = "Winogrande")
+p.reduced.6 <- cowplot::plot_grid(
+  p.arc.6, p.gsm8k.6, p.hs.6, p.mmlu.6, p.tfqa.6, p.wg.6, ncol = 3)
 
 # =============================================================================
 # violin plots for RMSE
 rand.list = list(
   ARC = readRDS(gpath("data/arc-sub-100.rds"))$rmses.test,
-  GSM8K = readRDS(gpath("data/gsm8k-sub-196.rds"))$rmses.test,
+  GSM8K = readRDS(gpath("data/gsm8k-sub-237.rds"))$rmses.test,
   HellaSwag = readRDS(gpath("data/hellaswag-sub-58.rds"))$rmses.test,
   MMLU = readRDS(gpath("data/mmlu-sub-102.rds"))$rmses.test,
   TruthfulQA = readRDS(gpath("data/truthfulqa-sub-136.rds"))$rmses.test,
