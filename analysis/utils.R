@@ -149,7 +149,7 @@ mytheme <- function(){
         # plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
         panel.border = element_rect(size = 2),
         strip.background = element_blank(),
-        strip.text = element_text(size = 16, face = "bold"),
+        strip.text = element_text(size = 16),
         strip.placement = "outside")
 }
 
