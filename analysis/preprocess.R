@@ -9,7 +9,7 @@
 # custom utils, args, path, seed
 box::use(./utils[parse.args, mkdir, gprint, gpath, df2data, rowmerge, mytheme])
 parse.args(names = c("BM"),
-           defaults = c("truthfulqa"),
+           defaults = c("arc"),
            legal = list(
              BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
             )
@@ -98,6 +98,17 @@ plot.items <- function(items, den = T) {
    plot_grid(hist1, hist2, scatter, ncol = 1)
 }
 
+plot.scores <- function(score.df){
+   box::use(ggplot2[...], cowplot[plot_grid])
+   ggplot(score.df, aes(score, color = type)) +
+      geom_density(alpha = 0.5) +
+      labs(x = "score", y = "density", title = BM) +
+      scale_x_continuous(limits = c(0,100)) +
+      mytheme() +
+      theme(legend.position = "inside", legend.position.inside = c(0.1, 0.9),
+            legend.justification = c(0, 1), legend.title = element_blank()) +
+      scale_color_manual(values = c("all" = "darkgray", "last" = "darkorange"))
+}
 
 # =============================================================================
 # prepare data
@@ -185,6 +196,17 @@ data.sub <- data[, items.sub$item]
 p.post <- plot.items(items.sub)
 p <- cowplot::plot_grid(p.pre, p.post, ncol = 2, labels = "AUTO")
 ggplot2::ggsave(gpath("plots/{BM}-preproc.png"), p, width = 10, height = 5)
+
+# plot score distribution
+# get all unique users (rownames of scores until first /)
+unique.users <- unique(gsub("/.*", "", rownames(data)))
+last.obs <- sapply(unique.users, function(u) tail(which(grepl(u, rownames(data))), 1))
+scores.sub <- scores[last.obs]
+score.df <- data.frame(score = scores, type = "all")
+score.df <- rbind(score.df, data.frame(score = scores.sub, type = "last"))
+score.df$score <- score.df$score / max.points.orig * 100
+p.score <- plot.scores(score.df)
+saveRDS(p.score, gpath("plots/{BM}-score-dist.rds"))
 
 # reduce data and save
 gprint("🏁 Reduced dataset to {nrow(items.sub)} items.")
