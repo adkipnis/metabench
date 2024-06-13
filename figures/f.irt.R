@@ -11,7 +11,7 @@ niceify <- function(p, benchmark){
   box::use(ggplot2[...])
   index <- which(benchmarks == benchmark)
    p <- p +
-     labs(title = benchmark) +
+     labs(title = glue::glue("{benchmark} (d = 350)")) +
      aes(color = set) +
      scale_color_manual(values = cbp[index]) +
      theme( plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
@@ -56,7 +56,7 @@ add.asterisk <- function(x, y){
 # load score plots
 arc.irt <- readRDS(gpath("plots/arc-EAPsum-1-cv.rds"))[[2]] |>
   niceify(benchmark = "ARC") + ggplot2::labs(x = "")
-gsm8k.irt <- readRDS(gpath("plots/gsm8k-MAP-2-cv.rds"))[[1]] |>
+gsm8k.irt <- readRDS(gpath("plots/gsm8k-EAPsum-1-cv.rds"))[[1]] |>
   niceify(benchmark = "GSM8K") + ggplot2::labs(x = "", y = "") 
 hs.irt <- readRDS(gpath("plots/hellaswag-MAP-1-cv.rds"))[[2]] |>
   niceify(benchmark = "HellaSwag") + ggplot2::labs(x = "", y = "")
