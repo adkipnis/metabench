@@ -13,6 +13,8 @@ parse.args(
 )
 here::i_am("analysis/logistic.R")
 set.seed(1)
+#k <- 8192
+k <- 1024
 
 # =============================================================================
 # helper functions  
@@ -70,8 +72,8 @@ plot.score <- function(df.plot, text = ""){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-datapath <- gpath("data/{BM}-preproc-split.rds")
-# datapath <- gpath("data/{BM}-sub-350.rds")
+# datapath <- gpath("data/{BM}-preproc-split.rds")
+datapath <- gpath("data/{BM}-sub-350.rds")
 
 preproc <- readRDS(datapath)
 data.train <- preproc$data.train
@@ -84,15 +86,16 @@ scores.train.norm <- scores.train
 item.params <- train.glms(scores.train.norm, data.train)
 
 # get max aposteriori estimates of scores
-prior <- density(scores.train.norm, n = 1024, from = 0, to = 100)
-loglikelihoods <- matrix(0, nrow(data.train), 1024)
+search.space <- seq(0, 100, length.out = k)
+prior <- density(scores.train.norm, n = k, from = 0, to = 100)
+loglikelihoods <- matrix(0, nrow(data.train), k)
 for (i in 1:ncol(data.train)){
   ll <- function(theta) get.log.likelihood(theta, item.params[i,], data.train[,i])
-  loglikelihoods <- loglikelihoods + ll(prior$x) 
+  loglikelihoods <- loglikelihoods + ll(search.space) 
 }
 logposterior <- loglikelihoods + log(prior$y)
 argmax <- apply(logposterior, 1, which.max)
-score.rec <- prior$x[argmax]
+score.rec <- search.space[argmax]
 if (any(is.na(logposterior))){
   gprint("NAs produced, caution!")
 }
