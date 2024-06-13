@@ -18,6 +18,12 @@ napply <- function(some.names, some.func){
   setNames(out, some.names)
 }
 
+cormat2vec <- function(y) {
+  x <- cor(y)
+  unique(x[col(x) != row(x)])
+}
+
+
 rowmerge <- function(df1, df2){
    merge(df1, df2, by="row.names") |>
      tibble::column_to_rownames("Row.names")
@@ -253,8 +259,8 @@ dev.off()
 # exploratory factor analysis
 fa.score.1 <- do.fa(scores.partial.train, 1)
 fa.score.2 <- do.fa(scores.partial.train, 2)
-# fa.score.3 <- do.fa(scores.partial.train, 3) # this throws an exception
-fa.score <- fa.score.2
+fa.score.3 <- do.fa(scores.partial.train, 3, verbose = F) # this throws an exception
+fa.score <- fa.score.1
 psych::fa.diagram(fa.score)
 sort(fa.score$uniquenesses, decreasing = T)
 
@@ -289,6 +295,9 @@ thetas.full.test <- lapply(names(benchmarks), function(n) collect.theta(n, train
 thetas.partial.train <- Reduce(rowmerge, thetas.full.train)
 thetas.partial.test <- Reduce(rowmerge, thetas.full.test)
 numitems.theta <- get.numitems(benchmarks, "preprocessed")
+
+cor(cormat2vec(scores.partial.train), cormat2vec(thetas.partial.train))
+
 
 # plot correlation matrix
 pdf(file = gpath("plots/corrmat.thetas-f.pdf"))
@@ -360,15 +369,23 @@ thetas.sub.partial.test <- Reduce(rowmerge, thetas.sub.full.test)
 numitems.sub <- get.numitems(benchmarks, "reduced")
 numitems.sub
 
+cor(cormat2vec(scores.partial.train), cormat2vec(thetas.sub.partial.train))
+
 # plot correlation matrix
 pdf(file = gpath("plots/corrmat.thetas-s.pdf"))
 plot.corrmat(thetas.sub.partial.train)
 dev.off()
 
 # exploratory factor analysis
-fa.sub <- do.fa(thetas.sub.partial.train, 1)
-do.fa(thetas.sub.partial.train, 1)
+fa.sub.1 <- do.fa(thetas.sub.partial.train, 1)
+fa.sub.2 <- do.fa(thetas.sub.partial.train, 2)
+fa.sub.3 <- do.fa(thetas.sub.partial.train, 3, verbose = F)
+fa.sub <- fa.sub.1
 fa.sub$loadings
+
+psych::fa.diagram(fa.sub.2)
+
+paste0(round(fa.sub$loadings[,2], 3), collapse = " & ")
 
 # check relation to grand sum or other benchmarks
 fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
@@ -401,6 +418,12 @@ saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
 # correlation between first factor and grand score 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
 gprint("r(Factor1, Score) = {round(r.sub,3)}")
+
+# mod.fa <- mgcv::gam(grand ~ s(MR1, bs="ad"), data = pred.sub.train)
+# pred.sub.train$pfa <- predict(mod.fa, pred.sub.train)
+# pred.sub.test$pfa <- predict(mod.fa, pred.sub.test)
+
+# sqrt(mean( (pred.sub.test$pfa - pred.sub.test$grand)^2 ))
 
 # =============================================================================
 # 3. Predict specific scores using all latent abilities
@@ -463,3 +486,31 @@ rmses.sub <- foreach(i = 1:10000, .combine=c) %dopar% {
   subsample.wrapper(i, "sub")
 }
 saveRDS(list(rmses.test = rmses.sub), gpath("plots/metabench-sub-rmses.rds"))
+
+# =============================================================================
+# most informative items
+load.items <- function(b){
+  bm <- benchmarks[[b]]
+  fitpath <- gpath("analysis/reduced/{b}-{bm$mod}-{bm$est}-{bm$lam}.rds")
+  fit <- readRDS(fitpath)
+  items <- fit$items
+  items$item <- paste0(b, ".", items$item)
+  argmax.quantiles <- quantile(items$info.argmax, p=seq(0, 1, 0.2))
+  n <- length(argmax.quantiles) - 1
+  item.list <- list()
+  for (i in 1:n){
+    q0 <- as.numeric(argmax.quantiles[i])
+    q1 <- as.numeric(argmax.quantiles[i+1])
+    # select rows in info.items that are in the current quantile
+    q.set <- items |>
+      dplyr::filter(info.argmax >= q0 & info.argmax < q1)
+    index <- which.max(q.set$info.max)
+    item.list[[i]] <- q.set[index, ]
+  }
+  out <- do.call(rbind, item.list)
+  out$quantiles <- names(argmax.quantiles)[2:6]
+  out
+}
+example.items <- lapply(names(benchmarks), load.items)
+example.items <- do.call(rbind, example.items)
+write.csv(example.items, gpath("analysis/reduced/example.items.csv"), row.names=F)
