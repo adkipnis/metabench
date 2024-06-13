@@ -337,7 +337,7 @@ gprint("r(Factor1, Score) = {round(r.theta,3)}")
 # 3. Latent Abilities (subsets)
 # benchmarks <- list(
 #   arc = list(mod = "2PL", est = "MAP", lam = 0.001),
-#   gsm8k = list(mod = "3PL", est = "EAPsum", lam = 0.005),
+#   gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
 #   hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
 #   mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
 #   truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
