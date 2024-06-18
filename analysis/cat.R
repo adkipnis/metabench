@@ -13,6 +13,7 @@
 box::use(./utils[gprint, gpath, get.theta])
 Saveplots <- T
 verbose.errors <- T
+parallelProcess <- FALSE
 here::i_am("analysis/cat.R")
 set.seed(1)
 
@@ -118,10 +119,14 @@ sim.wrapper <- function(list.element){
 # =============================================================================
 # setup parallel processing
 box::use(doParallel[...], foreach[...])
-n.cores <- 6
-mu.cluster <- parallel::makeCluster(n.cores, type = "FORK")
-doParallel::registerDoParallel(mu.cluster)
 
+if (parallelProcess == TRUE){
+  n.cores <- 6
+  mu.cluster <- parallel::makeCluster(n.cores, type = "FORK")
+  doParallel::registerDoParallel(mu.cluster)
+} else {
+  n.cores <- 1
+ }
 # =============================================================================
 # Run CAT simulations
 
@@ -159,16 +164,28 @@ for (row in 1:nrow(best.models)){
 }
 
 gprint("⚙️ Simulating CAT on {n.cores} cores...")
-sim.outputs <- foreach(i = 1:length(data)) %dopar% {
-  sim.wrapper(data[[i]])
+
+if (parallelProcess == TRUE){
+  sim.outputs <- foreach(i = 1:length(data)) %dopar% {
+    sim.wrapper(data[[i]])
+  }
+} else {
+  sim.outputs <- foreach(i = 1:length(data)) %do% {
+    sim.wrapper(data[[i]])
+  gprint("✅ {data[[i]]$benchmark.name} simulation complete!")
+  outpath <- gpath("analysis/cat/catsim-big-all.rds")
+  saveRDS(sim.outputs, outpath)
+  }
 }
-parallel::stopCluster(mu.cluster)
+ 
+if (parallelProcess == TRUE){
+  parallel::stopCluster(mu.cluster)
+
+  outpath <- gpath("analysis/cat/catsim-big-all.rds")
+  saveRDS(sim.outputs, outpath)
+}
 
 gprint("✅ Simulation success!")
-
-outpath <- gpath("analysis/cat/catsim-big-all.rds")
-saveRDS(sim.outputs, outpath)
-
 
 # =============================================================================
 # Run post simulation analyses
