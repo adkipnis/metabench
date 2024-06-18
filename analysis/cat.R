@@ -172,10 +172,10 @@ if (parallelProcess == TRUE){
 } else {
   sim.outputs <- foreach(i = 1:length(data)) %do% {
     sim.wrapper(data[[i]])
-  gprint("✅ {data[[i]]$benchmark.name} simulation complete!")
+    gprint("✅ {data[[i]]$benchmark.name} simulation complete!")
+  }
   outpath <- gpath("analysis/cat/catsim-big-all.rds")
   saveRDS(sim.outputs, outpath)
-  }
 }
  
 if (parallelProcess == TRUE){
