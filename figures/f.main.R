@@ -68,7 +68,7 @@ gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005.rds"))
 hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.01.rds"))
 mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.01.rds"))
 tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.01.rds"))
-wg.sub <- readRDS(gpath("analysis/reduced/winogrande-4PL-MAP-0.005.rds"))
+wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
 
 p.mb <- readRDS(gpath("plots/metabench-sub.rds")) +
   ggplot2::labs(y ="") +
@@ -82,14 +82,14 @@ rand.list = list(
   HellaSwag = readRDS(gpath("data/hellaswag-sub-58.rds"))$rmses.test,
   MMLU = readRDS(gpath("data/mmlu-sub-102.rds"))$rmses.test,
   TruthfulQA = readRDS(gpath("data/truthfulqa-sub-136.rds"))$rmses.test,
-  Winogrande = readRDS(gpath("data/winogrande-sub-106.rds"))$rmses.test,
+  WinoGrande = readRDS(gpath("data/WinoGrande-sub-106.rds"))$rmses.test,
   metabench = readRDS(gpath("plots/metabench-sub-rmses.rds"))$rmses.test
 )
 rand.list <- lapply(rand.list, function(x) data.frame(rmse = x))
 rand.list <- lapply(names(rand.list), function(x) cbind(rand.list[[x]], bm = x))
 rand <- do.call(rbind, rand.list)
 rand$bm <- factor(rand$bm, levels = c("ARC", "GSM8K", "HellaSwag", "MMLU",
-                                      "TruthfulQA", "Winogrande", "metabench"))
+                                      "TruthfulQA", "WinoGrande", "metabench"))
 
 # =============================================================================
 # 1-predictor plots (score from specific skill)
@@ -98,7 +98,7 @@ p.gsm8k <- plot.score(gsm8k.sub, "GSM8K", cbp[2]) + ggplot2::labs(x = "", y = ""
 p.hs <- plot.score(hs.sub, "HellaSwag", cbp[3]) + ggplot2::labs(x = "", y = "")
 p.mmlu <- plot.score(mmlu.sub, "MMLU", cbp[4])
 p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbp[5]) + ggplot2::labs(y = "")
-p.wg <- plot.score(wg.sub, "Winogrande", cbp[6]) + ggplot2::labs(y = "")
+p.wg <- plot.score(wg.sub, "WinoGrande", cbp[6]) + ggplot2::labs(y = "")
 p.reduced <- cowplot::plot_grid(
   p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
 
@@ -133,7 +133,7 @@ p.mmlu.6 <- six$mmlu + ggplot2::scale_color_gradientn(colors = cbp[[4]]) +
 p.tfqa.6 <- six$tfqa + ggplot2::scale_color_gradientn(colors = cbp[[5]]) + 
    ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)")
 p.wg.6 <- six$wg + ggplot2::scale_color_gradientn(colors = cbp[[6]]) + 
-   ggplot2::labs(y = "", title = "Winogrande* (d = 106)")
+   ggplot2::labs(y = "", title = "WinoGrande* (d = 106)")
 p.reduced.6 <- cowplot::plot_grid(
   p.arc.6, p.gsm8k.6, p.hs.6, p.mmlu.6, p.tfqa.6, p.wg.6, ncol = 3)
 

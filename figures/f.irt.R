@@ -4,7 +4,7 @@ here::i_am("figures/f.irt.R")
 
 # =============================================================================
 # helper functions
-benchmarks <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "Winogrande")
+benchmarks <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande")
 cbp <- cbPalette()
 
 niceify <- function(p, benchmark){
@@ -44,7 +44,7 @@ randlist2df <- function(rand.list){
   rand.list <- lapply(rand.list, function(x) data.frame(rmse = x))
   rand.list <- lapply(names(rand.list), function(x) cbind(rand.list[[x]], bm = x))
   rand <- do.call(rbind, rand.list)
-  rand$bm <- factor(rand$bm, levels = c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "Winogrande", "metabench"))
+  rand$bm <- factor(rand$bm, levels = c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande", "metabench"))
   rand
 }
 
@@ -64,8 +64,8 @@ mmlu.irt <- readRDS(gpath("plots/mmlu-EAPsum-1-cv.rds"))[[3]] |>
   niceify(benchmark = "MMLU")
 tfqa.irt <- readRDS(gpath("plots/truthfulqa-EAPsum-1-cv.rds"))[[1]] |>
   niceify(benchmark = "TruthfulQA") + ggplot2::labs(y = "")
-wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv.rds"))[[2]] |>
-  niceify(benchmark = "Winogrande") + ggplot2::labs(y = "")
+wg.irt <- readRDS(gpath("plots/WinoGrande-EAPsum-1-cv.rds"))[[2]] |>
+  niceify(benchmark = "WinoGrande") + ggplot2::labs(y = "")
 mb <- readRDS(gpath("plots/metabench-full.rds")) +
   ggplot2::labs(y ="", title = "metabench (d = 2100)") +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
@@ -80,7 +80,7 @@ rand.list = list(
    HellaSwag = readRDS(gpath("data/hellaswag-sub-350.rds"))$rmses.test,
    MMLU = readRDS(gpath("data/mmlu-sub-350.rds"))$rmses.test,
    TruthfulQA = readRDS(gpath("data/truthfulqa-sub-350.rds"))$rmses.test,
-   Winogrande = readRDS(gpath("data/winogrande-sub-350.rds"))$rmses.test,
+   WinoGrande = readRDS(gpath("data/WinoGrande-sub-350.rds"))$rmses.test,
    metabench = readRDS(gpath("plots/metabench-full-rmses.rds"))$rmses.test
 )
 

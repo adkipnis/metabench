@@ -9,7 +9,7 @@ Saveplots <- T
 here::i_am("analysis/meta.R")
 set.seed(1)
 
-benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "Winogrande")
+benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande")
 
 # =============================================================================
 # helper functions
