@@ -24,7 +24,8 @@ plot.score <- function(result, bm, color){
   df.plot <- result$df.score.sub |>
     dplyr::filter(set == "test")
   rmse <- get.rmse(result)
-  # r <- cor(df.plot$theta, df.plot$score, method = "spearman")
+  r <- cor(df.plot$theta, df.plot$score, method = "spearman")
+  print(r)
   n.items <- nrow(result$items)
   text <- glue::glue("RMSE = {round(rmse, 3)}")
   ggplot(df.plot, aes(x = score, y = p)) +
@@ -60,6 +61,28 @@ add.asterisk <- function(x, y){
   ggplot2::geom_text(aes(x = x, y = y, label = "*"),
                      color = "#444444", size = 4.5, vjust = 0.8)
 }
+
+rmse.percentile <- function(our, random){
+  sum(our <= random$rmse)/nrow(random) 
+}
+
+compare.rmses <- function(){
+  btr.arc <- rmse.percentile(rmse.from.plot(p.arc), 
+                           rand |> dplyr::filter(bm == "ARC"))
+  btr.gsm8k <- rmse.percentile(rmse.from.plot(p.gsm8k), 
+                           rand |> dplyr::filter(bm == "GSM8K"))
+  btr.hs <- rmse.percentile(rmse.from.plot(p.hs), 
+                           rand |> dplyr::filter(bm == "HellaSwag"))
+  btr.mmlu <- rmse.percentile(rmse.from.plot(p.mmlu), 
+                           rand |> dplyr::filter(bm == "MMLU"))
+  btr.tfqa <- rmse.percentile(rmse.from.plot(p.tfqa), 
+                           rand |> dplyr::filter(bm == "TruthfulQA"))
+  btr.wg <- rmse.percentile(rmse.from.plot(p.wg), 
+                           rand |> dplyr::filter(bm == "WinoGrande"))
+  list(arc = btr.arc, gsm8k = btr.gsm8k, hs = btr.hs, mmlu = btr.mmlu,
+       tfqa = btr.tfqa, wg = btr.wg)
+}
+
 
 # =============================================================================
 # prepare data
@@ -102,6 +125,8 @@ p.wg <- plot.score(wg.sub, "WinoGrande", cbp[6]) + ggplot2::labs(y = "")
 p.reduced <- cowplot::plot_grid(
   p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
 
+compare.rmses()
+
 p.rand <- plot.violin(rand) +
   ggplot2::scale_x_continuous(limits=c(0.5,7), breaks = seq(1,7)) +
   add.asterisk(rmse.from.plot(p.arc), 7) +
@@ -122,30 +147,31 @@ ggplot2::ggsave(outpath, p.spec, width = 16, height = 8)
 # =============================================================================
 # 6-predictor plots
 six <- readRDS(gpath("plots/mb-specific.rds"))
-p.arc.6 <- six$arc + ggplot2::scale_color_gradientn(colors = cbp[[1]]) +
+p.arc <- six$arc + ggplot2::scale_color_gradientn(colors = cbp[[1]]) +
    ggplot2::labs(x = "", title = "ARC* (d = 100)")
-p.gsm8k.6 <- six$gsm8k + ggplot2::scale_color_gradientn(colors = cbp[[2]]) +
+p.gsm8k <- six$gsm8k + ggplot2::scale_color_gradientn(colors = cbp[[2]]) +
    ggplot2::labs(x = "", y = "", title = "GSM8K* (d = 237)")
-p.hs.6 <- six$hs + ggplot2::scale_color_gradientn(colors = cbp[[3]]) + 
+p.hs <- six$hs + ggplot2::scale_color_gradientn(colors = cbp[[3]]) + 
    ggplot2::labs(x = "", y = "", title = "HellaSwag* (d = 58)")
-p.mmlu.6 <- six$mmlu + ggplot2::scale_color_gradientn(colors = cbp[[4]]) + 
+p.mmlu <- six$mmlu + ggplot2::scale_color_gradientn(colors = cbp[[4]]) + 
    ggplot2::labs(title = "MMLU* (d = 102)")
-p.tfqa.6 <- six$tfqa + ggplot2::scale_color_gradientn(colors = cbp[[5]]) + 
+p.tfqa <- six$tfqa + ggplot2::scale_color_gradientn(colors = cbp[[5]]) + 
    ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)")
-p.wg.6 <- six$wg + ggplot2::scale_color_gradientn(colors = cbp[[6]]) + 
+p.wg <- six$wg + ggplot2::scale_color_gradientn(colors = cbp[[6]]) + 
    ggplot2::labs(y = "", title = "WinoGrande* (d = 106)")
 p.reduced.6 <- cowplot::plot_grid(
-  p.arc.6, p.gsm8k.6, p.hs.6, p.mmlu.6, p.tfqa.6, p.wg.6, ncol = 3)
+  p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
 
+compare.rmses()
 
 p.rand.6 <- plot.violin(rand) +
   ggplot2::scale_x_continuous(limits=c(0.5,7), breaks = seq(1,7)) +
-  add.asterisk(rmse.from.plot(p.arc.6), 7) +
-  add.asterisk(rmse.from.plot(p.gsm8k.6), 6) +
-  add.asterisk(rmse.from.plot(p.hs.6), 5) +
-  add.asterisk(rmse.from.plot(p.mmlu.6), 4) +
-  add.asterisk(rmse.from.plot(p.tfqa.6), 3) +
-  add.asterisk(rmse.from.plot(p.wg.6), 2) +
+  add.asterisk(rmse.from.plot(p.arc), 7) +
+  add.asterisk(rmse.from.plot(p.gsm8k), 6) +
+  add.asterisk(rmse.from.plot(p.hs), 5) +
+  add.asterisk(rmse.from.plot(p.mmlu), 4) +
+  add.asterisk(rmse.from.plot(p.tfqa), 3) +
+  add.asterisk(rmse.from.plot(p.wg), 2) +
   add.asterisk(rmse.from.plot(p.mb), 1) +
   ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
 
