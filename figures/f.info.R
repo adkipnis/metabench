@@ -1,5 +1,5 @@
 # =============================================================================
-box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme])
+box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme], latex2exp[TeX])
 here::i_am("figures/f.info.R")
 
 # =============================================================================
@@ -18,7 +18,7 @@ item.information <- function(theta, b, a){
 }
 
 plot.icc <- function(difficulties, loadings, labels){
-  box::use(ggplot2[...], latex2exp[TeX])
+  box::use(ggplot2[...])
   p1 <- solving.probability(theta, difficulties[1], loadings[1])
   p2 <- solving.probability(theta, difficulties[2], loadings[2])
   p3 <- solving.probability(theta, difficulties[3], loadings[3])
@@ -28,9 +28,9 @@ plot.icc <- function(difficulties, loadings, labels){
   ggplot(df, aes(x = theta, y = probability, color = item)) +
     geom_line(linewidth = 1) +
     labs(
-      # x = TeX("$\\theta$"),
+      # x = TeX("$\\vartheta$"),
       x = "",
-      y = TeX("$\\P(correct)$"),
+      y = TeX("$f(\\vartheta)$"),
       color = "") +
     scale_color_manual(values = palette,
                        labels = labels) +
@@ -64,7 +64,9 @@ plot.item.information <- function(difficulties, loadings){
 difficulties <- c(2, 1, 0, 0)
 loadings <- c(1, 1, 2.5, 0.5)
 (p.icc1 <- plot.icc(difficulties, loadings,
-                    c("d = 2  ", "d = 1  ", "a = 2.5  ", "a = 0.5")))
+                    c(TeX("$\\delta = 2$"), TeX("$\\delta = 1$"), "a = 2.5  ", "a = 0.5")))
+#outpath <- gpath("figures/f.icc.pdf")
+#ggplot2::ggsave(outpath, p.icc1, width = 8, height = 6)
 (p.icc2 <- plot.item.information(difficulties, loadings))
 (p.icc <- cowplot::plot_grid(p.icc1, p.icc2,
                              ncol = 1, rel_heights = c(2, 1.7), align = "v"))
