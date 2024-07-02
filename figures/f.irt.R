@@ -1,5 +1,6 @@
 # =============================================================================
 box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme, cbPalette])
+box::use(./violin.utils[plot.violin])
 here::i_am("figures/f.irt.R")
 
 # =============================================================================
@@ -14,8 +15,8 @@ niceify <- function(p, benchmark){
      labs(title = glue::glue("{benchmark} (d = 350)")) +
      aes(color = set) +
      scale_color_manual(values = cbp[index]) +
-     theme( plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
-            legend.position = "None")
+     theme(plot.margin = margin(0.05, 0.05, 0.05, 0.05, "cm"),
+           legend.position = "None")
      
    p[["layers"]][[3]][["aes_params"]][["size"]] <- 5
    p
@@ -25,19 +26,6 @@ rmse.from.plot <- function(p){
   text <- p[["layers"]][[3]][["aes_params"]]$label
   text <- gsub("\n.*", "", text)
   as.numeric(gsub("[^0-9.]", "", text))
-}
-
-plot.violin <- function(df){
-  box::use(ggplot2[...])
-  ggplot(df, aes(y = bm, x = rmse, fill = bm)) +
-    # geom_violin(draw_quantiles = c(0.5)) +
-    stat_ydensity(draw_quantiles = c(0.5)) +
-    labs(y="", x = "RMSE", title = "Random") +
-    scale_fill_manual(values = cbp) +
-    scale_y_discrete(limits=rev) +
-    mytheme() +
-    theme( plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
-           legend.position = "None")
 }
 
 randlist2df <- function(rand.list){
@@ -68,7 +56,7 @@ wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv.rds"))[[2]] |>
   niceify(benchmark = "WinoGrande") + ggplot2::labs(y = "")
 mb <- readRDS(gpath("plots/metabench-full.rds")) +
   ggplot2::labs(y ="", title = "metabench (d = 2100)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+  ggplot2::theme(plot.margin = ggplot2::margin(0.05, 0.05, 0.05, 0.05, "cm"))
 
 p.irt <- cowplot::plot_grid(
   arc.irt, gsm8k.irt, hs.irt, mmlu.irt, tfqa.irt, wg.irt, ncol = 3)
@@ -83,28 +71,14 @@ rand.list = list(
    WinoGrande = readRDS(gpath("data/winogrande-sub-350.rds"))$rmses.test,
    metabench = readRDS(gpath("plots/metabench-full-rmses.rds"))$rmses.test
 )
-df.rand <- randlist2df(rand.list) 
-dens <- density(df.rand$rmse)
-df.dens <- data.frame(x = dens$x, y = dens$y)
-ggplot(df.dens, aes(x = 1, y = x, height = y)) +
-  stat_ydensity() +
-  coord_flip() +
-  theme_minimal() +
-  labs(x = "", y = "Value")
-
-
-
-p.rand <- plot.violin(df.rand) +
-  ggplot2::scale_x_continuous(limits=c(0.5,7), breaks = seq(1,7))
-
-# ggplot2::ggsave(gpath("figures/f.irt.svg"), )
-  add.asterisk(rmse.from.plot(arc.irt), 7) +
-  add.asterisk(rmse.from.plot(gsm8k.irt), 6) +
-  add.asterisk(rmse.from.plot(hs.irt), 5) +
-  add.asterisk(rmse.from.plot(mmlu.irt), 4) +
-  add.asterisk(rmse.from.plot(tfqa.irt), 3) +
-  add.asterisk(rmse.from.plot(wg.irt), 2) +
-  add.asterisk(rmse.from.plot(mb), 1) +
+p.rand <- plot.violin(rand.list, distance = 10.0) +
+  add.asterisk(rmse.from.plot(arc.irt), 0) +
+  add.asterisk(rmse.from.plot(gsm8k.irt), 10) +
+  add.asterisk(rmse.from.plot(hs.irt), 20) +
+  add.asterisk(rmse.from.plot(mmlu.irt), 30) +
+  add.asterisk(rmse.from.plot(tfqa.irt), 40) +
+  add.asterisk(rmse.from.plot(wg.irt), 50) +
+  add.asterisk(rmse.from.plot(mb), 60) +
   ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
 
 # final plot
@@ -113,29 +87,3 @@ p <- cowplot::plot_grid(p.irt, p.col, labels = c("A", NA), rel_widths = c(3, 1),
 outpath <- gpath("figures/f.irt.pdf")
 ggplot2::ggsave(outpath, p, width = 16, height = 8)
 gprint("Saved plot to {outpath}.")
-
-######
-
-library(tidyverse)
-library(viridisLite)
-
-# bit of trial and error
-
-df_input <- df.rand
-p <- plot.violin(df.rand) + scale_x_continuous(limits=c(0.5,7), breaks = seq(1,7))
-vl_fill <- data.frame(ggplot_build(p)$data) %>%
-  mutate(ynew = y - mywidth * violinwidth, yend = y + mywidth * violinwidth)
-breaks <- unique(as.integer(df_input$bm))
-labels <- unique(df_input$bm)
-mywidth <- 0.45
-ggplot() +
-  geom_segment(data = vl_fill, aes(x = x, xend = x, y = ynew, yend = yend,
-                                   color = x), show.legend = FALSE) +
-  scale_x_continuous(limits=c(0.5,7), breaks = seq(1,7)) +  # Re-use geom_violin to plot the outline
-  geom_violin(data = df_input, aes(y = as.integer(bm), x = rmse, fill = bm),
-              color = "white", alpha = 0, draw_quantiles = c(0.5),
-              show.legend = FALSE) +
-  scale_y_continuous(breaks = breaks, labels = labels) +
-  # scale_color_viridis_c() +
-  scale_colour_gradient(rainbow(5)) +
-  labs(x = "RMSE", y = "")
