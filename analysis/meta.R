@@ -283,7 +283,7 @@ p.base <- evaluate.score.pred(pred.score.test) +
 p.base
 
 # correlation between first factor and grand score
-r.score <- cor(pred.score.test$MR1, pred.score.test$grand)
+r.score <- cor(pred.score.test$MR1, pred.score.test$grand, method = "spearman")
 gprint("r(Factor1, Score) = {round(r.score,3)}")
 
 
@@ -339,7 +339,7 @@ p.full
 saveRDS(p.full, gpath("plots/metabench-full.rds"))
 
 # correlation between first factor and grand score
-r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand)
+r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand, method = "spearman")
 gprint("r(Factor1, Score) = {round(r.theta,3)}")
 
 # =============================================================================
@@ -416,7 +416,7 @@ p.sub
 saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
 
 # correlation between first factor and grand score 
-r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand)
+r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand, method = "spearman")
 gprint("r(Factor1, Score) = {round(r.sub,3)}")
 
 # mod.fa <- mgcv::gam(grand ~ s(MR1, bs="ad"), data = pred.sub.train)
