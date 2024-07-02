@@ -15,7 +15,7 @@ niceify <- function(p, benchmark){
      labs(title = glue::glue("{benchmark} (d = 350)")) +
      aes(color = set) +
      scale_color_manual(values = cbp[index]) +
-     theme(plot.margin = margin(0.05, 0.05, 0.05, 0.05, "cm"),
+     theme(plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
            legend.position = "None")
      
    p[["layers"]][[3]][["aes_params"]][["size"]] <- 5
@@ -56,7 +56,7 @@ wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv.rds"))[[2]] |>
   niceify(benchmark = "WinoGrande") + ggplot2::labs(y = "")
 mb <- readRDS(gpath("plots/metabench-full.rds")) +
   ggplot2::labs(y ="", title = "metabench (d = 2100)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.05, 0.05, 0.05, 0.05, "cm"))
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 
 p.irt <- cowplot::plot_grid(
   arc.irt, gsm8k.irt, hs.irt, mmlu.irt, tfqa.irt, wg.irt, ncol = 3)

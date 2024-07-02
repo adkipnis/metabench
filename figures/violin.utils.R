@@ -64,7 +64,7 @@ plot.violin <- function(data.list, distance = 10.0, maxval = 7){
     scale_fill_manual(values = cbp) +
     labs(y="", x = "RMSE", title = "Random") +
     mytheme() +
-    theme(plot.margin = margin(0.05, 0.05, 0.05, 0.05, "cm"),
+    theme(plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
           legend.position = "None")
 }
 

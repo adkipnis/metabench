@@ -77,7 +77,7 @@ wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
 
 p.mb <- readRDS(gpath("plots/metabench-sub.rds")) +
   ggplot2::labs(y ="") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.05, 0.05, 0.05, 0.05, "cm"))
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 
 # =============================================================================
 # violin plots for RMSE
@@ -93,12 +93,18 @@ rand.list = list(
 
 # =============================================================================
 # 1-predictor plots (score from specific skill)
-p.arc <- plot.score(arc.sub, "ARC", cbp[1]) + ggplot2::labs(x = "")
-p.gsm8k <- plot.score(gsm8k.sub, "GSM8K", cbp[2]) + ggplot2::labs(x = "", y = "")
-p.hs <- plot.score(hs.sub, "HellaSwag", cbp[3]) + ggplot2::labs(x = "", y = "")
-p.mmlu <- plot.score(mmlu.sub, "MMLU", cbp[4])
-p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbp[5]) + ggplot2::labs(y = "")
-p.wg <- plot.score(wg.sub, "WinoGrande", cbp[6]) + ggplot2::labs(y = "")
+p.arc <- plot.score(arc.sub, "ARC", cbp[1]) + ggplot2::labs(x = "") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.gsm8k <- plot.score(gsm8k.sub, "GSM8K", cbp[2]) + ggplot2::labs(x = "", y = "") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.hs <- plot.score(hs.sub, "HellaSwag", cbp[3]) + ggplot2::labs(x = "", y = "") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.mmlu <- plot.score(mmlu.sub, "MMLU", cbp[4]) +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbp[5]) + ggplot2::labs(y = "") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.wg <- plot.score(wg.sub, "WinoGrande", cbp[6]) + ggplot2::labs(y = "") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.reduced <- cowplot::plot_grid(
   p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
 
@@ -114,7 +120,7 @@ p.rand <- plot.violin(rand.list, distance = 10.0) +
   add.asterisk(rmse.from.plot(p.mb), 60) +
   ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
 
-p.col <- cowplot::plot_grid(p.rand, p.mb, ncol = 1, align= "v", labels = c("B", "C"), label_x = 0.03)
+p.col <- cowplot::plot_grid(p.rand, p.mb, ncol = 1, align= "hv", labels = c("B", "C"), label_x = 0.03)
 p.spec <- cowplot::plot_grid(p.reduced, p.col, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
 outpath <- gpath("figures/f.specific.pdf")
 ggplot2::ggsave(outpath, p.spec, width = 16, height = 8)
@@ -123,17 +129,23 @@ ggplot2::ggsave(outpath, p.spec, width = 16, height = 8)
 # 6-predictor plots
 six <- readRDS(gpath("plots/mb-specific.rds"))
 p.arc <- six$arc + ggplot2::scale_color_gradientn(colors = cbp[[1]]) +
-   ggplot2::labs(x = "", title = "ARC* (d = 100)")
+  ggplot2::labs(x = "", title = "ARC* (d = 100)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.gsm8k <- six$gsm8k + ggplot2::scale_color_gradientn(colors = cbp[[2]]) +
-   ggplot2::labs(x = "", y = "", title = "GSM8K* (d = 237)")
+  ggplot2::labs(x = "", y = "", title = "GSM8K* (d = 237)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.hs <- six$hs + ggplot2::scale_color_gradientn(colors = cbp[[3]]) + 
-   ggplot2::labs(x = "", y = "", title = "HellaSwag* (d = 58)")
+  ggplot2::labs(x = "", y = "", title = "HellaSwag* (d = 58)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.mmlu <- six$mmlu + ggplot2::scale_color_gradientn(colors = cbp[[4]]) + 
-   ggplot2::labs(title = "MMLU* (d = 102)")
+  ggplot2::labs(title = "MMLU* (d = 102)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.tfqa <- six$tfqa + ggplot2::scale_color_gradientn(colors = cbp[[5]]) + 
-   ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)")
+  ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.wg <- six$wg + ggplot2::scale_color_gradientn(colors = cbp[[6]]) + 
-   ggplot2::labs(y = "", title = "WinoGrande* (d = 106)")
+  ggplot2::labs(y = "", title = "WinoGrande* (d = 106)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.reduced.6 <- cowplot::plot_grid(
   p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
 
@@ -149,7 +161,7 @@ p.rand.6 <- plot.violin(rand.list, distance = 10.0) +
   add.asterisk(rmse.from.plot(p.mb), 60) +
   ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
 
-p.col.6 <- cowplot::plot_grid(p.rand.6, p.mb, ncol = 1, align= "v", labels = c("B", "C"), label_x = 0.03)
+p.col.6 <- cowplot::plot_grid(p.rand.6, p.mb, ncol = 1, align= "hv", labels = c("B", "C"), label_x = 0.03)
 p.meta <- cowplot::plot_grid(p.reduced.6, p.col.6, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
 outpath <- gpath("figures/f.meta.pdf")
 ggplot2::ggsave(outpath, p.meta, width = 16, height = 8)
