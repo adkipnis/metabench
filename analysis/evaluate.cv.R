@@ -158,10 +158,10 @@ plot.score <- function(df.score, itemtype){
    sfs <- evaluate.fit(df.plot)
    text <- glue::glue("RMSE = {round(sfs$rmse, 3)}")
    ggplot(df.plot, aes(x = score, y = p)) +
-         geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
                      linetype = "dashed") +
+         geom_point(alpha = 0.5) +
          coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
          annotate("text", x = 75, y = 25, label = text, size = 3) +
          labs(
