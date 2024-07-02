@@ -1,5 +1,6 @@
 # =============================================================================
 box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme, cbPalette])
+box::use(./violin.utils[plot.violin])
 here::i_am("figures/f.random.R")
 
 # =============================================================================
@@ -43,19 +44,6 @@ plot.score <- function(result, bm, color){
     mytheme() 
 }
 
-plot.violin <- function(df){
-  box::use(ggplot2[...])
-  ggplot(df, aes(y = bm, x = rmse, fill = bm)) +
-    geom_violin(draw_quantiles = c(0.5)) +
-    labs(y="", x = "RMSE", title = "Random") +
-    scale_fill_manual(values = cbp) +
-    scale_color_gradientn(colors = cbp) +
-    scale_y_discrete(limits=rev) +
-    mytheme() +
-    theme( plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
-           legend.position = "None")
-}
-
 add.asterisk <- function(x, y){
   box::use(ggplot2[...])
   ggplot2::geom_text(aes(x = x, y = y, label = "*"),
@@ -63,22 +51,16 @@ add.asterisk <- function(x, y){
 }
 
 rmse.percentile <- function(our, random){
-  sum(our <= random$rmse)/nrow(random) 
+  sum(our <= random)/length(random) 
 }
 
 compare.rmses <- function(){
-  btr.arc <- rmse.percentile(rmse.from.plot(p.arc), 
-                           rand |> dplyr::filter(bm == "ARC"))
-  btr.gsm8k <- rmse.percentile(rmse.from.plot(p.gsm8k), 
-                           rand |> dplyr::filter(bm == "GSM8K"))
-  btr.hs <- rmse.percentile(rmse.from.plot(p.hs), 
-                           rand |> dplyr::filter(bm == "HellaSwag"))
-  btr.mmlu <- rmse.percentile(rmse.from.plot(p.mmlu), 
-                           rand |> dplyr::filter(bm == "MMLU"))
-  btr.tfqa <- rmse.percentile(rmse.from.plot(p.tfqa), 
-                           rand |> dplyr::filter(bm == "TruthfulQA"))
-  btr.wg <- rmse.percentile(rmse.from.plot(p.wg), 
-                           rand |> dplyr::filter(bm == "WinoGrande"))
+  btr.arc <- rmse.percentile(rmse.from.plot(p.arc), rand.list[["ARC"]])
+  btr.gsm8k <- rmse.percentile(rmse.from.plot(p.gsm8k), rand.list[["GSM8K"]])
+  btr.hs <- rmse.percentile(rmse.from.plot(p.hs), rand.list[["HellaSwag"]])
+  btr.mmlu <- rmse.percentile(rmse.from.plot(p.mmlu), rand.list[["MMLU"]])
+  btr.tfqa <- rmse.percentile(rmse.from.plot(p.tfqa), rand.list[["TruthfulQA"]])
+  btr.wg <- rmse.percentile(rmse.from.plot(p.wg), rand.list[["WinoGrande"]])
   list(arc = btr.arc, gsm8k = btr.gsm8k, hs = btr.hs, mmlu = btr.mmlu,
        tfqa = btr.tfqa, wg = btr.wg)
 }
@@ -95,7 +77,7 @@ wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
 
 p.mb <- readRDS(gpath("plots/metabench-sub.rds")) +
   ggplot2::labs(y ="") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+  ggplot2::theme(plot.margin = ggplot2::margin(0.05, 0.05, 0.05, 0.05, "cm"))
 
 # =============================================================================
 # violin plots for RMSE
@@ -108,11 +90,6 @@ rand.list = list(
   WinoGrande = readRDS(gpath("data/WinoGrande-sub-106.rds"))$rmses.test,
   metabench = readRDS(gpath("plots/metabench-sub-rmses.rds"))$rmses.test
 )
-rand.list <- lapply(rand.list, function(x) data.frame(rmse = x))
-rand.list <- lapply(names(rand.list), function(x) cbind(rand.list[[x]], bm = x))
-rand <- do.call(rbind, rand.list)
-rand$bm <- factor(rand$bm, levels = c("ARC", "GSM8K", "HellaSwag", "MMLU",
-                                      "TruthfulQA", "WinoGrande", "metabench"))
 
 # =============================================================================
 # 1-predictor plots (score from specific skill)
@@ -127,17 +104,15 @@ p.reduced <- cowplot::plot_grid(
 
 compare.rmses()
 
-p.rand <- plot.violin(rand) +
-  ggplot2::scale_x_continuous(limits=c(0.5,7), breaks = seq(1,7)) +
-  add.asterisk(rmse.from.plot(p.arc), 7) +
-  add.asterisk(rmse.from.plot(p.gsm8k), 6) +
-  add.asterisk(rmse.from.plot(p.hs), 5) +
-  add.asterisk(rmse.from.plot(p.mmlu), 4) +
-  add.asterisk(rmse.from.plot(p.tfqa), 3) +
-  add.asterisk(rmse.from.plot(p.wg), 2) +
-  add.asterisk(rmse.from.plot(p.mb), 1) +
+p.rand <- plot.violin(rand.list, distance = 10.0) +
+  add.asterisk(rmse.from.plot(p.arc), 0) +
+  add.asterisk(rmse.from.plot(p.gsm8k), 10) +
+  add.asterisk(rmse.from.plot(p.hs), 20) +
+  add.asterisk(rmse.from.plot(p.mmlu), 30) +
+  add.asterisk(rmse.from.plot(p.tfqa), 40) +
+  add.asterisk(rmse.from.plot(p.wg), 50) +
+  add.asterisk(rmse.from.plot(p.mb), 60) +
   ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
-
 
 p.col <- cowplot::plot_grid(p.rand, p.mb, ncol = 1, align= "v", labels = c("B", "C"), label_x = 0.03)
 p.spec <- cowplot::plot_grid(p.reduced, p.col, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
@@ -164,21 +139,18 @@ p.reduced.6 <- cowplot::plot_grid(
 
 compare.rmses()
 
-p.rand.6 <- plot.violin(rand) +
-  ggplot2::scale_x_continuous(limits=c(0.5,7), breaks = seq(1,7)) +
-  add.asterisk(rmse.from.plot(p.arc), 7) +
-  add.asterisk(rmse.from.plot(p.gsm8k), 6) +
-  add.asterisk(rmse.from.plot(p.hs), 5) +
-  add.asterisk(rmse.from.plot(p.mmlu), 4) +
-  add.asterisk(rmse.from.plot(p.tfqa), 3) +
-  add.asterisk(rmse.from.plot(p.wg), 2) +
-  add.asterisk(rmse.from.plot(p.mb), 1) +
+p.rand.6 <- plot.violin(rand.list, distance = 10.0) +
+  add.asterisk(rmse.from.plot(p.arc), 0) +
+  add.asterisk(rmse.from.plot(p.gsm8k), 10) +
+  add.asterisk(rmse.from.plot(p.hs), 20) +
+  add.asterisk(rmse.from.plot(p.mmlu), 30) +
+  add.asterisk(rmse.from.plot(p.tfqa), 40) +
+  add.asterisk(rmse.from.plot(p.wg), 50) +
+  add.asterisk(rmse.from.plot(p.mb), 60) +
   ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
-
 
 p.col.6 <- cowplot::plot_grid(p.rand.6, p.mb, ncol = 1, align= "v", labels = c("B", "C"), label_x = 0.03)
 p.meta <- cowplot::plot_grid(p.reduced.6, p.col.6, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
 outpath <- gpath("figures/f.meta.pdf")
 ggplot2::ggsave(outpath, p.meta, width = 16, height = 8)
-
 
