@@ -14,10 +14,24 @@ get.rmse <- function(result){
   sqrt(mean(df.plot$error^2))
 }
 
+get.mae <- function(result){
+  df.plot <- result$df.score.sub |>
+    dplyr::filter(set == "test") |>
+    dplyr::mutate(error = p - score)
+  mean(abs(df.plot$error))
+}
+
 rmse.from.plot <- function(p){
   text <- p[["layers"]][[3]][["aes_params"]]$label
   text <- gsub("\n.*", "", text)
   as.numeric(gsub("[^0-9.]", "", text))
+}
+
+stats.from.plot <- function(p){
+  rmse <- rmse.from.plot(p)
+  mae <- mean(abs(p$data$grand - p$data$p))
+  r<- cor(p$data$grand, p$data$p, method = "spearman")
+  gprint("RMSE = {round(rmse, 3)},\nMAE = {round(mae, 3)},\nr = {round(r, 3)}")
 }
 
 plot.score <- function(result, bm, color){
@@ -25,8 +39,9 @@ plot.score <- function(result, bm, color){
   df.plot <- result$df.score.sub |>
     dplyr::filter(set == "test")
   rmse <- get.rmse(result)
+  mae <- get.mae(result)
   r <- cor(df.plot$theta, df.plot$score, method = "spearman")
-  print(r)
+  gprint("RMSE = {round(rmse, 3)},\nMAE = {round(mae, 3)},\nr = {round(r, 3)}")
   n.items <- nrow(result$items)
   text <- glue::glue("RMSE = {round(rmse, 3)}")
   ggplot(df.plot, aes(x = score, y = p)) +
@@ -78,6 +93,7 @@ wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
 p.mb <- readRDS(gpath("plots/metabench-sub.rds")) +
   ggplot2::labs(y ="") +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+stats.from.plot(p.mb)
 
 # =============================================================================
 # violin plots for RMSE
@@ -149,6 +165,12 @@ p.wg <- six$wg + ggplot2::scale_color_gradientn(colors = cbp[[6]]) +
 p.reduced.6 <- cowplot::plot_grid(
   p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
 
+stats.from.plot(p.arc)
+stats.from.plot(p.gsm8k)
+stats.from.plot(p.hs)
+stats.from.plot(p.mmlu)
+stats.from.plot(p.tfqa)
+stats.from.plot(p.wg)
 compare.rmses()
 
 p.rand.6 <- plot.violin(rand.list, distance = 10.0) +
