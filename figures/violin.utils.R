@@ -4,17 +4,20 @@ cbp <- cbPalette()
 
 # =============================================================================
 # helper function to create a violin plot
-viodensity <- function(x){
+viodensity <- function(x, maxval = 7.0){
    box::use(ggplot2[...])
-   p <- ggplot(data.frame(x = x, y = ""), aes(x = x, y = y)) + geom_violin()
+   p <- ggplot(data.frame(x = x, y = ""), aes(x = x, y = y)) +
+     geom_violin() +
+     scale_x_continuous(limits = c(0.5, maxval), breaks = seq(1, maxval))
    den.x <- ggplot_build(p)$data[[1]][["x"]]
    den.y <- ggplot_build(p)$data[[1]][["density"]]
+   # den.y <- den.y / max(den.y)
    data.frame(x = den.x, y = den.y)
 }
 
-data2violin <- function(data.list, distance){
+data2violin <- function(data.list, distance, maxval){
    names <- names(data.list)
-   den.list <- lapply(data.list, function(data) viodensity(data$x))
+   den.list <- lapply(data.list, function(data) viodensity(data, maxval))
    names(den.list) <- names
    den2violin <- function(den, name){
       data.frame(x = c(den$x, rev(den$x)), y = c(den$y, -rev(den$y)), bm = name)
@@ -26,10 +29,10 @@ data2violin <- function(data.list, distance){
    do.call(rbind, violin.list)
 }
 
-get.medians <- function(data.list, distance){
+get.medians <- function(data.list, distance, maxval){
   names <- names(data.list)
-  median.list <- lapply(data.list, function(data) median(data$x))
-  den.list <- lapply(data.list, function(data) viodensity(data$x))
+  median.list <- lapply(data.list, function(data) stats::median(data))
+  den.list <- lapply(data.list, function(data) viodensity(data, maxval))
   names(median.list) <- names
   for (i in 1:length(names)){
     name <- names[i]
@@ -44,23 +47,25 @@ get.medians <- function(data.list, distance){
   do.call(rbind, median.list)
 }
 
-# 
-plot.violin <- function(data.list, distance = 1.0){ 
+#" @export
+plot.violin <- function(data.list, distance = 10.0, maxval = 7){ 
   box::use(ggplot2[...])
   names <- names(data.list)
-  df.violin <- data2violin(data.list, distance)
-  df.medians <- get.medians(data.list, distance)
+  df.violin <- data2violin(data.list, distance, maxval)
+  df.violin$bm <- factor(df.violin$bm, levels = names(data.list))
+  df.medians <- get.medians(data.list, distance, maxval)
   ggplot() +
-    geom_polygon(data = df.violin, aes(x = x, y = y, fill = bm), alpha = 0.7, color = "black") +
+    scale_x_continuous(limits = c(0.5, maxval), breaks = seq(1, maxval)) +
+    geom_polygon(data = df.violin, aes(x = x, y = y, fill = bm), color = "black") +
     geom_segment(data = df.medians, aes(x = x, xend = x, y = y, yend = yend),
               color = "black", size = 0.5) +
+    scale_y_reverse(breaks = seq(distance * (length(names)-1), 0, -distance),
+                       labels = rev(names)) +
     scale_fill_manual(values = cbp) +
-    scale_y_continuous(breaks = c(0, distance * (length(names)-1)),
-                       labels = names) +
     labs(y="", x = "RMSE", title = "Random") +
     mytheme() +
-    theme( plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"),
-           legend.position = "None")
+    theme(plot.margin = margin(0.05, 0.05, 0.05, 0.05, "cm"),
+          legend.position = "None")
 }
 
 
