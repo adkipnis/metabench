@@ -6,7 +6,7 @@
 box::use(./utils[parse.args, gpath, gprint, df2data])
 parse.args(names = c("BM"),
            defaults = c("all"))
-here::i_am("analysis/init.R")
+here::i_am("analysis/healthcheck.R")
 
 # =============================================================================
 # helper functions

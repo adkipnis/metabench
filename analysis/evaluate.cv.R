@@ -52,14 +52,16 @@ refit <- function(result, data.train, data.test){
   df <- result$df
   train <- df |> dplyr::filter(set == "train") |> dplyr::select(-F1)
   test <- df |> dplyr::filter(set == "test") |> dplyr::select(-F1)
+  if ("SE_F1" %in% colnames(train)){
+    train <- train |> dplyr::select(-SE_F1)
+    test <- test |> dplyr::select(-SE_F1)
+  }
   
   # refit theta
-  if (METH != "MAP"){
-    theta.train <- get.theta(model, method = METH, resp = data.train)
-    train <- cbind(train, theta.train)
-    theta.test <- get.theta(model, method = METH, resp = data.test)
-    test <- cbind(test, theta.test)
-    }
+  theta.train <- get.theta(model, method = METH, resp = data.train)
+  train <- cbind(train, theta.train[, 1, drop = F])
+  theta.test <- get.theta(model, method = METH, resp = data.test)
+  test <- cbind(test, theta.test[, 1, drop = F])
   
   # refit gam
   mod.score <- fit.gam(train)
@@ -84,6 +86,7 @@ refit.wrapper <- function(cvs){
     tryCatch({
       cvs.re[[i]] <- refit(cvs[[i]], data.train, data.test)
     }, error = function(e){
+      print(e)
       gprint("Could not re-estimate theta for {names(cvs)[i]}")
     })
   }
@@ -155,10 +158,10 @@ plot.score <- function(df.score, itemtype){
    sfs <- evaluate.fit(df.plot)
    text <- glue::glue("RMSE = {round(sfs$rmse, 3)}")
    ggplot(df.plot, aes(x = score, y = p)) +
-         geom_point(alpha = 0.5) +
          geom_abline(intercept = 0,
                      slope = 1,
                      linetype = "dashed") +
+         geom_point(alpha = 0.5) +
          coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
          annotate("text", x = 75, y = 25, label = text, size = 3) +
          labs(
