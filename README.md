@@ -6,12 +6,12 @@ For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
 ## In a nutshell...
 <img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="700" />
-1. Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
+(1) Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
 
-2. Remove items based on simple statistics like variance.
+(2) Remove items based on simple statistics like variance.
 
-3. Perform cross-validated subsampling to 350 items per benchmark.
+(3) Perform cross-validated subsampling to 350 items per benchmark.
 
-4. Fit variants of IRT models to the remaining items, infer item information from the item parameters and select the most informative items to construct metabench.
+(4) Fit variants of IRT models to the remaining items, infer item information from the item parameters and select the most informative items to construct metabench.
 
-5. Use the model fits to estimate the benchmark-specific abilities and reconstruct the original (normalized) benchmark scores as well as their mean using a generalized additive model with cross-validation.
+(5) Use the model fits to estimate the benchmark-specific abilities and reconstruct the original (normalized) benchmark scores as well as their mean using a generalized additive model with cross-validation.
