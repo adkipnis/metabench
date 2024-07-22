@@ -5,8 +5,8 @@
 - scores for the six benchmarks[^1] can be reconstructed with ~1% mean absolute error 🔥
 - the original score can be reconstructed with 0.6% mean absolute error ☄️
 
-
 This repo contains the source code for [dataset scraping](scraping) in Python and [statistical analysis](analysis) in R.
+
 For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
 ## Testing your model
