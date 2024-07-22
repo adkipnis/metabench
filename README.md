@@ -1,12 +1,9 @@
 # metabench
 ## A Sparse Benchmark to Measure General Ability in LLMs
-:hugs:  𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size
-
-:teacher:  item selection is based on item response theory analyses of over 5000 LLMs
-
-:fire:  the six single scores (for ARC, GSM8K, HellaSwag, MMLU, TruthfulQA and WinoGrande) can be reconstructed with ~1% mean absolute error
-
-:comet:  the original score can be reconstructed with 0.6% mean absolute error
+- 𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size 🤗
+- item selection is based on item response theory analyses of over 5000 LLMs 🧑‍🏫
+- the six single scores (for ARC, GSM8K, HellaSwag, MMLU, TruthfulQA and WinoGrande) can be reconstructed with ~1% mean absolute error 🔥
+- the original score can be reconstructed with 0.6% mean absolute error ☄️
 
 
 This repo contains the source code for [dataset scraping](scraping) in Python and [statistical analysis](analysis) in R.
