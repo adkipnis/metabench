@@ -1,3 +1,4 @@
 # metabench - a sparse benchmark to measure general ability in LLMs
-𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 is a small version of the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard), comprising [ARC](https://arxiv.org/abs/1803.05457), [GSM8K](https://arxiv.org/abs/2110.14168), [HellaSwag](https://arxiv.org/abs/1905.07830), [MMLU](https://arxiv.org/abs/2009.03300), [TruthfulQA](https://arxiv.org/abs/2109.07958) and [WinoGrande](https://arxiv.org/abs/1907.10641).
-This repo contains the source code of the analyses presented in [𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 - A Sparse Benchmark to Measure General Ability in Large Language Models](https://arxiv.org/abs/2407.12844)
+Based on item response theory analyses of over 5000 LLMs, 𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size with only 0.6% mean absolute reconstruction error of the original score. This repo contains the source code for [scraping](scraping) in Python and [analysis](analysis) in R. 
+
+[𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 - A Sparse Benchmark to Measure General Ability in Large Language Models](https://arxiv.org/abs/2407.12844)
