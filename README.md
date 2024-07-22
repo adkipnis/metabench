@@ -6,6 +6,7 @@ For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
 ## In a nutshell...
 ![](figures/overview/overview.png | width=70)
+<img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="400" />
 1. Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
 2. Remove items based on simple statistics like variance.
 3. Perform cross-validated subsampling to 350 items per benchmark.
