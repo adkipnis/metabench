@@ -5,7 +5,6 @@
 #SBATCH --error=logs/re.%A_%a.err
 #SBATCH --array=1-6
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de
 
 #SBATCH -p cpu_p
 #SBATCH --qos cpu_normal

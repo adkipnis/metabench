@@ -4,7 +4,6 @@
 #SBATCH --output=logs/evaluate.%j.out
 #SBATCH --error=logs/evaluate.%j.err
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=alexander.kipnis@helmholtz-munich.de
 
 #SBATCH -p cpu_p
 #SBATCH --qos cpu_normal
