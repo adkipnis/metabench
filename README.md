@@ -1,2 +1,2 @@
 # metabench - a sparse benchmark to measure general ability in LLMs
-𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 is a distilled version of the [Open LLM Leaderboard (Version 1)](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard).
+𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 is a small version of the [Open LLM Leaderboard (Version 1)](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard), comprising [ARC](https://arxiv.org/abs/1803.05457), [GSM8K](https://arxiv.org/abs/2110.14168), [HellaSwag](https://arxiv.org/abs/1905.07830), [MMLU](https://arxiv.org/abs/2009.03300), [TruthfulQA](https://arxiv.org/abs/2109.07958) and [WinoGrande](https://arxiv.org/abs/1907.10641).
