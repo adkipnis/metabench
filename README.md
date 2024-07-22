@@ -9,7 +9,8 @@ This repo contains the source code for [dataset scraping](scraping) in Python an
 For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
 ## Testing your LLM
-You can soon run your own LLM on metabench. We're currently working on providing the necessary interface for this.
+You can soon run your own LLM on metabench.\
+We're currently working on providing the necessary interface for this.
 
 ## In a Nutshell...
 <img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="800" />
