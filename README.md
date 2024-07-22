@@ -1,6 +1,6 @@
 # metabench
 ## A Sparse Benchmark to Measure General Ability in LLMs
-- 𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size
+:hugs: 𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size
 - item selection is based on item response theory analyses of over 5000 LLMs
 - the original score can be reconstructed with 0.6% mean absolute error
 - the six single scores (for ARC, GSM8K, HellaSwag, MMLU, TruthfulQA and WinoGrande) can be reconstructed with ~1% mean absolute error
