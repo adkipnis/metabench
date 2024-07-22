@@ -12,3 +12,11 @@ For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 3. Perform cross-validated subsampling to 350 items per benchmark.
 4. Fit variants of IRT models to the remaining items, infer item information from the item parameters and select the most informative items to construct metabench.
 5. Use the model fits to estimate the benchmark-specific abilities and reconstruct the original (normalized) benchmark scores as well as their mean using a generalized additive model with cross-validation.
+
+## Contents
+- [analysis](analysis): Statistical analyses (preprocessing, cross-validated random sampling, item response theory, information filtering, factor analysis, computerized adaptive testing simulations)
+- [bash](bash): Templates for running scripts on a compute cluster with slurm
+- [figures](figures): Scripts for generating the figures shown in the paper
+- [scraping](scraping): Scripts for downloading and processing publically available item-wise responses by LLMs on [huggingface](https://huggingface.co)
+- [setup](setup): Basic installation scripts for the required python and R packages
+- [simulation](simulation): Parameter recovery tests for different IRT frameworks in R
