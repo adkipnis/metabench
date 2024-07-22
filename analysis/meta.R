@@ -385,8 +385,6 @@ fa.sub$loadings
 
 psych::fa.diagram(fa.sub.2)
 
-paste0(round(fa.sub$loadings[,2], 3), collapse = " & ")
-
 # check relation to grand sum or other benchmarks
 fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
 fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.sub)
@@ -414,6 +412,8 @@ p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::ggtitle(glue::glue("metabench (d = {numitems.sub$sum})"))
 p.sub
 saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
+r.sub <- cor(pred.sub.test$p, pred.sub.test$grand, method = "spearman")
+gprint("r(Predicted, Score) = {round(r.sub,3)}")
 
 # correlation between first factor and grand score 
 r.sub <- cor(pred.sub.test$MR1, pred.sub.test$grand, method = "spearman")
