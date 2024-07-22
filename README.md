@@ -6,8 +6,7 @@
 - the original score can be reconstructed with 0.6% mean absolute error ☄️
 
 This repo contains the source code for [dataset scraping](scraping) in Python and [statistical analysis](analysis) in R.
-
-For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
+  For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
 ## Testing your model
 You can soon run your own LLM on metabench. We're currently working on providing the necessary interface for this.
