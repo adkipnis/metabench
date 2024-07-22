@@ -1,6 +1,6 @@
 # metabench
 ## A Sparse Benchmark to Measure General Ability in LLMs
-🤗 𝚖𝚎𝚝𝚊𝚋𝚎𝚗𝚌𝚑 distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size\
+🤗 metabench distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size\
 🧑‍🏫 item selection is based on item response theory analyses of over 5000 LLMs\
 🔥 scores for the six benchmarks[^1] can be reconstructed with ~1% mean absolute error\
 ☄️ the original score can be reconstructed with 0.6% mean absolute error
@@ -8,10 +8,10 @@
 This repo contains the source code for [dataset scraping](scraping) in Python and [statistical analysis](analysis) in R.\
 For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
-## Testing your model
+## Testing your LLM
 You can soon run your own LLM on metabench. We're currently working on providing the necessary interface for this.
 
-## In a nutshell...
+## In a Nutshell...
 <img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="800" />
 
 1. Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
@@ -29,7 +29,7 @@ You can soon run your own LLM on metabench. We're currently working on providing
 - [simulation](simulation): Parameter recovery tests for different IRT frameworks in R
 
 ## Citing the Project
-To cite this repository in publications:
+To cite metabench in publications:
 
 ```bibtex
 @article{metabench,
