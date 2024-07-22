@@ -25,7 +25,7 @@ We're currently working on providing the necessary interface for this.
 - [analysis](analysis): Statistical analyses (preprocessing, cross-validated random sampling, item response theory, information filtering, factor analysis, computerized adaptive testing simulations)
 - [bash](bash): Templates for running scripts on a compute cluster with slurm
 - [figures](figures): Scripts for generating the figures shown in the paper
-- [scraping](scraping): Scripts for downloading and processing publically available item-wise responses by LLMs on [huggingface](https://huggingface.co)
+- [scraping](scraping): Scripts for downloading and processing publically available item-wise responses by LLMs
 - [setup](setup): Basic installation scripts for the required python and R packages
 - [simulation](simulation): Parameter recovery tests for different IRT frameworks in R
 
