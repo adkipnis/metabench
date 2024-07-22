@@ -13,7 +13,7 @@ You can soon run your own LLM on metabench.\
 We're currently working on providing the necessary interface for this.
 
 ## In a Nutshell...
-<img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="800" />
+<img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="750" />
 
 1. Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
 2. Remove items based on simple statistics like variance.
