@@ -127,6 +127,21 @@ plot.theta.score <- function(df.score, itemtype){
       mytheme()
 }
 
+plot.theta2d <- function(df.score, itemtype){
+  box::use(ggplot2[...], latex2exp[TeX])
+  df.plot <- df.score |> 
+    dplyr::filter(set == "test", type == itemtype)
+  ggplot(df.plot, aes(x = F1, y = F2, color = score)) +
+    geom_point(alpha = 0.5) +
+    labs(
+      title = glue::glue("2-dim Theta ({itemtype})"),
+      x = TeX("$\\theta 1$"),
+      y = TeX("$\\theta 2$"),
+    ) +
+    scale_color_gradient(limits = c(0, 100)) +
+    mytheme()
+}
+
 plot.perc <- function(df.score, itemtype){
    box::use(ggplot2[...], latex2exp[TeX])
    df.plot <- df.score |>
@@ -243,6 +258,13 @@ p.er <- cowplot::plot_grid(
 p <- cowplot::plot_grid(
   p.ps, p.ts, p.pc,  p.er, ncol = 1
 )
+
+# scatter plot for 2dim models
+if (DIM == 2){
+  p2d <- plot.theta2d(df.score, "2PL")
+  outpath <- gpath("plots/{BM}-{METH}-2d-theta.png")
+  ggplot2::ggsave(outpath, p2d, width = 8, height = 8)
+}
 
 # save
 outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv.png")
