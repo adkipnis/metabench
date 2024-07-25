@@ -23,7 +23,7 @@ We're currently working on providing the necessary interface for this.
 
 ## Data
 If you wish to reproduce our results, please find the complete **datasets** used in this project on [zenodo](https://zenodo.org/records/12819251).\
-Simply extract `data.tar.gz` to `data` inside your `.../metabench/` directory. 
+Simply download and extract `data.tar.gz` to `data` inside your `.../metabench/` directory. 
 
 ## Folders
 - [analysis](analysis): Statistical analyses (preprocessing, cross-validated random sampling, item response theory, information filtering, factor analysis, computerized adaptive testing simulations)
