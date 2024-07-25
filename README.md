@@ -21,6 +21,10 @@ We're currently working on providing the necessary interface for this.
 4. Fit variants of IRT models to the remaining items, infer item information from the item parameters and select the most informative items to construct metabench.
 5. Use the model fits to estimate the benchmark-specific abilities and reconstruct the original (normalized) benchmark scores as well as their mean using a generalized additive model with cross-validation.
 
+## Data
+If you wish to reproduce our results, please find the complete datasets used in this project on [zenodo](https://zenodo.org/records/12819251).\n
+Simply extract `data.tar.gz` to `data` inside your `\metabench\` directory. 
+
 ## Folders
 - [analysis](analysis): Statistical analyses (preprocessing, cross-validated random sampling, item response theory, information filtering, factor analysis, computerized adaptive testing simulations)
 - [bash](bash): Templates for running scripts on a compute cluster with slurm
