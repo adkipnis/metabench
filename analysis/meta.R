@@ -8,7 +8,7 @@ box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, cbPalette, get.theta
 Saveplots <- T
 here::i_am("analysis/meta.R")
 set.seed(1)
-
+mkdir("analysis/gams")
 benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande")
 
 # =============================================================================
@@ -405,6 +405,9 @@ mod.sub <- mgcv::gam(grand ~
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
 
+# save model
+saveRDS(mod.sub, gpath("analysis/gams/gam-grand.rds"))
+
 # plot
 pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
@@ -441,6 +444,9 @@ plot.specific <- function(bm){
                        data = pred.sub.train)
   pred.sub.train$p <- predict(mod.sub, pred.sub.train)
   pred.sub.test$p <- predict(mod.sub, pred.sub.test)
+  
+  # save model
+  saveRDS(mod.sub, gpath("analysis/gams/gam-{bm}.rds"))
   
   # plot
   pred.sub.test$color <- runif(nrow(pred.sub.test))
