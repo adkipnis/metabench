@@ -36,6 +36,14 @@ gpath <- function(s) {
    eval(substitute(here::here(glue::glue(s))), parent.frame())
 }
 
+
+#" @export
+napply <- function(some.names, some.func){
+  out <- lapply(some.names, some.func)
+  stats::setNames(out, some.names)
+}
+
+
 #" @export
 rowmerge <- function(df1, df2){
    merge(df1, df2, by="row.names") |>
