@@ -1,5 +1,5 @@
 ### Note
-You can either request the datasets of LLM responses from the main author or scrape the newest data yourself. For shell code, please replace text in curly brackets, e.g. `{some-number}` can become `2`.
+You can either download the datasets of LLM responses from [zenodo](https://zenodo.org/records/12819251) or scrape the newest data yourself. For shell code, please replace text in curly brackets, e.g. `{some-number}` can become `2`.
 
 ### Preparation
 First setup a conda environment as shown in the [setup](../setup) directory.\
