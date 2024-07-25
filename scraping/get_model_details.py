@@ -5,9 +5,11 @@ import pandas
 from tqdm import tqdm
 
 XPATH = "/html/body/div/main/div[2]/section[2]/div[3]/div/div[2]/div[1]/div[2]"
+
 class Leaderboard:
     def __init__(self, path: str):
         self.path = path
+        self.logpath = path.replace(".csv", "_log.txt")
         self.data = pandas.read_csv(path)
         self._init_driver()
 
@@ -26,7 +28,8 @@ class Leaderboard:
             params = self.driver.find_element(By.XPATH, XPATH)
             return params.text.split(" ")[0]
         except Exception as e:
-            print(e)
+            with open(self.logpath, 'a') as f:
+                f.write(f"Link: {link}\nError: {e}\n\n")
             return "error"
 
     def add_nparams(self):
@@ -41,9 +44,10 @@ def main():
     parser.add_argument('-p', '--path', type=str, default='/Users/alex/metabench/scraping/open-llm-leaderboard.csv')
     args = parser.parse_args()
     leaderboard = Leaderboard(args.path)
+    print(f"Loaded leaderboard with {len(leaderboard.data)} models, scraping number of params...")
     leaderboard.add_nparams()
+    print(f"Saving to {args.path}")
     leaderboard.data.to_csv(args.path, index=False)
-    print(leaderboard.data['nparams'][:5])
     leaderboard.driver.quit()
 
 if __name__ == '__main__':
