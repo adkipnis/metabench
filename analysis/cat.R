@@ -177,7 +177,8 @@ simulate.respondents.parallel <- function (thetas, itemBank, responsesMatrix = N
       # Parallelise for loop
       
       if (is.null(n.cores)) {
-        n.cores <- parallel::detectCores() - 1
+      	tot.cores <- parallel::detectCores()
+        n.cores <- if (tot.cores > 10) {tot.cores - 10} else {tot.cores - 2}
       } 
       
       mu.cluster <- parallel::makeCluster(n.cores, type = type) # to parameterise
