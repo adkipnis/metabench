@@ -1,7 +1,7 @@
 */.RData
 */.Rhistory
 */tempCodeRunnerFile.r
-*/.DS_Store
+*.DS_Store
 .Rproj.user
 analysis/models*
 analysis/archive
