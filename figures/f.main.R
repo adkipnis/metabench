@@ -188,3 +188,14 @@ p.meta <- cowplot::plot_grid(p.reduced.6, p.col.6, labels = c("A", NA), rel_widt
 outpath <- gpath("figures/f.meta.pdf")
 ggplot2::ggsave(outpath, p.meta, width = 16, height = 8)
 
+# =============================================================================
+# reviewer-requested violin plot of 100 item subsamples from open llm leaderboard
+rand.100 = list(
+  metabench = readRDS(gpath("plots/metabench-100-rmses.rds"))$rmses.test
+)
+p.100 <- plot.violin(rand.100) +
+  ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank()) + 
+  ggplot2::labs(title = "100-item subsamples from entire pool") +
+  ggplot2::scale_fill_manual(values = rep("#FFFFFF", 7))
+outpath <- gpath("figures/f.100.png")
+ggplot2::ggsave(outpath, p.100, width = 6, height = 4)
