@@ -467,6 +467,8 @@ plot.specific <- function(bm){
   saveRDS(p.sub, gpath("plots/mb-{bm}.rds"))
   p.sub
 }
+
+# specific reconstruction plots
 p.arc <- plot.specific("arc")
 p.gsm8k <- plot.specific("gsm8k")
 p.hs <- plot.specific("hellaswag")
@@ -475,6 +477,32 @@ p.tfqa <- plot.specific("truthfulqa")
 p.wg <- plot.specific("winogrande")
 saveRDS(list(arc=p.arc, gsm8k=p.gsm8k, hs=p.hs, mmlu=p.mmlu, tfqa=p.tfqa, wg=p.wg),
         gpath("plots/mb-specific.rds"))
+
+# specific abilities plots
+plot.ability <- function(bm){
+  box::use(ggplot2[...])
+  df.plot <- data.frame(theta = pred.sub.test[[bm]],
+                        score = scores.partial.test[[bm]])
+  color.index <- which(names(benchmarks) == bm)
+  color <- cbPalette()[color.index]
+  p.ab <- ggplot(df.plot, aes(x=theta, y=score)) +
+    geom_point(alpha=0.5, color = color) +
+    ylim(0, 100) +
+    labs(x="Latent Ability", y="Score", title=glue::glue("{bm}")) +
+    mytheme()+
+    theme(legend.position = "None")
+  
+  saveRDS(p.ab, gpath("plots/mb-{bm}-ability.rds"))
+  p.ab
+}
+p.arc.ab <- plot.ability("arc")
+p.gsm8k.ab <- plot.ability("gsm8k")
+p.hs.ab <- plot.ability("hellaswag")
+p.mmlu.ab <- plot.ability("mmlu")
+p.tfqa.ab <- plot.ability("truthfulqa")
+p.wg.ab <- plot.ability("winogrande")
+saveRDS(list(arc=p.arc.ab, gsm8k=p.gsm8k.ab, hs=p.hs.ab, mmlu=p.mmlu.ab, tfqa=p.tfqa.ab, wg=p.wg.ab),
+        gpath("plots/mb-ability.rds"))
 
 
 # =============================================================================
