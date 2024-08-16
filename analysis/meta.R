@@ -45,6 +45,8 @@ subsample.data.score <- function(benchmark, seed, source = "full"){
      n <- numitems.theta[[benchmark]]
    } else if (source == "sub"){
      n <- numitems.sub[[benchmark]]
+   } else if (source == "100"){
+     n <- numitems.100[[benchmark]]
    } else {
      print("Unkown source provided, must be 'full' or 'sub'")
      return()
@@ -52,6 +54,15 @@ subsample.data.score <- function(benchmark, seed, source = "full"){
    data <- data.full.train[[benchmark]]
    set.seed(seed)
    sample(1:ncol(data), n, replace = F)
+}
+
+partition.counts <- function(n = 100){
+  counts <- sample(names(benchmarks), n, replace = T)
+  numitems.n <- table(counts)
+  numitems.n <- as.data.frame(rbind(numitems.n))
+  numitems.n$sum <- n
+  rownames(numitems.n) <- NULL
+  numitems.n
 }
 
 subscores <- function(name, index.list){
@@ -482,7 +493,8 @@ names(data.full.train) <- names(data.full.test) <- names(benchmarks)
 # run subsampling for 350 item set
 gprint("🔁 Running 10000 subsampling iterations with for 350 metabench...")
 rmses.full <- foreach(i = 1:10000, .combine=c) %dopar% {
-   subsample.wrapper(i, "full")
+  numitems.100 <- partition.counts()
+  subsample.wrapper(i, "full")
 }
 saveRDS(list(rmses.test = rmses.full), gpath("plots/metabench-full-rmses.rds"))
 
@@ -492,6 +504,14 @@ rmses.sub <- foreach(i = 1:10000, .combine=c) %dopar% {
   subsample.wrapper(i, "sub")
 }
 saveRDS(list(rmses.test = rmses.sub), gpath("plots/metabench-sub-rmses.rds"))
+
+# run subsampling for 100 item set
+gprint("🔁 Running 10000 subsampling iterations with for 100 item metabench...")
+rmses.100 <- foreach(i = 1:10000, .combine=c) %dopar% {
+  numitems.100 <- partition.counts(n = 100)
+  subsample.wrapper(i, "100")
+}
+saveRDS(list(rmses.test = rmses.100), gpath("plots/metabench-100-rmses.rds"))
 
 # =============================================================================
 # most informative items
