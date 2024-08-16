@@ -23,8 +23,10 @@ data2violin <- function(data.list, distance, maxval){
       data.frame(x = c(den$x, rev(den$x)), y = c(den$y, -rev(den$y)), bm = name)
    }
    violin.list <- lapply(names, function(name) den2violin(den.list[[name]], name))
-   for (i in 2:length(violin.list)){
-     violin.list[[i]]$y <- violin.list[[i]]$y + distance * (i-1)
+   if (length(names) > 1){
+     for (i in 2:length(violin.list)){
+       violin.list[[i]]$y <- violin.list[[i]]$y + distance * (i-1)
+     }
    }
    do.call(rbind, violin.list)
 }
