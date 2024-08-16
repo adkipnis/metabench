@@ -171,6 +171,7 @@ stats.from.plot(p.hs)
 stats.from.plot(p.mmlu)
 stats.from.plot(p.tfqa)
 stats.from.plot(p.wg)
+stats.from.plot(p.mb)
 compare.rmses()
 
 p.rand.6 <- plot.violin(rand.list, distance = 10.0) +
@@ -199,3 +200,29 @@ p.100 <- plot.violin(rand.100) +
   ggplot2::scale_fill_manual(values = rep("#FFFFFF", 7))
 outpath <- gpath("figures/f.100.png")
 ggplot2::ggsave(outpath, p.100, width = 6, height = 4)
+
+# =============================================================================
+# reviewer-requested plot of nonlinear relationship between abilities and scores
+abil <- readRDS(gpath("plots/mb-ability.rds"))
+p.arc <- abil$arc +
+  ggplot2::labs(x = "", title = "ARC* (d = 100)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.gsm8k <- abil$gsm8k +
+  ggplot2::labs(x = "", y = "", title = "GSM8K* (d = 237)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.hs <- abil$hs +
+  ggplot2::labs(x = "", y = "", title = "HellaSwag* (d = 58)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.mmlu <- abil$mmlu + 
+  ggplot2::labs(title = "MMLU* (d = 102)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.tfqa <- abil$tfqa + 
+  ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.wg <- abil$wg +
+  ggplot2::labs(y = "", title = "WinoGrande* (d = 106)") +
+  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+p.abil <- cowplot::plot_grid(
+  p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
+outpath <- gpath("figures/f.abil.pdf")
+ggplot2::ggsave(outpath, p.abil, width = 12, height = 8)
