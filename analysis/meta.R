@@ -245,6 +245,15 @@ plot.corrmat <- function(scores.partial){
                        tl.cex=0.8, tl.col="black", tl.pos='d')
 }
 
+# =============================================================================
+# 0. Leaderboard
+leaderboard <- read.csv(gpath("scraping/open-llm-leaderboard.csv"))
+categories <- c("unknown", "LlamaForCausalLM", "MistralForCausalLM",
+                "MixtralForCausalLM")
+leaderboard$arch[leaderboard$arch == "error"] <- "unknown"
+leaderboard$arch[!leaderboard$arch %in% categories] <- "other"
+rownames(leaderboard) <- leaderboard$name
+leaderboard <- leaderboard |> dplyr::select(nparams, arch)
 
 # =============================================================================
 # 1. Point scores
@@ -440,7 +449,29 @@ gprint("r(Factor1, Score) = {round(r.sub,3)}")
 # sqrt(mean( (pred.sub.test$pfa - pred.sub.test$grand)^2 ))
 
 # =============================================================================
-# 3. Predict specific scores using all latent abilities
+# 3. Check relationship to model architecture
+plot.error <- function(pred.sub){
+  box::use(ggplot2[...])
+  pred.sub$error <- pred.sub$grand - pred.sub$p
+  ggplot(pred.sub, aes(x=p, y=error)) +
+    geom_point(alpha=0.5) +
+    # add horizontal line
+    geom_hline(yintercept = 0, linetype="dashed") +
+    labs(x="Predicted", y="Error") +
+    xlim(0, 100) +
+    facet_wrap(~arch) +
+    mytheme()+
+    theme(legend.position = "None")
+}
+
+pred.sub.test.l <- rowmerge(pred.sub.test, leaderboard)
+table(pred.sub.test.l$arch)
+p.arch <- plot.error(pred.sub.test.l)
+outpath <- gpath("plots/error-architecture.png")
+ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
+
+# =============================================================================
+# 4. Predict specific scores using all latent abilities
 plot.specific <- function(bm){
   pred.sub.train$grand <- pred.score.train[[bm]]
   pred.sub.test$grand <- pred.score.test[[bm]]
