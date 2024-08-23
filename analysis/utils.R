@@ -1,19 +1,21 @@
 #" @export
 parse.args <- function(names, defaults, legal=NULL) {
-   args <- commandArgs(trailingOnly = T)
-   opts <- list()
-   for (i in 1:length(names)) {
-      name <- names[i]
-      if (i <= length(args)) {
-         opts[[name]] <- args[i]
-      } else {
-         opts[[name]] <- defaults[i]
+  args <- commandArgs(trailingOnly = T)
+  opts <- list()
+  for (i in 1:length(names)) {
+    name <- names[i]
+    if (i <= length(args)) {
+      opts[[name]] <- args[i]
+    } else {
+      opts[[name]] <- defaults[i]
+    }
+    if (!is.null(legal) && name %in% names(legal)) {
+      if(!opts[[name]] %in% legal[[name]]){
+        stop("Invalid option for ", name)
       }
-      if (!is.null(legal) && !opts[[name]] %in% legal[[name]]) {
-         stop("Invalid option for ", name)
-      }
-   }
-   invisible(list2env(opts, envir = globalenv()))
+    }
+  }
+  invisible(list2env(opts, envir = globalenv()))
 }
 
 #" @export
