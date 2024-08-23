@@ -7,6 +7,7 @@
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[parse.args, gprint, gpath, mytheme, get.theta])
+box::use(./utils[parse.args, gprint, gpath, rowmerge, mytheme, get.theta])
 parse.args(
    names = c("BM", "METH", "DIM"),
    defaults = c("arc", "MAP", 1),
@@ -24,7 +25,7 @@ set.seed(1)
 cv.extract <- function(results, itemtype) {
    df <- results[[itemtype]]$df
    df$type <- itemtype
-   df
+   rowmerge(df, leaderboard)
 }
 
 cv.collect <- function(results) {
@@ -203,6 +204,11 @@ plot.error <- function(df.score, itemtype){
             ) +
          mytheme()
 }
+# =============================================================================
+# Leaderboard
+leaderboard <- read.csv(gpath("scraping/open-llm-leaderboard.csv"))
+rownames(leaderboard) <- leaderboard$name
+leaderboard <- leaderboard |> dplyr::select(size) |> dplyr::filter(size > 0)
 
 # =============================================================================
 # load cv results
