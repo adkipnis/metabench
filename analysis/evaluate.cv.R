@@ -132,14 +132,15 @@ plot.theta2d <- function(df.score, itemtype){
   box::use(ggplot2[...], latex2exp[TeX])
   df.plot <- df.score |> 
     dplyr::filter(set == "test", type == itemtype)
-  ggplot(df.plot, aes(x = F1, y = F2, color = score)) +
-    geom_point(alpha = 0.5) +
+  ggplot(df.plot, aes(x = F1, y = F2, color = score, size = size)) +
+    geom_point(alpha = 0.5)+ 
     labs(
-      title = glue::glue("2-dim Theta ({itemtype})"),
+      title = glue::glue("{BM} 2-dim ability"),
       x = TeX("$\\theta 1$"),
       y = TeX("$\\theta 2$"),
     ) +
-    scale_color_gradient(limits = c(0, 100)) +
+    # more contrasting colors
+    scale_color_viridis_c(option = "magma") +
     mytheme()
 }
 
