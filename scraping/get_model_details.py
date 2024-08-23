@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import pandas
@@ -40,6 +41,43 @@ class Leaderboard:
             nparams = self._get_nparams(link)
             self.data.at[i, 'nparams'] = nparams
 
+    def parse_nparams(self, row):
+        nparams = row['nparams']
+        if nparams in ["offline", "error"]:
+            size = self.infer_nparams(row['name'])
+        elif "M" in nparams:
+            size = float(nparams.replace("M", "")) / 1000.
+        elif "B" in nparams:
+            size = float(nparams.replace("B", ""))
+        else:
+            raise ValueError(f"Unknown size format: {nparams}")
+        return size
+
+    def infer_nparams(self, name: str) -> float:
+        # check if the name contains the number of parameters
+        name = name.split("/")[-1]
+        match = re.search(r"(\d+\.\d+|\d+)(M|B|m|b)", name)
+        if match:
+            num = float(match.group(1))
+            suffix = match.group(2)
+            if suffix in ["M", "m"]:
+                num /= 1000.
+
+            # check if Nx precede the number or xN follows the number
+            mult = 1.0
+            nmatch = re.search(r"(\d+)x(\d+)", name)
+            if nmatch:
+                mult = float(nmatch.group(1))
+            nmatch = re.search(r"(M|B|m|b)x(\d+)", name)
+            if nmatch:
+                mult = float(nmatch.group(2))
+            return num * mult
+        return -1.0
+
+
+    def clean_nparams(self):
+        self.data['size'] = self.data.apply(self.parse_nparams, axis=1)
+
     def _get_arch(self, link: str) -> str:
         json_link = link + "/raw/main/config.json"
         self.driver.get(json_link)
@@ -76,9 +114,10 @@ def main():
 
     # print("Scraping number of params...")
     # leaderboard.add_nparams()
+    # leaderboard.clean_nparams()
     
-    print("Scraping architecture...")
-    leaderboard.add_arch()
+    # print("Scraping architecture...")
+    # leaderboard.add_arch()
 
     print(f"Saving to {args.path}")
     leaderboard.data.to_csv(args.path, index=False)
