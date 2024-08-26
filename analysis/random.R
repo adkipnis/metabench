@@ -104,6 +104,13 @@ data <- full$data.train
 nc <- full$max.points.orig
 scores <- full$scores.train / nc * 100
 
+# optionally remove items used in previous runs
+if (skip.reduced){
+  gprint("Removing items used in previous runs...")
+  reduced <- load.reduced(BM)
+  data <- data[,!colnames(data) %in% reduced]
+}
+
 # split data
 indices <- caret::createDataPartition(scores, p = 0.1, list = F)
 data.train <- data[indices,]
