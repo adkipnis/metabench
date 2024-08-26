@@ -5,15 +5,15 @@
 box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
-   names = c("BM", "N"), 
-   defaults = c("gsm8k", 350),
+   names = c("BM", "N", "seed"),
+   defaults = c("gsm8k", 350, 0),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 817, 1)
    )
 )
 N <- as.numeric(N)
-set.seed(0)
+set.seed(seed)
 
 # =============================================================================
 # helper functions
