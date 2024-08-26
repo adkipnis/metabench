@@ -18,6 +18,13 @@ skip.reduced <- T # remove items used in original run
 
 # =============================================================================
 # helper functions
+split <- function(fold){
+   indices.tmp <- indices[fold]
+   list(data.train = data[-indices.tmp,],
+        data.val = data.val[indices.rand,],
+        scores.train = scores[-indices.tmp],
+        scores.val = scores[indices.tmp])
+}
 
 predict.scores <- function(df.scores, mod.score){
    preds <- predict(mod.score, df.scores, se.fit = T)
@@ -37,38 +44,51 @@ subsample <- function(data, k){
 
 subsample.wrapper <- function(seed){
    set.seed(seed)
-   
+
    # subsample same items from train and test data
    indices.rand <- subsample(data.train, N)
-   data.train.r <- data.train[,indices.rand]
-   data.val.r <- data.val[,indices.rand]
-   data.test.r <- data.test[,indices.rand]
+   
+   # init results
+   rmse.val <- list()
+   rmse.test <- list()
 
-   # recalculate mean scores and prepare score dfs
-   scores.train.r <- rowMeans(data.train.r)
-   scores.val.r <- rowMeans(data.val.r)
-   scores.test.r <- rowMeans(data.test.r)
-   df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
-   df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
-   df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
+   # 5-fold data split
+   for (fold in 1:5){
+      data.split <- split(fold)
+      data.train <- data.split$data.train
+      data.val <- data.split$data.val
+      scores.train <- data.split$scores.train
+      scores.val <- data.split$scores.val
 
-   # train GAM on train data and predict on val/test set
-   mod.score <- mgcv::gam(means ~ s(sub.score), data = df.train)
-   df.val <- predict.scores(df.val, mod.score)
-   df.test <- predict.scores(df.test, mod.score)
+      # subsample same items from train and test data
+      data.train.r <- data.train[,indices.rand]
+      data.val.r <- data.val[,indices.rand]
+      data.test.r <- data.test[,indices.rand]
 
-   # export results
-   list(
-      indices.rand = indices.rand,
-      mod.score = mod.score,
-      rmse.val = sqrt(mean(df.val$error^2)),
-      rmse.val.ci.size = mean(df.val$ci.size),
-      rmse.val.ci.coverage = mean(df.val$in.ci),
-      rmse.test = sqrt(mean(df.test$error^2)),
-      rmse.test.ci.size = mean(df.test$ci.size),
-      remse.test.ci.coverage = mean(df.test$in.ci),
-      seed = seed
-   )
+      # recalculate mean scores and prepare score dfs
+      scores.train.r <- rowMeans(data.train.r)
+      scores.val.r <- rowMeans(data.val.r)
+      scores.test.r <- rowMeans(data.test.r)
+      df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
+      df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
+      df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
+
+      # train GAM on train data and predict on val/test set
+      mod.score <- mgcv::gam(means ~ s(sub.score), data = df.train)
+      df.val <- predict.scores(df.val, mod.score)
+      df.test <- predict.scores(df.test, mod.score)
+
+      # collect results
+      rmse.val[[fold]] <- sqrt(mean((df.val$error)^2))
+      rmse.test[[fold]] <- sqrt(mean((df.test$error)^2))
+   }
+
+   list(seed = seed,
+        indiced.rand = indices.rand,
+        rmse.val = mean(rmse.val),
+        rmse.val.sd = sd(rmse.val),
+        rmse.test = mean(rmse.test),
+        rmse.test.sd = sd(rmse.test))
 }
 
 bind.results <- function(results){
@@ -111,12 +131,15 @@ if (skip.reduced){
   data <- data[,!colnames(data) %in% reduced]
 }
 
-# split data
-indices <- caret::createDataPartition(scores, p = 0.1, list = F)
-data.train <- data[indices,]
-data.val <- data[-indices,]
-scores.train <- scores[indices]
-scores.val <- scores[-indices]
+# # split data
+# indices <- caret::createDataPartition(scores, p = 0.1, list = F)
+# data.train <- data[indices,]
+# data.val <- data[-indices,]
+# scores.train <- scores[indices]
+# scores.val <- scores[-indices]
+
+# 5-fold cross-validation split
+indices <- caret::createFolds(scores, k = 5, list = T)
 
 # test on test data
 data.test <- full$data.test
@@ -148,14 +171,11 @@ res <- bind.results(res.full)
 
 # get best result
 min.index <- which.min(res$rmse.val)
-gprint("📊 Best Validation RMSE: {round(res$rmse.val[min.index], 3)}, Median: {round(median(res$rmse.val), 3)}")
-gprint("📊 Best Test RMSE: {round(min(res$rmse.test), 3)}, Median: {round(median(res$rmse.test), 3)}")
+gprint("📊 Best mean validation RMSE: {round(res$rmse.val[min.index], 3)}, Median: {round(median(res$rmse.val), 3)}")
+gprint("📊 Best mean test RMSE: {round(min(res$rmse.test), 3)}, Median: {round(median(res$rmse.test), 3)}")
 rmse.test <- res$rmse.test[min.index]
-rmse.test.ci <- res$rmse.test.ci.size[min.index]
-rmse.test.coverage <- res$remse.test.ci.coverage[min.index]
-gprint("📊 Test RMSE of chosen set: {round(rmse.test, 3)}, mean 99%-CI size: {round(rmse.test.ci,3)}, CI-coverage: {round(100 * rmse.test.coverage, 1)}% ")
+gprint("📊 Mean test RMSE of chosen set: {round(rmse.test, 3)}")
 indices.rand <- res.full[[min.index]]$indices.rand
-mod.score <- res.full[[min.index]]$mod.score
 
 # collect results
 data.train.s <- data[,indices.rand]
@@ -169,7 +189,6 @@ out <- list(
    scores.test = full$scores.test,
    max.points.orig = full$max.points.orig,
    items = items.s,
-   mod.score = mod.score,
    rmses.val = res$rmse.val,
    rmses.test = res$rmse.test,
    rmse.test = rmse.test
