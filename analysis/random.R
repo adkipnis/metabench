@@ -151,7 +151,11 @@ out <- list(
 )
 
 # save data
-outpath <- gpath("data/{BM}-sub-{N}.rds")
+if (skip.reduced){
+   outpath <- gpath("analysis/random/{BM}-sub-{N}-{seed}-v2.rds")
+} else {
+   outpath <- gpath("data/{BM}-sub-{N}-{seed}.rds")
+}
 saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
 
