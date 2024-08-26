@@ -177,7 +177,7 @@ out <- list(
 
 # save data
 if (skip.reduced){
-   outpath <- gpath("analysis/random/{BM}-sub-{N}-{seed}-v2.rds")
+   outpath <- gpath("data/{BM}-sub-{N}-{seed}-v2.rds")
 } else {
    outpath <- gpath("data/{BM}-sub-{N}-{seed}.rds")
 }
