@@ -13,7 +13,8 @@ parse.args(
    )
 )
 N <- as.numeric(N)
-set.seed(seed)
+set.seed(as.numeric(seed))
+skip.reduced <- T # remove items used in original run
 
 # =============================================================================
 # helper functions
@@ -52,7 +53,7 @@ subsample.wrapper <- function(seed){
    df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
 
    # train GAM on train data and predict on val/test set
-   mod.score <- mgcv::gam(means ~ s(sub.score, bs = "ps"), data = df.train)
+   mod.score <- mgcv::gam(means ~ s(sub.score), data = df.train)
    df.val <- predict.scores(df.val, mod.score)
    df.test <- predict.scores(df.test, mod.score)
 
@@ -76,6 +77,23 @@ bind.results <- function(results){
   out <- as.data.frame(do.call(rbind, results.tmp))
   out <- as.data.frame(lapply(out, as.numeric))
   out 
+}
+
+benchmarks <- list(
+  arc = list(mod = "2PL", est = "MAP", lam = 0.005),
+  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
+  hellaswag = list(mod = "3PL", est = "MAP", lam = 0.01),
+  mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
+  truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
+  winogrande = list(mod = "4PL", est = "MAP", lam = 0.005)
+)
+
+load.reduced <- function(bm){
+   mod <- benchmarks[[bm]]$mod
+   est <- benchmarks[[bm]]$est
+   lam <- benchmarks[[bm]]$lam
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}.rds")
+   readRDS(path)$items$item
 }
 
 # =============================================================================
