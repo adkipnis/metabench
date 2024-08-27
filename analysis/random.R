@@ -154,16 +154,36 @@ res.full <- foreach(i = 1:niter, .options.snow = opts) %dopar% {
 close(pb)
 parallel::stopCluster(mu.cluster)
 
-# plot distribution of RMSEs
-# plot(density(res$rmse.test))
+# tidy up results
+res <- bind.results(res.full) |>
+   # make data frame wide by seed (rmse.val.1, rmse.val.2, ...)
+   tidyr::pivot_wider(names_from = fold,
+                      values_from = c(rmse.val, rmse.test),
+                      names_sep = ".")
+res <- res |> dplyr::mutate(
+   max.rmse.val = apply(dplyr::select(res, starts_with("rmse.val")), 1, max),
+   max.rmse.test = apply(dplyr::select(res, starts_with("rmse.test")), 1, max),
+   mean.rmse.val = apply(dplyr::select(res, starts_with("rmse.val")), 1, mean),
+   mean.rmse.test = apply(dplyr::select(res, starts_with("rmse.test")), 1, mean)
+  )
 
-# get best result
-min.index <- which.min(res$rmse.val)
-gprint("📊 Best mean validation RMSE: {round(res$rmse.val[min.index], 3)}, Median: {round(median(res$rmse.val), 3)}")
-gprint("📊 Best mean test RMSE: {round(min(res$rmse.test), 3)}, Median: {round(median(res$rmse.test), 3)}")
-rmse.test <- res$rmse.test[min.index]
+# plot results
+par(mfrow = c(1,2))
+plot(res$mean.rmse.val, res$mean.rmse.test,
+     xlab = "mean(Validation)", ylab = "mean(Test)")
+plot(res$max.rmse.val, res$mean.rmse.test,
+     xlab = "max(Validation)", ylab = "mean(Test)")
+
+# get best result (minimax)
+min.index <- which.min(res$max.rmse.val)
+gprint("📊 Minimax validation RMSE: {round(res$max.rmse.val[min.index], 3)}, Median: {round(median(res$max.rmse.val), 3)}")
+gprint("📊 Minimax test RMSE: {round(min(res$max.rmse.test), 3)}, Median: {round(median(res$max.rmse.test), 3)}")
+rmse.test <- res$mean.rmse.test[min.index]
 gprint("📊 Mean test RMSE of chosen set: {round(rmse.test, 3)}")
-indices.rand <- res.full[[min.index]]$indices.rand
+
+# find entry in which res.full has the seed == min.index
+idx.tmp <- which(df.index$seed == min.index)[1]
+indices.rand <- res.full[[idx.tmp]]$indices.rand
 
 # collect results
 data.train.s <- data[,indices.rand]
@@ -177,8 +197,10 @@ out <- list(
    scores.test = full$scores.test,
    max.points.orig = full$max.points.orig,
    items = items.s,
-   rmses.val = res$rmse.val,
-   rmses.test = res$rmse.test,
+   rmses.val = res$mean.rmse.val,
+   rmses.val.max = res$max.rmse.val,
+   rmses.test = res$mean.rmse.test,
+   rmses.test.max = res$max.rmse.test,
    rmse.test = rmse.test
 )
 
