@@ -53,13 +53,19 @@ subsample.wrapper <- function(seed, fold){
   data.val.r <- data.val[,indices.rand]
   data.test.r <- data.test[,indices.rand]
   
-  # prepare data frames
-  df.train <- data.frame(means = scores.train, data.train.r)
-  df.val <- data.frame(means = scores.val, data.val.r)
-  df.test <- data.frame(means = scores.test, data.test.r)
+  # train gam model
+  df.train <- data.frame(means = scores.train, reduced = rowMeans(data.train.r))
+  df.val <- data.frame(means = scores.val, reduced = rowMeans(data.val.r))
+  df.test <- data.frame(means = scores.test, reduced = rowMeans(data.test.r))
+  mod.score <- mgcv::gam(means ~ s(reduced, bs = 'ad'), data = df.train)
+
+  # # alternatively train weighted average model (slower and not necessarily better)
+  # df.train <- data.frame(means = scores.train, data.train.r)
+  # df.val <- data.frame(means = scores.val, data.val.r)
+  # df.test <- data.frame(means = scores.test, data.test.r)
+  # mod.score <- lm(means ~ 0 + ., data = df.train)
   
-  # train weighted average model and predict on val/test set
-  mod.score <- lm(means ~ 0 + ., data = df.train)
+  # predict on val/test set
   df.val <- predict.scores(df.val, mod.score)
   df.test <- predict.scores(df.test, mod.score)
   
