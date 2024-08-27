@@ -118,24 +118,15 @@ if (skip.reduced){
   data.test <- data.test[,!colnames(data.test) %in% reduced]
 }
 
-# # split data
-# indices <- caret::createDataPartition(scores, p = 0.1, list = F)
-# data.train <- data[indices,]
-# data.val <- data[-indices,]
-# scores.train <- scores[indices]
-# scores.val <- scores[-indices]
+# check if N is valid
+if (N > ncol(data)){
+  gprint("Benchmark only has {ncol(data)} items but {N} were specified. Aborting...")
+  quit()
+}
 
 # 5-fold cross-validation split
 indices <- caret::createFolds(scores, k = 5, list = T)
-
-# test on test data
-data.test <- full$data.test
-scores.test <- full$scores.test / nc * 100
-
-if (N > ncol(data.train)){
-  gprint("Benchmark only has {ncol(data.train)} items but {N} were specified. Aborting...")
-  quit()
-}
+gprint("🔁 Running 10000 subsampling iterations with {N} items and 5 folds...")
 
 # =============================================================================
 # setup parallel processing
