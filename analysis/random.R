@@ -6,7 +6,7 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N", "seed"),
-   defaults = c("gsm8k", 350, 0),
+   defaults = c("arc", 350, 2024),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 817, 1)
