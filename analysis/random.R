@@ -27,14 +27,8 @@ split <- function(fold){
 }
 
 predict.scores <- function(df.scores, mod.score){
-   preds <- predict(mod.score, df.scores, se.fit = T)
-   df.scores$p <- preds$fit
-   df.scores$p.low <- preds$fit + qnorm(0.005) * preds$se.fit
-   df.scores$p.high <- preds$fit + qnorm(0.995) * preds$se.fit
-   df.scores |>
-      dplyr::mutate(error = means - p,
-                    ci.size = p.high - p.low,
-                    in.ci = (means >= p.low) & (means <= p.high))
+   df.scores$p <- predict(mod.score, df.scores)
+   df.scores |> dplyr::mutate(error = means - p)
 }
 
 subsample <- function(data, k){
