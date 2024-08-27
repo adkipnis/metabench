@@ -75,7 +75,7 @@ subsample.wrapper <- function(seed, fold){
 
 bind.results <- function(results){
   results.tmp <- results
-  results.tmp <- lapply(results.tmp, function(x) x[-c(1, 2)])
+  results.tmp <- lapply(results.tmp, function(x) x[-1])
   out <- as.data.frame(do.call(rbind, results.tmp))
   out <- as.data.frame(lapply(out, as.numeric))
   out 
