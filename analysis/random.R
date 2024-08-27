@@ -106,11 +106,16 @@ data <- full$data.train
 nc <- full$max.points.orig
 scores <- full$scores.train / nc * 100
 
+# test on test data
+data.test <- full$data.test
+scores.test <- full$scores.test / nc * 100
+
 # optionally remove items used in previous runs
 if (skip.reduced){
   gprint("Removing items used in previous runs...")
   reduced <- load.reduced(BM)
   data <- data[,!colnames(data) %in% reduced]
+  data.test <- data.test[,!colnames(data.test) %in% reduced]
 }
 
 # # split data
