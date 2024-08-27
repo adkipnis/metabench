@@ -19,9 +19,9 @@ skip.reduced <- T # remove items used in original run
 # =============================================================================
 # helper functions
 split <- function(fold){
-   indices.tmp <- indices[fold]
+   indices.tmp <- unlist(indices[fold])
    list(data.train = data[-indices.tmp,],
-        data.val = data.val[indices.rand,],
+        data.val = data[indices.tmp,],
         scores.train = scores[-indices.tmp],
         scores.val = scores[indices.tmp])
 }
