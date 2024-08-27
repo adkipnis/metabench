@@ -173,12 +173,12 @@ res <- res |> dplyr::mutate(
    mean.rmse.test = apply(dplyr::select(res, starts_with("rmse.test")), 1, mean)
   )
 
-# plot results
-par(mfrow = c(1,2))
-plot(res$mean.rmse.val, res$mean.rmse.test,
-     xlab = "mean(Validation)", ylab = "mean(Test)")
-plot(res$max.rmse.val, res$mean.rmse.test,
-     xlab = "max(Validation)", ylab = "mean(Test)")
+# # plot results
+# par(mfrow = c(1,2))
+# plot(res$mean.rmse.val, res$mean.rmse.test,
+#      xlab = "mean(Validation)", ylab = "mean(Test)")
+# plot(res$max.rmse.val, res$mean.rmse.test,
+#      xlab = "max(Validation)", ylab = "mean(Test)")
 
 # get best result (minimax)
 min.index <- which.min(res$max.rmse.val)
