@@ -36,54 +36,42 @@ subsample <- function(data, k){
   sort(sample(1:n, k, replace = F))
 }
 
-subsample.wrapper <- function(seed){
-   set.seed(seed)
-
-   # subsample same items from train and test data
-   indices.rand <- subsample(data.train, N)
-   
-   # init results
-   rmse.val <- list()
-   rmse.test <- list()
-
-   # 5-fold data split
-   for (fold in 1:5){
-      data.split <- split(fold)
-      data.train <- data.split$data.train
-      data.val <- data.split$data.val
-      scores.train <- data.split$scores.train
-      scores.val <- data.split$scores.val
-
-      # subsample same items from train and test data
-      data.train.r <- data.train[,indices.rand]
-      data.val.r <- data.val[,indices.rand]
-      data.test.r <- data.test[,indices.rand]
-
-      # recalculate mean scores and prepare score dfs
-      scores.train.r <- rowMeans(data.train.r)
-      scores.val.r <- rowMeans(data.val.r)
-      scores.test.r <- rowMeans(data.test.r)
-      df.train <- data.frame(sub.score = scores.train.r, means = scores.train)
-      df.val <- data.frame(sub.score = scores.val.r, means = scores.val)
-      df.test <- data.frame(sub.score = scores.test.r, means = scores.test)
-
-      # train GAM on train data and predict on val/test set
-      mod.score <- mgcv::gam(means ~ s(sub.score), data = df.train)
-      df.val <- predict.scores(df.val, mod.score)
-      df.test <- predict.scores(df.test, mod.score)
-
-      # collect results
-      rmse.val[[fold]] <- sqrt(mean((df.val$error)^2))
-      rmse.test[[fold]] <- sqrt(mean((df.test$error)^2))
-   }
-
-   list(seed = seed,
-        indiced.rand = indices.rand,
-        rmse.val = mean(rmse.val),
-        rmse.val.sd = sd(rmse.val),
-        rmse.test = mean(rmse.test),
-        rmse.test.sd = sd(rmse.test))
+subsample.wrapper <- function(seed, fold){
+  # reproducible index sampling
+  set.seed(seed)
+  indices.rand <- subsample(data, N)
+  
+  # 5-fold data split
+  data.split <- split(fold)
+  data.train <- data.split$data.train
+  data.val <- data.split$data.val
+  scores.train <- data.split$scores.train
+  scores.val <- data.split$scores.val
+  
+  # subsample same items from train and test data
+  data.train.r <- data.train[,indices.rand]
+  data.val.r <- data.val[,indices.rand]
+  data.test.r <- data.test[,indices.rand]
+  
+  # prepare data frames
+  df.train <- data.frame(means = scores.train, data.train.r)
+  df.val <- data.frame(means = scores.val, data.val.r)
+  df.test <- data.frame(means = scores.test, data.test.r)
+  
+  # train weighted average model and predict on val/test set
+  mod.score <- lm(means ~ 0 + ., data = df.train)
+  df.val <- predict.scores(df.val, mod.score)
+  df.test <- predict.scores(df.test, mod.score)
+  
+  # output
+  list(indices.rand = indices.rand,
+       seed = seed,
+       fold = fold,
+       rmse.val = sqrt(mean((df.val$error)^2)),
+       rmse.test = sqrt(mean((df.test$error)^2))
+  )
 }
+
 
 bind.results <- function(results){
   results.tmp <- results
