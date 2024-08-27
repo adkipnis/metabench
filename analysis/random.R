@@ -134,15 +134,25 @@ box::use(doParallel[...], foreach[...])
 n.cores <- parallel::detectCores() - 1
 mu.cluster <- parallel::makeCluster(n.cores, type = "PSOCK")
 doParallel::registerDoParallel(mu.cluster)
+df.index <- expand.grid(seed = 1:10000, fold = 1:5) |>
+   dplyr::arrange(seed, fold)
+niter <- nrow(df.index)
+
+# setup progress bar
+doSNOW::registerDoSNOW(mu.cluster)
+pb <- utils::txtProgressBar(max = niter, style = 3)
+progress <- function(n) utils::setTxtProgressBar(pb, n)
+opts <- list(progress = progress)
 
 # =============================================================================
 # run subsampling
-gprint("🔁 Running 10000 subsampling iterations with {N} items...")
-res.full <- foreach(i = 1:10000) %dopar% {
-   subsample.wrapper(i)
+res.full <- foreach(i = 1:niter, .options.snow = opts) %dopar% {
+  seed <- df.index$seed[i]
+  fold <- df.index$fold[i]
+  subsample.wrapper(seed, fold)
 }
+close(pb)
 parallel::stopCluster(mu.cluster)
-res <- bind.results(res.full)
 
 # plot distribution of RMSEs
 # plot(density(res$rmse.test))
