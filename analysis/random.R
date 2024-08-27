@@ -211,11 +211,8 @@ out <- list(
 )
 
 # save data
-if (skip.reduced){
-   outpath <- gpath("data/{BM}-sub-{N}-{seed}-v2.rds")
-} else {
-   outpath <- gpath("data/{BM}-sub-{N}-{seed}.rds")
-}
+suffix <- ifelse(skip.reduced, glue::glue("-{seed}-v2"), "")
+outpath <- gpath("data/{BM}-sub-{N}{suffix}.rds")
 saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
 
