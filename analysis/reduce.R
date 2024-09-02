@@ -73,7 +73,8 @@ collect.theta.eapsum <- function(model, indices, data.train, data.test){
 }
 
 collect.all <- function(model.type){
-   fitpath <- gpath("analysis/models/{BM}-{model.type}-1-cv.rds")
+   suffix <- ifelse(skip.reduced, "-v2", "")
+   fitpath <- gpath("analysis/models/{BM}-{model.type}-1-cv{suffix}.rds")
    results <- readRDS(fitpath)
    model <- results$model
    thetas.map <- collect.theta.map(results, indices)
@@ -301,7 +302,8 @@ optimize.hyperparameters <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-datapath <- gpath("data/{BM}-sub-350.rds")
+suffix <- ifelse(skip.reduced, glue::glue("-{seed}-v2"), "")
+datapath <- gpath("data/{BM}-sub-350{suffix}.rds")
 full <- readRDS(datapath)
 items <- full$items
 items$item <- as.character(items$item)
@@ -375,7 +377,8 @@ out <- list(
 
 gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).
        RMSE = {round(sfs.test$rmse, 3)}")
-outpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}.rds")
+version <- ifelse(skip.reduced, "-v2", "")
+outpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}{version}.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved results to {outpath}")
 
@@ -407,7 +410,7 @@ p.misc <- cowplot::plot_grid(
   ncol = 1
 )
 p.misc <- cowplot::plot_grid(title, p.misc, ncol = 1, rel_heights = c(0.05, 1))
-plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-info.png")
+plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-info{version}.png")
 ggplot2::ggsave(plotpath, p.misc, width = 16, height = 16)
 
 
@@ -441,5 +444,5 @@ p.pred <- cowplot::plot_grid(
   p.ts, p.perc, p.score, p.error, ncol = 1
 )
 p.pred <- cowplot::plot_grid(title, p.pred, ncol = 1, rel_heights = c(0.05, 1))
-plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-pred.png")
+plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-pred{version}.png")
 ggplot2::ggsave(plotpath, p.pred, width = 16, height = 19)
