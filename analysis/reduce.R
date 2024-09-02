@@ -16,8 +16,8 @@
 box::use(./utils[parse.args, mkdir, gprint, gpath, run.mirt, get.theta])
 box::use(./reduce.utils[...])
 parse.args(
-   names = c("BM", "LAMBDA", "N_QUANT"),
-   defaults = c("arc", 0.0, 200),
+   names = c("BM", "LAMBDA", "N_QUANT", "seed"),
+   defaults = c("arc", 0.005, 200, 2024),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      LAMBDA = seq(0, 1, 0.001), # penalty for subtest size (0 = no penalty)
@@ -27,7 +27,8 @@ parse.args(
 Saveplots <- T
 here::i_am("analysis/reduce.R")
 mkdir("analysis/reduced")
-set.seed(1)
+set.seed(as.numeric(seed))
+skip.reduced <- T # load v2
 
 # for Bayesian Optimization
 N_ITER <- 60 # number of search iterations after initial pass
