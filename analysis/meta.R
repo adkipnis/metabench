@@ -548,8 +548,21 @@ ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 plot.specific <- function(bm){
   pred.sub.train$grand <- pred.score.train[[bm]]
   pred.sub.test$grand <- pred.score.test[[bm]]
+  if (bm == "hellaswag"){
+    this.l.str <- "hs.l"
+  } else if (bm == "truthfulqa") {
+    this.l.str <- "tfqa.l"
+  } else if (bm == "winogrande") {
+    this.l.str <- "wg.l"
+  } else {
+    this.l.str <- paste0(bm, ".l")
+  }
+  pred.sub.train$this.l <- pred.sub.train[[this.l.str]]
+  pred.sub.test$this.l <- pred.sub.test[[this.l.str]]
   
   mod.sub <- mgcv::gam(grand ~
+                         s(grand.l, bs="ad") +
+                         s(this.l, bs="ad") +
                          s(arc, bs="ad") +
                          s(gsm8k, bs="ad") +
                          s(hellaswag, bs="ad") +
