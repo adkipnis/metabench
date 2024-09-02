@@ -1,6 +1,5 @@
 # =============================================================================
-box::use(.. / analysis / utils[mytheme, cbPalette])
-cbp <- cbPalette()
+box::use(.. / analysis / utils[mytheme])
 
 # =============================================================================
 # helper function to create a violin plot
@@ -50,7 +49,7 @@ get.medians <- function(data.list, distance, maxval){
 }
 
 #" @export
-plot.violin <- function(data.list, distance = 10.0, maxval = 7){ 
+plot.violin <- function(data.list, distance = 10.0, maxval = 7, cbp = cbp){ 
   box::use(ggplot2[...])
   names <- names(data.list)
   df.violin <- data2violin(data.list, distance, maxval)
