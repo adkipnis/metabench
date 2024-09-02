@@ -50,7 +50,7 @@ plot.score <- function(result, bm, color){
   r <- cor(df.plot$theta, df.plot$score, method = "spearman")
   gprint("RMSE = {round(rmse, 3)},\nMAE = {round(mae, 3)},\nr = {round(r, 3)}")
   n.items <- nrow(result$items)
-  text <- glue::glue("RMSE = {round(rmse, 3)}")
+  text <- glue::glue("RMSE = {round(rmse, 3)}\nr = {round(r, 3)}")
   ggplot(df.plot, aes(x = score, y = p)) +
     geom_abline(intercept = 0,
                 slope = 1,
@@ -59,7 +59,7 @@ plot.score <- function(result, bm, color){
     coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
     annotate("text", x = 75, y = 25, label = text, size = 5) +
     labs(
-      title = glue::glue("{bm} (d = {n.items})"),
+      title = glue::glue("{bm}{suffix} (d = {n.items})"),
       x = "Score",
       y = "Predicted",
     ) +
