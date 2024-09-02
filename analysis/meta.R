@@ -505,7 +505,7 @@ saveRDS(mod.sub, gpath("analysis/gams/gam-grand.rds"))
 pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette()) +
-  ggplot2::ggtitle(glue::glue("metabench (d = {numitems.sub$sum})"))
+  ggplot2::ggtitle(glue::glue("metabench-B (d = {numitems.sub$sum})"))
 p.sub
 saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
 r.sub <- cor(pred.sub.test$p, pred.sub.test$grand, method = "spearman")
@@ -522,7 +522,7 @@ gprint("r(Factor1, Score) = {round(r.sub,3)}")
 # sqrt(mean( (pred.sub.test$pfa - pred.sub.test$grand)^2 ))
 
 # =============================================================================
-# 3. Check relationship to model architecture
+# Check relationship to model architecture
 plot.error <- function(pred.sub){
   box::use(ggplot2[...])
   pred.sub$error <- pred.sub$grand - pred.sub$p
@@ -540,11 +540,11 @@ plot.error <- function(pred.sub){
 pred.sub.test.l <- rowmerge(pred.sub.test, leaderboard)
 table(pred.sub.test.l$arch)
 p.arch <- plot.error(pred.sub.test.l)
-outpath <- gpath("plots/error-architecture.png")
+outpath <- gpath("figures/f.architecture.pdf")
 ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 
 # =============================================================================
-# 4. Predict specific scores using all latent abilities
+# Predict specific scores using all latent abilities
 plot.specific <- function(bm){
   pred.sub.train$grand <- pred.score.train[[bm]]
   pred.sub.test$grand <- pred.score.test[[bm]]
@@ -582,6 +582,7 @@ p.wg <- plot.specific("winogrande")
 saveRDS(list(arc=p.arc, gsm8k=p.gsm8k, hs=p.hs, mmlu=p.mmlu, tfqa=p.tfqa, wg=p.wg),
         gpath("plots/mb-specific.rds"))
 
+# =============================================================================
 # specific abilities plots
 plot.ability <- function(bm){
   box::use(ggplot2[...])
