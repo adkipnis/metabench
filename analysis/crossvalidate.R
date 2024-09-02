@@ -7,8 +7,8 @@
 box::use(./utils[parse.args, gprint, gpath, mkdir, get.theta, run.mirt])
 
 parse.args(
-   names = c("BM", "MOD", "D"),
-   defaults = c("winogrande", "4PL", 1),
+   names = c("BM", "MOD", "D", "seed"),
+   defaults = c("arc", "4PL", 1, 2024),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "4PL"),
@@ -17,7 +17,9 @@ parse.args(
 )
 here::i_am("analysis/crossvalidate.R")
 mkdir("analysis/models")
-set.seed(1)
+set.seed(as.numeric(seed))
+
+skip.reduced <- T # load v2
 
 # =============================================================================
 # helper functions  
