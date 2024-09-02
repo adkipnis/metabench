@@ -254,6 +254,37 @@ load.reduced <- function(bm){
    readRDS(path)$items$item
 }
 
+prepare.lm.data <- function(bm, type){
+   if (type == "train"){
+      data <- data.full.train[[bm]]
+      scores <- data.frame(grand = scores.partial.train[[bm]])
+      rownames(scores) <- rownames(scores.partial.train)
+   } else {
+      data <- data.full.test[[bm]]
+      scores <- data.frame(grand = scores.partial.test[[bm]])
+      rownames(scores) <- rownames(scores.partial.test)
+   }
+   items <- load.reduced(bm)
+   data <- data[,colnames(data) %in% items]
+   rowmerge(scores, data)
+}
+
+train.lm <- function(bm){
+  data.train <- prepare.lm.data(bm, "train")
+  data.test <- prepare.lm.data(bm, "test")
+  mod.lin <- lm(grand ~ ., data = data.train)
+  data.train$p <- predict(mod.lin, data.train)
+  data.test$p <- predict(mod.lin, data.test)
+  rmse.train <- data.train |> dplyr::mutate(error = grand - p) |>
+    dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+  rmse.test <- data.test |> dplyr::mutate(error = grand - p) |>
+    dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+  list(rmse.train = rmse.train,
+       rmse.test = rmse.test,
+       pred.train = data.train$p,
+       pred.test = data.test$p)
+}
+
 # =============================================================================
 # 0. Leaderboard
 leaderboard <- read.csv(gpath("scraping/open-llm-leaderboard.csv"))
