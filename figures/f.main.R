@@ -1,11 +1,17 @@
 # =============================================================================
-box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme, cbPalette])
+box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme, cbPalette, cbPalette2])
 box::use(./violin.utils[plot.violin])
 here::i_am("figures/f.random.R")
+skip.reduced <- T # load v2
+suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
 # helper functions
-cbp <- cbPalette()
+if (skip.reduced){
+   cbp <- cbPalette()
+} else {
+   cbp <- cbPalette2()
+}
 
 get.rmse <- function(result){
   df.plot <- result$df.score.sub |>
@@ -36,6 +42,7 @@ stats.from.plot <- function(p){
 
 plot.score <- function(result, bm, color){
   box::use(ggplot2[...])
+  suffix <- ifelse(skip.reduced, "-test", "")
   df.plot <- result$df.score.sub |>
     dplyr::filter(set == "test")
   rmse <- get.rmse(result)
