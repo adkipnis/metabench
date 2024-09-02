@@ -87,6 +87,141 @@ compare.rmses <- function(){
        tfqa = btr.tfqa, wg = btr.wg)
 }
 
+get.coords <- function(p){
+  xlim <- ggplot_build(p)$layout$panel_params[[1]]$x.range
+  ylim <- ggplot_build(p)$layout$panel_params[[1]]$y.range
+  x.coord <- xlim[1] + 0.75 * (xlim[2] - xlim[1])
+  y.coord <- ylim[1] + 0.25 * (ylim[2] - ylim[1])
+  list(x = x.coord, y = y.coord)
+}
+
+bm.map <- list(arc = "arc", gsm8k = "gsm8k", hs = "hellaswag", mmlu = "mmlu",
+               tfqa = "truthfulqa", wg = "winogrande")
+color.map <- list(arc = cbp[[1]], gsm8k = cbp[[2]], hs = cbp[[3]], mmlu = cbp[[4]],
+                  tfqa = cbp[[5]], wg = cbp[[6]])
+
+compare.versions <- function(bm){
+  box::use(ggplot2[...])
+  data.A <- readRDS(gpath("plots/mb-specific-v2.rds"))[[bm]]$data
+  data.B <- readRDS(gpath("plots/mb-specific.rds"))[[bm]]$data
+  color <- color.map[[bm]]
+  bm <- bm.map[[bm]]
+  
+  # rank of latent ability
+  r.latent <- cor(data.A[[bm]], data.B[[bm]], method = "spearman")
+  text.latent <- glue::glue("r = {round(r.latent, 3)}")
+  p.latent <- data.frame(A = data.A[[bm]], B = data.B[[bm]]) |>
+    ggplot(aes(x = A, y = B)) +
+    geom_point(alpha = 0.5, color = color) +
+    labs(x = "Latent (A)", y = "Latent (B)") +
+    mytheme()
+  coords <- get.coords(p.latent)
+  p.latent <- p.latent + annotate("text", x = coords$x, y = coords$y,
+                                  label = text.latent, size = 5)
+  
+  # rank of gam-predicted score
+  r.pred <- cor(data.A$p, data.B$p, method = "spearman")
+  text.pred <- glue::glue("r = {round(r.pred, 3)}")
+  p.pred <- data.frame(A = data.A$p, B = data.B$p) |>
+    ggplot(aes(x = A, y = B)) +
+    geom_abline(intercept = 0,
+                slope = 1,
+                linetype = "dashed") +
+    geom_point(alpha = 0.5, color = color) +
+    coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+    labs(x = "Predicted (A)", y = "Predicted (B)") +
+    mytheme()
+  coords <- get.coords(p.pred)
+  p.pred <- p.pred + annotate("text", x = coords$x, y = coords$y,
+                              label = text.pred, size = 5) 
+  
+  # bias
+  bias <- mean(data.A$p - data.B$p)
+  text.bias <- glue::glue("b = {round(bias, 3)}%")
+  p.bias <- data.frame(grand = data.A$grand, diff = data.A$p - data.B$p) |>
+    ggplot(aes(x = grand, y = diff)) +
+    geom_abline(intercept = 0, slope = 0,
+                linetype = "dashed") +
+    geom_point(alpha = 0.5, color = color) +
+    coord_cartesian(xlim = c(0, 100)) +
+    labs(x = "Score", y = "A - B") +
+    mytheme()
+  coords <- get.coords(p.bias)
+  p.bias <- p.bias + annotate("text", x = coords$x, y = coords$y,
+                                  label = text.bias, size = 5) 
+  # out
+  cowplot::plot_grid(p.latent, p.pred, p.bias, nrow = 1, scale = 0.95)
+}
+
+compare.versions.mb <- function(){
+  box::use(ggplot2[...])
+  data.A <- readRDS(gpath("plots/metabench-sub-v2.rds"))$data
+  data.B <- readRDS(gpath("plots/metabench-sub.rds"))$data
+  
+  # rank of average latent ability
+  mean.A <- rowMeans(
+    data.A |> dplyr::select(arc, gsm8k, hellaswag, mmlu, truthfulqa, winogrande))
+  mean.B <- rowMeans(
+    data.B |> dplyr::select(arc, gsm8k, hellaswag, mmlu, truthfulqa, winogrande))
+  r.latent <- cor(mean.A, mean.B, method = "spearman")
+  text.latent <- glue::glue("r = {round(r.latent, 3)}")
+  p.latent <- data.frame(A = mean.A, B = mean.B, color = data.A$color) |>
+    ggplot(aes(x = A, y = B, color = color)) +
+    geom_point(alpha = 0.5) +
+    labs(x = "Latent (A)", y = "Latent (B)") +
+    scale_colour_gradientn(colours = cbp) +
+    mytheme() + 
+    theme(legend.position = "None")
+  coords <- get.coords(p.latent)
+  p.latent <- p.latent + annotate("text", x = coords$x, y = coords$y,
+                                  label = text.latent, size = 5)
+  
+  # rank of gam-predicted score
+  r.pred <- cor(data.A$p, data.B$p, method = "spearman")
+  text.pred <- glue::glue("r = {round(r.pred, 3)}")
+  p.pred <- data.frame(A = data.A$p, B = data.B$p, color = data.A$color) |>
+    ggplot(aes(x = A, y = B, color = color)) +
+    geom_abline(intercept = 0,
+                slope = 1,
+                linetype = "dashed") +
+    geom_point(alpha = 0.5) +
+    coord_cartesian(xlim = c(0, 100), ylim = c(0, 100)) +
+    labs(x = "Predicted (A)", y = "Predicted (B)") +
+    scale_colour_gradientn(colours = cbp) +
+    mytheme() +
+    theme(legend.position = "None")
+  coords <- get.coords(p.pred)
+  p.pred <- p.pred + annotate("text", x = coords$x, y = coords$y,
+                              label = text.pred, size = 5) 
+  
+  # rank of lm-predicted score
+  r.lin <- cor(data.1$grand.l, data.2$grand.l, method = "spearman")
+  rmse.lin.1 <- sqrt(mean((data.A$grand.l - data.A$grand)^2))
+  rmse.lin.2 <- sqrt(mean((data.B$grand.l - data.B$grand)^2))
+  gprint("The linear model RMSEs are {round(rmse.lin.1, 3)} for version A and {round(rmse.lin.2, 3)} for version B.
+         Their Spearman correlation is {round(r.lin, 3)}.")
+  
+  # bias
+  bias <- mean(data.A$p - data.B$p)
+  text.bias <- glue::glue("b = {round(bias, 3)}%")
+  p.bias <- data.frame(grand = data.A$grand, diff = data.A$p - data.B$p, color = data.A$color) |>
+    ggplot(aes(x = grand, y = diff, color = color)) +
+    geom_abline(intercept = 0, slope = 0,
+                linetype = "dashed") +
+    geom_point(alpha = 0.5) +
+    coord_cartesian(xlim = c(0, 100)) +
+    labs(x = "Score", y = "A - B") +
+    scale_colour_gradientn(colours = cbp) +
+    mytheme() +
+    theme(legend.position = "None")
+  coords <- get.coords(p.bias)
+  p.bias <- p.bias + annotate("text", x = coords$x, y = coords$y,
+                              label = text.bias, size = 5) 
+  # out
+  cowplot::plot_grid(p.latent, p.pred, p.bias, nrow = 1, scale = 0.95)
+}
+
+  
 
 # =============================================================================
 # prepare data
