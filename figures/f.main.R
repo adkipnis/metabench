@@ -225,84 +225,80 @@ compare.versions.mb <- function(){
 
 # =============================================================================
 # prepare data
-arc.sub <- readRDS(gpath("analysis/reduced/arc-2PL-MAP-0.005.rds"))
-gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005.rds"))
-hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.01.rds"))
-mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.01.rds"))
-tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.01.rds"))
-wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
+if (!skip.reduced){
+  arc.sub <- readRDS(gpath("analysis/reduced/arc-2PL-MAP-0.005.rds"))
+  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.001.rds"))
+  hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.01.rds"))
+  mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.01.rds"))
+  tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.01.rds"))
+  wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
+} else {
+  arc.sub <- readRDS(gpath("analysis/reduced/arc-4PL-MAP-0.005-v2.rds"))
+  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005-v2.rds"))
+  hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.005-v2.rds"))
+  mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.001-v2.rds"))
+  tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-3PL-MAP-0.001-v2.rds"))
+  wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-3PL-MAP-0.001-v2.rds"))
+  
 
-p.mb <- readRDS(gpath("plots/metabench-sub.rds")) +
-  ggplot2::labs(y ="") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+}
+p.mb <- readRDS(gpath("plots/metabench-sub{suffix}.rds")) +
+    ggplot2::labs(y ="") +
+    ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 stats.from.plot(p.mb)
 
 # =============================================================================
 # violin plots for RMSE
-rand.list = list(
-  ARC = readRDS(gpath("data/arc-sub-100.rds"))$rmses.test,
-  GSM8K = readRDS(gpath("data/gsm8k-sub-237.rds"))$rmses.test,
-  HellaSwag = readRDS(gpath("data/hellaswag-sub-58.rds"))$rmses.test,
-  MMLU = readRDS(gpath("data/mmlu-sub-102.rds"))$rmses.test,
-  TruthfulQA = readRDS(gpath("data/truthfulqa-sub-136.rds"))$rmses.test,
-  WinoGrande = readRDS(gpath("data/WinoGrande-sub-106.rds"))$rmses.test,
-  metabench = readRDS(gpath("plots/metabench-sub-rmses.rds"))$rmses.test
-)
-
-# =============================================================================
-# 1-predictor plots (score from specific skill)
-p.arc <- plot.score(arc.sub, "ARC", cbp[1]) + ggplot2::labs(x = "") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.gsm8k <- plot.score(gsm8k.sub, "GSM8K", cbp[2]) + ggplot2::labs(x = "", y = "") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.hs <- plot.score(hs.sub, "HellaSwag", cbp[3]) + ggplot2::labs(x = "", y = "") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.mmlu <- plot.score(mmlu.sub, "MMLU", cbp[4]) +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.tfqa <- plot.score(tfqa.sub, "TruthfulQA", cbp[5]) + ggplot2::labs(y = "") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.wg <- plot.score(wg.sub, "WinoGrande", cbp[6]) + ggplot2::labs(y = "") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.reduced <- cowplot::plot_grid(
-  p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
-
-compare.rmses()
-
-p.rand <- plot.violin(rand.list, distance = 10.0) +
-  add.asterisk(rmse.from.plot(p.arc), 0) +
-  add.asterisk(rmse.from.plot(p.gsm8k), 10) +
-  add.asterisk(rmse.from.plot(p.hs), 20) +
-  add.asterisk(rmse.from.plot(p.mmlu), 30) +
-  add.asterisk(rmse.from.plot(p.tfqa), 40) +
-  add.asterisk(rmse.from.plot(p.wg), 50) +
-  add.asterisk(rmse.from.plot(p.mb), 60) +
-  ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
-
-p.col <- cowplot::plot_grid(p.rand, p.mb, ncol = 1, align= "hv", labels = c("B", "C"), label_x = 0.03)
-p.spec <- cowplot::plot_grid(p.reduced, p.col, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
-outpath <- gpath("figures/f.specific.pdf")
-ggplot2::ggsave(outpath, p.spec, width = 16, height = 8)
+if (skip.reduced){
+  rand.list = list(
+    ARC = readRDS(gpath("data/arc-sub-145-2024-v2.rds"))$rmses.test,
+    GSM8K = readRDS(gpath("data/gsm8k-sub-237.rds"))$rmses.test,
+    HellaSwag = readRDS(gpath("data/hellaswag-sub-93-2024-v2.rds"))$rmses.test,
+    MMLU = readRDS(gpath("data/mmlu-sub-96-2024-v2.rds"))$rmses.test,
+    TruthfulQA = readRDS(gpath("data/truthfulqa-sub-154-2024-v2.rds"))$rmses.test,
+    WinoGrande = readRDS(gpath("data/WinoGrande-sub-133-2024-v2.rds"))$rmses.test,
+    metabench = readRDS(gpath("plots/metabench-sub-rmses-v2.rds"))$rmses.test
+  )
+} else {
+  rand.list = list(
+    ARC = readRDS(gpath("data/arc-sub-100.rds"))$rmses.test,
+    GSM8K = readRDS(gpath("data/gsm8k-sub-249-2024-v2.rds"))$rmses.test,
+    HellaSwag = readRDS(gpath("data/hellaswag-sub-58.rds"))$rmses.test,
+    MMLU = readRDS(gpath("data/mmlu-sub-102.rds"))$rmses.test,
+    TruthfulQA = readRDS(gpath("data/truthfulqa-sub-136.rds"))$rmses.test,
+    WinoGrande = readRDS(gpath("data/WinoGrande-sub-106.rds"))$rmses.test,
+    metabench = readRDS(gpath("plots/metabench-sub-rmses.rds"))$rmses.test
+  )
+}
 
 # =============================================================================
 # 6-predictor plots
-six <- readRDS(gpath("plots/mb-specific.rds"))
+d.arc <- ifelse(skip.reduced, 145, 100)
+d.gsm8k <- ifelse(skip.reduced, 237, 249)
+d.hs <- ifelse(skip.reduced, 93, 58)
+d.mmlu <- ifelse(skip.reduced, 96, 102)
+d.tfqa <- ifelse(skip.reduced, 154, 136)
+d.wg <- ifelse(skip.reduced, 133, 106)
+
+six <- readRDS(gpath("plots/mb-specific{suffix}.rds"))
+
 p.arc <- six$arc + ggplot2::scale_color_gradientn(colors = cbp[[1]]) +
-  ggplot2::labs(x = "", title = "ARC* (d = 100)") +
+  ggplot2::labs(x = "", title = glue::glue("ARC* (d = {d.arc})")) +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.gsm8k <- six$gsm8k + ggplot2::scale_color_gradientn(colors = cbp[[2]]) +
-  ggplot2::labs(x = "", y = "", title = "GSM8K* (d = 237)") +
+  ggplot2::labs(x = "", y = "", title =  glue::glue("GSM8K* (d = {d.gsm8k})")) +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.hs <- six$hs + ggplot2::scale_color_gradientn(colors = cbp[[3]]) + 
-  ggplot2::labs(x = "", y = "", title = "HellaSwag* (d = 58)") +
+  ggplot2::labs(x = "", y = "", title =  glue::glue("HellaSwag* (d = {d.hs})")) +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.mmlu <- six$mmlu + ggplot2::scale_color_gradientn(colors = cbp[[4]]) + 
-  ggplot2::labs(title = "MMLU* (d = 102)") +
+  ggplot2::labs(title =  glue::glue("MMLU* (d = {d.mmlu})")) +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.tfqa <- six$tfqa + ggplot2::scale_color_gradientn(colors = cbp[[5]]) + 
-  ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)") +
+  ggplot2::labs(y = "", title =  glue::glue("TruthfulQA* (d = {d.tfqa})")) +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.wg <- six$wg + ggplot2::scale_color_gradientn(colors = cbp[[6]]) + 
-  ggplot2::labs(y = "", title = "WinoGrande* (d = 106)") +
+  ggplot2::labs(y = "", title =  glue::glue("WinoGrande* (d = {d.wg})")) +
   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 p.reduced.6 <- cowplot::plot_grid(
   p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
@@ -316,7 +312,7 @@ stats.from.plot(p.wg)
 stats.from.plot(p.mb)
 compare.rmses()
 
-p.rand.6 <- plot.violin(rand.list, distance = 10.0) +
+p.rand.6 <- plot.violin(rand.list, distance = 10.0, cbp = cbp) +
   add.asterisk(rmse.from.plot(p.arc), 0) +
   add.asterisk(rmse.from.plot(p.gsm8k), 10) +
   add.asterisk(rmse.from.plot(p.hs), 20) +
@@ -328,43 +324,56 @@ p.rand.6 <- plot.violin(rand.list, distance = 10.0) +
 
 p.col.6 <- cowplot::plot_grid(p.rand.6, p.mb, ncol = 1, align= "hv", labels = c("B", "C"), label_x = 0.03)
 p.meta <- cowplot::plot_grid(p.reduced.6, p.col.6, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
-outpath <- gpath("figures/f.meta.pdf")
+outpath <- gpath("figures/f.meta{suffix}.pdf")
 ggplot2::ggsave(outpath, p.meta, width = 16, height = 8)
 
-# =============================================================================
-# reviewer-requested violin plot of 100 item subsamples from open llm leaderboard
-rand.100 = list(
-  metabench = readRDS(gpath("plots/metabench-100-rmses.rds"))$rmses.test
-)
-p.100 <- plot.violin(rand.100) +
-  ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank()) + 
-  ggplot2::labs(title = "100-item subsamples from entire pool") +
-  ggplot2::scale_fill_manual(values = rep("#FFFFFF", 7))
-outpath <- gpath("figures/f.100.png")
-ggplot2::ggsave(outpath, p.100, width = 6, height = 4)
+# # =============================================================================
+# # reviewer-requested violin plot of 100 item subsamples from open llm leaderboard
+# rand.100 = list(
+#   metabench = readRDS(gpath("plots/metabench-100-rmses.rds"))$rmses.test
+# )
+# p.100 <- plot.violin(rand.100) +
+#   ggplot2::theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank()) + 
+#   ggplot2::labs(title = "100-item subsamples from entire pool") +
+#   ggplot2::scale_fill_manual(values = rep("#FFFFFF", 7))
+# outpath <- gpath("figures/f.100.png")
+# ggplot2::ggsave(outpath, p.100, width = 6, height = 4)
+# 
+# # =============================================================================
+# # reviewer-requested plot of nonlinear relationship between abilities and scores
+# abil <- readRDS(gpath("plots/mb-ability.rds"))
+# p.arc <- abil$arc +
+#   ggplot2::labs(x = "", title = "ARC* (d = 100)") +
+#   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+# p.gsm8k <- abil$gsm8k +
+#   ggplot2::labs(x = "", y = "", title = "GSM8K* (d = 237)") +
+#   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+# p.hs <- abil$hs +
+#   ggplot2::labs(x = "", y = "", title = "HellaSwag* (d = 58)") +
+#   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+# p.mmlu <- abil$mmlu + 
+#   ggplot2::labs(title = "MMLU* (d = 102)") +
+#   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+# p.tfqa <- abil$tfqa + 
+#   ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)") +
+#   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+# p.wg <- abil$wg +
+#   ggplot2::labs(y = "", title = "WinoGrande* (d = 106)") +
+#   ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
+# p.abil <- cowplot::plot_grid(
+#   p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
+# outpath <- gpath("figures/f.abil.pdf")
+# ggplot2::ggsave(outpath, p.abil, width = 12, height = 8)
 
 # =============================================================================
-# reviewer-requested plot of nonlinear relationship between abilities and scores
-abil <- readRDS(gpath("plots/mb-ability.rds"))
-p.arc <- abil$arc +
-  ggplot2::labs(x = "", title = "ARC* (d = 100)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.gsm8k <- abil$gsm8k +
-  ggplot2::labs(x = "", y = "", title = "GSM8K* (d = 237)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.hs <- abil$hs +
-  ggplot2::labs(x = "", y = "", title = "HellaSwag* (d = 58)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.mmlu <- abil$mmlu + 
-  ggplot2::labs(title = "MMLU* (d = 102)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.tfqa <- abil$tfqa + 
-  ggplot2::labs(y = "", title = "TruthfulQA* (d = 136)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.wg <- abil$wg +
-  ggplot2::labs(y = "", title = "WinoGrande* (d = 106)") +
-  ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
-p.abil <- cowplot::plot_grid(
-  p.arc, p.gsm8k, p.hs, p.mmlu, p.tfqa, p.wg, ncol = 3)
-outpath <- gpath("figures/f.abil.pdf")
-ggplot2::ggsave(outpath, p.abil, width = 12, height = 8)
+# compare versions A and B for each scenario
+c.arc <- compare.versions("arc")
+c.gsm8k <- compare.versions("gsm8k")
+c.hs <- compare.versions("hs")
+c.mmlu <- compare.versions("mmlu")
+c.tfqa <- compare.versions("tfqa")
+c.wg <- compare.versions("wg")
+c.mb <- compare.versions.mb()
+comparisons <- cowplot::plot_grid(c.arc, c.gsm8k, c.hs, c.mmlu, c.tfqa, c.wg, c.mb, ncol = 1)
+outpath <- gpath("figures/f.comparison.pdf")
+ggplot2::ggsave(outpath, comparisons, width = 11, height = 16)
