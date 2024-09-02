@@ -297,6 +297,7 @@ leaderboard <- leaderboard |> dplyr::select(nparams, arch)
 
 # =============================================================================
 # 1. Point scores
+
 # load scores
 benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
                    gsm8k=list(mod="2PL", est="EAPsum", suffix = "1"),
@@ -304,6 +305,10 @@ benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
                    mmlu=list(mod="4PL", est="EAPsum", suffix = "1"),
                    truthfulqa=list(mod="2PL", est="EAPsum", suffix = "1"),
                    winogrande=list(mod="3PL", est="EAPsum", suffix = "1"))
+
+data.full.train <- lapply(names(benchmarks), collect.data)
+data.full.test <- lapply(names(benchmarks), function(n) collect.data(n, train = F))
+names(data.full.train) <- names(data.full.test) <- names(benchmarks)
 
 scores.full.train <- lapply(names(benchmarks), collect.scores)
 scores.full.test <- lapply(names(benchmarks), function(n) collect.scores(n, train = F))
@@ -414,7 +419,7 @@ gprint("r(Factor1, Score) = {round(r.theta,3)}")
 # )
 benchmarks <- list(
   arc = list(mod = "2PL", est = "MAP", lam = 0.005),
-  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
+  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.001),
   hellaswag = list(mod = "3PL", est = "MAP", lam = 0.01),
   mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
   truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
@@ -450,7 +455,6 @@ fs.sub.train <- psych::factor.scores(thetas.sub.partial.train, fa.sub)
 fs.sub.test <- psych::factor.scores(thetas.sub.partial.test, fa.sub)
 pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
-
 pred.sub.train$grand <- pred.score.train$grand
 pred.sub.test$grand <- pred.score.test$grand
 mod.sub <- mgcv::gam(grand ~
@@ -584,10 +588,6 @@ n.cores <- parallel::detectCores() - 1
 mu.cluster <- parallel::makeCluster(n.cores, type = "FORK")
 doParallel::registerDoParallel(mu.cluster)
 
-# prepare data
-data.full.train <- lapply(names(benchmarks), collect.data)
-data.full.test <- lapply(names(benchmarks), function(n) collect.data(n, train = F))
-names(data.full.train) <- names(data.full.test) <- names(benchmarks)
 
 # run subsampling for 350 item set
 gprint("🔁 Running 10000 subsampling iterations with for 350 metabench...")
