@@ -167,3 +167,10 @@ mytheme <- function(){
 cbPalette <- function(){
  c("#E69F00", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7", "#FFFFFF")
 }
+
+#" @export
+cbPalette2 <- function(){
+ # take every color from cbPalette and make it slightly darker
+ # c("#D58F00", "#4A9CD2", "#008E63", "#0060A2", "#C54D00", "#B96A9A", "#E0E0E0")
+ c("#C08000", "#3A8AB2", "#007A53", "#005C92", "#B43C00", "#A85A8A", "#FFFFFF")
+}
