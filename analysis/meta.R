@@ -246,6 +246,14 @@ plot.corrmat <- function(scores.partial){
                        tl.cex=0.8, tl.col="black", tl.pos='d')
 }
 
+load.reduced <- function(bm){
+   mod <- benchmarks[[bm]]$mod
+   est <- benchmarks[[bm]]$est
+   lam <- benchmarks[[bm]]$lam
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}.rds")
+   readRDS(path)$items$item
+}
+
 # =============================================================================
 # 0. Leaderboard
 leaderboard <- read.csv(gpath("scraping/open-llm-leaderboard.csv"))
