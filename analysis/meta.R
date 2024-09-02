@@ -220,7 +220,8 @@ evaluate.score.pred <- function(scores.partial){
       dplyr::summarize(mae = mean(abs(error)),
                        rmse = sqrt(mean(error^2)))
    plot.score.pred(scores.partial,
-     text = glue::glue("RMSE = {format(round(s$rmse, digits=3), nsmall = 3)}"))
+     text = glue::glue("RMSE = {format(round(s$rmse, digits=3), nsmall = 3)}
+                       r = {format(round(r.p, digits=3), nsmall = 3)}"))
 }
 
 plot.score.pred <- function(scores.partial, text = ""){
