@@ -457,7 +457,35 @@ pred.sub.train <- cbind(thetas.sub.partial.train, fs.sub.train$scores)
 pred.sub.test <- cbind(thetas.sub.partial.test, fs.sub.test$scores)
 pred.sub.train$grand <- pred.score.train$grand
 pred.sub.test$grand <- pred.score.test$grand
+
+# add linear models
+lm.arc <- train.lm("arc")
+lm.gsm8k <- train.lm("gsm8k")
+lm.hs <- train.lm("hellaswag")
+lm.mmlu <- train.lm("mmlu")
+lm.tfqa <- train.lm("truthfulqa")
+lm.wg <- train.lm("winogrande")
+
+pred.sub.train$arc.l <- lm.arc$pred.train
+pred.sub.train$gsm8k.l <- lm.gsm8k$pred.train
+pred.sub.train$hs.l <- lm.hs$pred.train
+pred.sub.train$mmlu.l <- lm.mmlu$pred.train
+pred.sub.train$tfqa.l <- lm.tfqa$pred.train
+pred.sub.train$wg.l <- lm.wg$pred.train
+pred.sub.train <- pred.sub.train |>
+  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l))
+
+pred.sub.test$arc.l <- lm.arc$pred.test
+pred.sub.test$gsm8k.l <- lm.gsm8k$pred.test
+pred.sub.test$hs.l <- lm.hs$pred.test
+pred.sub.test$mmlu.l <- lm.mmlu$pred.test
+pred.sub.test$tfqa.l <- lm.tfqa$pred.test
+pred.sub.test$wg.l <- lm.wg$pred.test
+pred.sub.test <- pred.sub.test |>
+  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l))
+
 mod.sub <- mgcv::gam(grand ~
+                       s(grand.l, bs="ad") +
                        s(arc, bs="ad") +
                        s(gsm8k, bs="ad") +
                        s(hellaswag, bs="ad") +
@@ -465,6 +493,7 @@ mod.sub <- mgcv::gam(grand ~
                        s(truthfulqa, bs="ad") +
                        s(winogrande, bs="ad"),
                        data = pred.sub.train)
+
 # mod.theta <- fit.score(pred.theta.train, fa.theta)
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
