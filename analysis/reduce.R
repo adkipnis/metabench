@@ -31,6 +31,7 @@ set.seed(as.numeric(seed))
 skip.reduced <- T # load v2
 
 # for Bayesian Optimization
+N_INIT <- 15 # initial pass
 N_ITER <- 60 # number of search iterations after initial pass
 N_QUANT <- as.numeric(N_QUANT)
 LAMBDA <- as.numeric(LAMBDA)
@@ -289,7 +290,7 @@ optimize.hyperparameters <- function(){
      grid.type = c(1L, 2L),
      threshold = c(0, 5)
      ),
-   init_points = 15,
+   init_points = N_INIT,
    n_iter = N_ITER,
    acq = "ucb", 
    kappa = 2.576,
