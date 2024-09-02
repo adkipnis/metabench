@@ -70,7 +70,8 @@ cross.validate <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-datapath <- gpath("data/{BM}-sub-350.rds")
+suffix <- ifelse(skip.reduced, glue::glue("-{seed}-v2"), "")
+datapath <- gpath("data/{BM}-sub-350{suffix}.rds")
 preproc <- readRDS(datapath)
 data.train <- preproc$data.train
 data.test <- preproc$data.test
@@ -81,6 +82,7 @@ scores.test <- preproc$scores.test / nc * 100
 # =============================================================================
 # cv models
 cv <- cross.validate()
-outpath <- gpath("analysis/models/{BM}-{MOD}-{D}-cv.rds")
+suffix <- ifelse(skip.reduced, "-v2", "")
+outpath <- gpath("analysis/models/{BM}-{MOD}-{D}-cv{suffix}.rds")
 saveRDS(cv, outpath)
 gprint("💾 Saved to '{outpath}'.")
