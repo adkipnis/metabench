@@ -656,13 +656,31 @@ rmses.100 <- foreach(i = 1:10000, .combine=c) %dopar% {
 saveRDS(list(rmses.test = rmses.100), gpath("plots/metabench-100-rmses.rds"))
 
 # =============================================================================
-# most informative items
+# export items to csv
 load.items <- function(b){
   bm <- benchmarks[[b]]
   fitpath <- gpath("analysis/reduced/{b}-{bm$mod}-{bm$est}-{bm$lam}.rds")
   fit <- readRDS(fitpath)
   items <- fit$items
   items$item <- paste0(b, ".", items$item)
+  items
+}
+
+export.items <- function(b){
+  items <- load.items(b) |> dplyr::select(item, prompt)
+  outpath <- gpath("items/items-{b}-B.csv")
+  write.csv(items, outpath, row.names=F)
+  gprint("Exported {b} to {outpath}")
+  items
+}
+
+out <- lapply(names(benchmarks), export.items)
+
+
+# =============================================================================
+# most informative items
+load.items.info <- function(b){
+  items <- load.items(b)
   argmax.quantiles <- quantile(items$info.argmax, p=seq(0, 1, 0.2))
   n <- length(argmax.quantiles) - 1
   item.list <- list()
@@ -679,6 +697,6 @@ load.items <- function(b){
   out$quantiles <- names(argmax.quantiles)[2:6]
   out
 }
-example.items <- lapply(names(benchmarks), load.items)
+example.items <- lapply(names(benchmarks), load.items.info)
 example.items <- do.call(rbind, example.items)
 write.csv(example.items, gpath("analysis/reduced/example.items.csv"), row.names=F)

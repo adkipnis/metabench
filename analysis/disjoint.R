@@ -425,3 +425,23 @@ rmses.sub <- foreach(i = 1:10000, .combine=c) %dopar% {
 }
 saveRDS(list(rmses.test = rmses.sub), gpath("plots/metabench-sub-rmses-v2.rds"))
 
+# =============================================================================
+# export items to csv
+load.items <- function(b){
+  bm <- benchmarks[[b]]
+  fitpath <- gpath("analysis/reduced/{b}-{bm$mod}-{bm$est}-{bm$lam}-v2.rds")
+  fit <- readRDS(fitpath)
+  items <- fit$items
+  items$item <- paste0(b, ".", items$item)
+  items
+}
+
+export.items <- function(b){
+  items <- load.items(b) |> dplyr::select(item, prompt)
+  outpath <- gpath("items/items-{b}-A.csv")
+  write.csv(items, outpath, row.names=F)
+  gprint("Exported {b} to {outpath}")
+  items
+}
+
+out <- lapply(names(benchmarks), export.items)
