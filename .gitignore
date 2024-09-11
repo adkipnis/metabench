@@ -11,3 +11,4 @@ analysis/cat/*
 data*
 plots*
 *_old
+*.DS_Store
