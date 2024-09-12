@@ -7,7 +7,8 @@ analysis/models*
 analysis/archive
 analysis/itemfits
 analysis/reduced*
-analysis/cat/*.rds
+analysis/cat/*
+!analysis/cat/.gitkeep
 data*
 plots*
 *_old
