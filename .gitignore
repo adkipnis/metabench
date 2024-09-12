@@ -7,7 +7,7 @@ analysis/models*
 analysis/archive
 analysis/itemfits
 analysis/reduced*
-analysis/cat/*
+analysis/cat/*.rds
 data*
 plots*
 *_old

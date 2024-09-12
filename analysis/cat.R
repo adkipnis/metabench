@@ -1,15 +1,13 @@
 # Get test items for each benchmark and adaptively test models to estimate theta:
+#   0. Load helper functions
 #   1. Load data and models
-#   2. Remove outlier items
 #   3. Estimate thetas given trained model for full dataset
 #   4. Simulate Computerized Adaptive Tests using real model responses
-
 
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[gprint, gpath, get.theta])
-Saveplots <- T
-verbose.errors <- T
+box::use(doParallel[...], foreach[...])
 here::i_am("analysis/cat.R")
 set.seed(1)
 
@@ -17,181 +15,219 @@ set.seed(1)
 #==============================================================================
 # helper functions
 
-generate.item.bank <- function(model, benchmark.name, model.type, filter.outliers=FALSE){
-  
+generate.item.bank <- function(model,
+                               benchmark.name,
+                               model.type,
+                               filter.outliers = FALSE) {
   datapath.itemfits <- gpath("analysis/itemfits/{benchmark.name}.rds")
   item.fits <- readRDS(datapath.itemfits) |>
     dplyr::filter(itemtype == model.type)
   
-  gprint("🚰 Preparing CAT simulation with full set of {nrow(item.fits)} items on {benchmark.name} benchmark ({model.type} model)...")
+  gprint(
+    "🚰 Preparing CAT simulation item bank with full set of {nrow(item.fits)} items on {benchmark.name} benchmark ({model.type} model)..."
+  )
   
-  item.fits <- item.fits |>
-    dplyr::filter(outlier == filter.outliers) 
-  
-  gprint("🚰 Keeping {nrow(item.fits)} that are not outliers...")
+  if (filter.outliers == TRUE) {
+    item.fits <- item.fits |>
+      dplyr::filter(outlier == FALSE)
+    
+    gprint("🚰 Keeping {nrow(item.fits)} that are not outliers...")
+  }
   
   # Generate item bank (matrix of model parameters per item) from reduced set
-  item.bank <- mirt::coef(model, IRTpars=T, simplify=T)$items 
-  item.bank <- item.bank[item.fits$item,] #filter outliers
+  item.bank <- mirt::coef(model, IRTpars = T, simplify = T)$items
+  item.bank <- item.bank[item.fits$item, ] #filter outliers
   
   return(item.bank)
 }
 
-generate.theta.response.matrix <- function(model, benchmark.name, item.bank){
-  if (benchmark.name %in% c("hellaswag", "mmlu")){
-    datapath <- gpath("data/{benchmark.name}-sub.rds")
+generate.theta.response.matrix <- function(model, benchmark.name,
+                                           model.type, item.bank,
+                                           method = "EAP") {
+  if ((benchmark.name == "mmlu" | benchmark.name == "hellaswag") && method == "EAP") {
+    datapath <- gpath("data/{benchmark.name}-sub-1189.rds")
   } else {
     datapath <- gpath("data/{benchmark.name}-preproc-split.rds")
   }
+  
   data <- readRDS(datapath)
   full.data <- dplyr::bind_rows(data$data.train, data$data.test)
   
-  data.item.bank <- full.data[,rownames(item.bank)]
+  data.item.bank <- full.data[, rownames(item.bank)]
   
-  thetas <- get.theta(model,
-                      method="MAP",
-                      resp = full.data)
-  
-  rownames(thetas) <- rownames(full.data)
-  
-  theta.response.matrix <- merge(thetas[,1], data.item.bank, by=0)[-1] |> #merge by rowname, remove spurious col
-    dplyr::rename(theta = x)
+  if (method == "EAP") {
+    thetas <- get.theta(model, method = "EAPsum", resp = full.data)
+    
+    rownames(thetas) <- rownames(full.data)
+    theta.response.matrix <- merge(thetas[, 1], data.item.bank, by = 0)[-1] |> #merge by rowname, remove spurious col
+      dplyr::rename(F1 = x)
+    
+  } else if (method == "MAP") {
+    datapath.model <- gpath("analysis/models/{benchmark.name}-{model.type}-1-cv-big.rds")
+    thetas <- readRDS(datapath.model)$df |>
+      dplyr::select("F1")
+    
+    theta.response.matrix <- merge(thetas, data.item.bank, by = 0)[-1]
+  } else {
+    stop("Method not recognised. MAP or EAP supported.")
+  }
   
   return(theta.response.matrix)
 }
 
-# =============================================================================
-# load data
+fit.gam <- function(df.train){
+  # get columns that start with F
+  if ("F2" %in% colnames(df.train)){
+    formula <- "score ~ s(F1, bs = 'ad') + s(F2, bs = 'ad')"
+  } else {
+    formula <- "score ~ s(F1, bs = 'ad')"
+  }
+  mgcv::gam(as.formula(formula), data = df.train)
+}
 
-benchmarks <- c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande")
-models <- c("2PL", "3PL", "3PLu", "4PL")
+sim.wrapper <- function(list.element){
+  theta.response.matrix <- list.element$theta.response.matrix
+  item.bank <- list.element$item.bank
+  BM <- list.element$benchmark.name
+  MOD <- list.element$model.type
+  METH <- list.element$method
+  METH <- switch(METH,
+                   "EAP" = "EAP",
+                   "MAP" = "BM")
+  simulation <- catR::simulateRespondents(thetas = theta.response.matrix$F1,
+    itemBank = item.bank[, 1:4],
+    rmax = 1,
+    start = list(
+      theta = c(-2:2),
+      randomesque = 1,
+      startSelect = "MFI"
+    ),
+    test = list(
+      method = METH,
+      #MAP is appropriate for hellaswag, otherwise, EAP.
+      priorDist = "norm",
+      priorPar = c(0, 1),
+      itemSelect = "MFI",
+      range = c(-7, 5),
+      parInt = c(-7, 5, 52)
+    ),
+    stop = list(rule = "precision", thr = 0.1),
+    final = list(
+      method = METH,
+      priorDist = "norm",
+      priorPar = c(0, 1),
+      range = c(-7, 5),
+      parInt = c(-7, 5, 52)
+    ),
+    genSeed = sample.int(nrow(theta.response.matrix)),
+    responsesMatrix = theta.response.matrix[-1],
+  )
+  output <- list(sim.results = simulation, benchmark.name = BM, model.type = MOD, method = METH)
+  return(output)
+}
 
-for (BM in benchmarks){
-  for (MOD in models){
-    
-    set.seed(1) #reset one each iter
-    
-    gprint("🚰 Loading data...")
-    
-    datapath.model <- gpath("analysis/models/{BM}-{MOD}-cv.rds")
-    full <- readRDS(datapath.model)
-    model <- full$model
-    nextItem
-    rm(full)
-    
-    item.bank <- generate.item.bank(model, BM, MOD)
-    
-    # Generation of thetas and response matrix for existing models
-    gprint("⚙️ Computing thetas for {BM}-{MOD} on full set.")
-    
-    theta.response.matrix <- generate.theta.response.matrix(model, BM, item.bank)
-    
-    thetas <- theta.response.matrix$theta
-    
-    gprint("⚙️ Simulating CAT...")
-    tryCatch({
-      simulation <- catR::simulateRespondents(thetas = thetas, 
-                                        itemBank = item.bank[,1:4], 
-                                        rmax = 1, 
-                                        start = list(theta = round(mean(thetas))-1:round(mean(thetas))+1, 
-                                                     randomesque = 1,
-                                                     startSelect = "MFI"), 
-                                        test = list(method = "BM", 
-                                                    priorDist = "norm",
-                                                    itemSelect = "MFI"), 
-                                        stop = list(rule = "precision", 
-                                                    thr = 0.1), 
-                                        final = list(method = "BM", 
-                                                     priorDist = "norm"), 
-                                        genSeed = sample.int(nrow(theta.response.matrix)), #generate seed list of random +ve ints
-                                        responsesMatrix = theta.response.matrix[-1]
-                                        )
-
-      p <- plot(simulation,
-                save.plot = Saveplots,
-                save.options = c(gpath("analysis/cat/"),
-                                 paste0(c("/catsim", BM, MOD), collapse = "-"),
-                                 "pdf"
-                                 )
-                )
-
-      outpath <- gpath("analysis/cat/catsim-{BM}-{MOD}.rds")
-      saveRDS(simulation, outpath)
-      gprint("✅ Simulation success!")
-      rm(simulation)
-    }, error = function(err){
-      gprint("❌ Error in simulation!")
-      if (verbose.errors) {
-        cat(paste("Error readout:\n", err))
+get.bm.list <- function(bms){
+  models <- c("2PL", "3PL", "4PL")
+  methods <- c("EAP", "MAP")
+  data <- list()
+  for (BM in bms){
+      for (MOD in models){
+          for (METH in methods){
+            tryCatch({
+                    set.seed(1) #reset one each iter
+                    
+                    gprint("🚰 Loading data...")
+                    
+                    datapath.model <- gpath("analysis/models/{BM}-{MOD}-1-cv-big.rds")
+                    full <- readRDS(datapath.model)
+                    model <- full$model
+                    rm(full)
+                    
+                    item.bank <- generate.item.bank(model, BM, MOD)
+                    
+                    # Generation of thetas and response matrix for existing models
+                    gprint("⚙️ Computing thetas for {BM}-{MOD} on full set.")
+                    
+                    theta.response.matrix <- generate.theta.response.matrix(model, BM, MOD, item.bank, method = METH)
+                    
+                    bm.mod.list <- list(model = model,
+                                        item.bank = item.bank,
+                                        theta.response.matrix = theta.response.matrix,
+                                        benchmark.name = BM,
+                                        model.type = MOD,
+                                        method = METH)
+                    
+                    data[[length(data)+1]] <- bm.mod.list
+            }, error = function(e){
+              print("Error loading data, skipping..")
+            })
+          }
       }
-    })
-     
   }
+  return(data)
 }
 
-rm(list = ls())
-gprint("✅ Simulation Finished!")
+run.simulation <- function(data.list){
+  n.cores <- length(data.list) + 2
 
+  gprint("⚙️ Simulating CAT on {n.cores} cores...")
+
+  mu.cluster <- parallel::makeCluster(n.cores, type = "FORK", outfile="")
+  doParallel::registerDoParallel(mu.cluster)
+
+  sim.outputs <- foreach(i = 1:length(data.list), .errorhandling = "remove") %dopar% {
+    sim.wrapper(data.list[[i]])
+  }
+  
+  parallel::stopCluster(mu.cluster)
+
+  rm(data.list)
+
+  gprint("✅ Simulation success!")
+
+  return(sim.outputs)
+}
 
 # =============================================================================
-# Summarizing
+# Run CAT simulations
+# Run in two batches for memory
 
-here::i_am("analysis/cat.R")
-gprint("⚙️ Producing summaries...")
+warnStatus <- getOption("warn")
+options(warn=-1)
 
-benchmarks <- c("hellaswag", "mmlu", "arc", "gsm8k", "truthfulqa", "winogrande")
-models <- c("2PL", "3PL", "3PLu", "4PL")
+bm.list <- c("hellaswag", "arc", "gsm8k")
+bm.names <- paste0(bm.list, collapse = "-")
+data <- get.bm.list(bm.list)
 
-test.lengths <- data.frame(benchmark.model = c(), test.length = c())
-for (BM in benchmarks){
-  for (MOD in models){
-    datapath <- gpath("analysis/cat/catsim-{BM}-{MOD}.rds")
-    sim <- readRDS(datapath)
-    test.length <- sim$numberItems
-    df <- data.frame(benchmark.model = rep(paste0(BM, " (", MOD, ")"), length(test.length)), test.length = test.length)
-    test.lengths <- dplyr::bind_rows(test.lengths, df)
-  }
-}
+options(warn=warnStatus)
 
-cat.accuracies <- data.frame(benchmark.model = c(), assigned.theta = c(), cat.estimated.theta = c())
-for (BM in benchmarks){
-  for (MOD in models){
-    datapath <- gpath("analysis/cat/catsim-{BM}-{MOD}.rds")
-    sim <- readRDS(datapath)
-    assigned.thetas <- sim$final.values.df$true.theta
-    estimated.thetas <- sim$final.values.df$estimated.theta
-    df <- data.frame(benchmark.model = rep(paste0(BM, " (", MOD, ")"), length(assigned.thetas)), assigned.theta = assigned.thetas, cat.estimated.theta = estimated.thetas)
-    cat.accuracies <- dplyr::bind_rows(cat.accuracies, df)
-  }
-}
+sim.outputs <- run.simulation(data)
 
-cat.accuracies.summary <- cat.accuracies |>
-  dplyr::group_by(benchmark.model) |>
-  dplyr::summarise(RMSE = ModelMetrics::rmse(actual = assigned.theta, predicted = cat.estimated.theta))
+outpath <- gpath("analysis/cat/catsim-results-{bm.names}.rds")
+saveRDS(sim.outputs, outpath)
 
-test.lengths.summary <- test.lengths |>
-  dplyr::group_by(`benchmark.model`) |>
-  dplyr::summarise(mean.unadj = mean(test.length),
-                   median.unadj = median(test.length))
+rm(bm.list)
+rm(bm.names)
+rm(data)
+rm(sim.outputs)
 
-test.lengths.prop.summary <- test.lengths |>
-  dplyr::group_by(benchmark.model) |>
-  dplyr::mutate(proportion.items = test.length/max(test.length)) |>
-  dplyr::arrange(proportion.items) |>
-  dplyr::transmute(proportion.items = proportion.items,
-                   benchmark.model = benchmark.model,
-                   proportion.llms = dplyr::row_number(),
-                   proportion.llms = proportion.llms/dplyr::n()) |>
-  dplyr::group_by(benchmark.model) |>
-  dplyr::summarise(mean.adj = mean(proportion.items),
-                   median.adj = median(proportion.items))
+warnStatus <- getOption("warn")
+options(warn=-1)
 
-overall.summary <- cat.accuracies.summary |>
-  dplyr::inner_join(test.lengths.summary) |>
-  dplyr::inner_join(test.lengths.prop.summary)
+bm.list <- c("mmlu", "truthfulqa", "winogrande")
+bm.names <- paste0(bm.list, collapse = "-")
+data <- get.bm.list(bm.list)
 
-outpath <- gpath("analysis/cat/overall-summaries.rds")
-saveRDS(overall.summary, outpath)
+options(warn=warnStatus)
 
-rm(list = ls())
-gprint("✅ Finished!")
+sim.outputs <- run.simulation(data)
+
+outpath <- gpath("analysis/cat/catsim-results-{bm.names}.rds")
+saveRDS(sim.outputs, outpath)
+
+rm(bm.list)
+rm(bm.names)
+rm(data)
+rm(sim.outputs)
+
+gprint("🏁 Finished!")
