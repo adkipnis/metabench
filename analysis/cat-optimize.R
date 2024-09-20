@@ -155,6 +155,47 @@ cat.optimize <- function(parameter.space.row, bm.data, num.data.points=10, start
   return(output)
 }
 
+get.bm.list <- function(bms){
+  models <- c("2PL", "3PL", "4PL")
+  methods <- c("EAP", "MAP")
+  data <- list()
+  for (BM in bms){
+      for (MOD in models){
+          for (METH in methods){
+            tryCatch({
+                    set.seed(1) #reset one each iter
+                    
+                    gprint("🚰 Loading data...")
+                    
+                    datapath.model <- gpath("analysis/models/{BM}-{MOD}-1-cv-big.rds")
+                    full <- readRDS(datapath.model)
+                    model <- full$model
+                    rm(full)
+                    
+                    item.bank <- generate.item.bank(model, BM, MOD)
+                    
+                    # Generation of thetas and response matrix for existing models
+                    gprint("⚙️ Computing thetas for {BM}-{MOD} on full set.")
+                    
+                    theta.response.matrix <- generate.theta.response.matrix(model, BM, MOD, item.bank, method = METH)
+                    
+                    bm.mod.list <- list(model = model,
+                                        item.bank = item.bank,
+                                        theta.response.matrix = theta.response.matrix,
+                                        benchmark.name = BM,
+                                        model.type = MOD,
+                                        method = METH)
+                    
+                    data[[length(data)+1]] <- bm.mod.list
+            }, error = function(e){
+              print("Error loading data, skipping..")
+            })
+          }
+      }
+  }
+  return(data)
+}
+
 # =============================================================================
 # Find optimal CAT parameters
 
