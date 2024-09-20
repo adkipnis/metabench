@@ -230,7 +230,7 @@ results <- data.frame(benchmark = c(),
 
 for (e in length(data)){
   n.cores <- parallel::detectCores()  - 1
-  gprint("Running on {n.cores}...")
+  gprint("Running on {n.cores} cores...")
   mu.cluster <- parallel::makeCluster(n.cores, type = "FORK", outfile="")
   doParallel::registerDoParallel(mu.cluster)
   
