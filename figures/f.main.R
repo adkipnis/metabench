@@ -1,5 +1,4 @@
 # =============================================================================
-box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme, cbPalette, cbPalette2])
 box::use(.. / analysis / utils[mkdir, gprint, gpath, rowmerge, mytheme, cbPalette, cbPalette2])
 box::use(.. / analysis / reduce.utils[score.stats])
 box::use(./violin.utils[plot.violin])
@@ -277,13 +276,18 @@ if (!skip.reduced){
   mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.001-v2.rds"))
   tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-3PL-MAP-0.001-v2.rds"))
   wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-3PL-MAP-0.001-v2.rds"))
-  
-
 }
 p.mb <- readRDS(gpath("plots/metabench-sub{suffix}.rds")) +
     ggplot2::labs(y ="") +
     ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 stats.from.plot(p.mb)
+
+(fit.arc <- refit.wrapper("arc", arc.sub))
+(fit.gsm8k <- refit.wrapper("gsm8k", gsm8k.sub))
+(fit.hs <- refit.wrapper("hellaswag", hs.sub))
+(fit.mmlu <- refit.wrapper("mmlu", mmlu.sub))
+(fit.tfqa <- refit.wrapper("truthfulqa", tfqa.sub))
+(fit.wg <- refit.wrapper("winogrande", wg.sub))
 
 # =============================================================================
 # violin plots for RMSE
@@ -308,6 +312,13 @@ if (skip.reduced){
     metabench = readRDS(gpath("plots/metabench-sub-rmses.rds"))$rmses.test
   )
 }
+
+sum(rand.list[["ARC"]] > fit.arc$rmse) / 100
+sum(rand.list[["GSM8K"]] > fit.gsm8k$rmse) / 100
+sum(rand.list[["HellaSwag"]] > fit.hs$rmse) / 100
+sum(rand.list[["MMLU"]] > fit.mmlu$rmse) / 100
+sum(rand.list[["TruthfulQA"]] > fit.tfqa$rmse) / 100
+sum(rand.list[["WinoGrande"]] > fit.wg$rmse) / 100
 
 # =============================================================================
 # 6-predictor plots
@@ -364,6 +375,7 @@ p.col.6 <- cowplot::plot_grid(p.rand.6, p.mb, ncol = 1, align= "hv", labels = c(
 p.meta <- cowplot::plot_grid(p.reduced.6, p.col.6, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
 outpath <- gpath("figures/f.meta{suffix}.pdf")
 ggplot2::ggsave(outpath, p.meta, width = 16, height = 8)
+
 
 # # =============================================================================
 # # reviewer-requested violin plot of 100 item subsamples from open llm leaderboard
