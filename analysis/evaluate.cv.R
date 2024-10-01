@@ -40,9 +40,9 @@ cv.collect <- function(results) {
 fit.gam <- function(df.train){
   # get columns that start with F
   if ("F2" %in% colnames(df.train)){
-    formula <- "score ~ s(F1, bs = 'ad') + s(F2, bs = 'ad')"
+    formula <- "score ~ s(F1, bs = 'ad') + s(F2, bs = 'ad') + s(sub, bs = 'ad')"
   } else {
-    formula <- "score ~ s(F1, bs = 'ad')"
+    formula <- "score ~ s(F1, bs = 'ad') + s(sub, bs = 'ad')"
   }
   mgcv::gam(as.formula(formula), data = df.train)
 }
