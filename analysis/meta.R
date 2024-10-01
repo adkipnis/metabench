@@ -569,20 +569,26 @@ plot.specific <- function(bm){
   pred.sub.train$grand <- pred.score.train[[bm]]
   pred.sub.test$grand <- pred.score.test[[bm]]
   if (bm == "hellaswag"){
-    this.l.str <- "hs.l"
+    this.str <- "hs"
   } else if (bm == "truthfulqa") {
-    this.l.str <- "tfqa.l"
+    this.str <- "tfqa"
   } else if (bm == "winogrande") {
-    this.l.str <- "wg.l"
+    this.str <- "wg"
   } else {
-    this.l.str <- paste0(bm, ".l")
+    this.str <- bm
   }
+  this.l.str <- paste0(this.str, ".l")
+  this.s.str <- paste0(this.str, ".s")
   pred.sub.train$this.l <- pred.sub.train[[this.l.str]]
+  pred.sub.train$this.s <- pred.sub.train[[this.s.str]]
   pred.sub.test$this.l <- pred.sub.test[[this.l.str]]
+  pred.sub.test$this.s <- pred.sub.test[[this.s.str]]
   
   mod.sub <- mgcv::gam(grand ~
                          s(grand.l, bs="ad") +
+                         s(grand.s, bs="ad") +
                          s(this.l, bs="ad") +
+                         s(this.s, bs="ad") +
                          s(arc, bs="ad") +
                          s(gsm8k, bs="ad") +
                          s(hellaswag, bs="ad") +
@@ -606,12 +612,12 @@ plot.specific <- function(bm){
 }
 
 # specific reconstruction plots
-p.arc <- plot.specific("arc")
-p.gsm8k <- plot.specific("gsm8k")
-p.hs <- plot.specific("hellaswag")
-p.mmlu <- plot.specific("mmlu")
-p.tfqa <- plot.specific("truthfulqa")
-p.wg <- plot.specific("winogrande")
+(p.arc <- plot.specific("arc"))
+(p.gsm8k <- plot.specific("gsm8k"))
+(p.hs <- plot.specific("hellaswag")) # only use latent abilities for this one
+(p.mmlu <- plot.specific("mmlu"))
+(p.tfqa <- plot.specific("truthfulqa"))
+(p.wg <- plot.specific("winogrande"))
 saveRDS(list(arc=p.arc, gsm8k=p.gsm8k, hs=p.hs, mmlu=p.mmlu, tfqa=p.tfqa, wg=p.wg),
         gpath("plots/mb-specific.rds"))
 
