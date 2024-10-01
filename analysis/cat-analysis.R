@@ -116,8 +116,8 @@ plot.rmse.numitems <- function(rmse.data.test, rmse, colour){
   rmse.data.test$error <- round(sqrt((rmse.data.test$p - rmse.data.test$score)^2), 3)
   
   text <- glue::glue(
-    "r = {round(rmse, 3)}")
-  x.label <- 1000
+    'RMSE = {formatC(rmse, format="f", digits=3)}')
+  x.label <- 850
   y.label <- 20
   plot <- ggplot(rmse.data.test, aes(x = num.items, y = error)) +
     geom_point(alpha = 0.5, colour = colour) +
@@ -183,7 +183,7 @@ for (row in 1:nrow(simulations)){
     df.test <- sim.results$df.test
     median.num.items <- median(c(df.train$num.items, df.test$num.items))
     mean.num.items <- mean(c(df.train$num.items, df.test$num.items))
-    
+
     # 1. only on true theta
     mod.single <- mgcv::gam(score ~ s(theta, bs = 'ad'), data = df.train)
     df.train$p <- predict(mod.single)
@@ -212,7 +212,7 @@ for (row in 1:nrow(simulations)){
     df.test.cross$p <- predict(mod.single, df.test.cross)
     rmse.test <- rmse(df.test.cross)
     gprint("Score RMSE (train on true, test on est) - {round(rmse.test, 3)} (test)")
-    
+
     # 4. train on all est theta
     merge.data(best.data)
     mod.joint <- mgcv::gam(score ~
@@ -230,10 +230,10 @@ for (row in 1:nrow(simulations)){
     median.total.items <- median(c(df.train.all$num.items.total, df.test$num.items.total))
     mean.total.items <- mean(c(df.train.all$num.items.total, df.test$num.items.total))
     gprint("Score RMSE (joint estimated theta) - {round(rmse.joint.train, 3)} (train), {round(rmse.joint.test, 3)} (test)")
-    
-    bm.rmse <- tibble::tibble(`Benchmark` = BM, 
-                              `Model` = MOD, 
-                              `Method` = METH, 
+
+    bm.rmse <- tibble::tibble(`Benchmark` = BM,
+                              `Model` = MOD,
+                              `Method` = METH,
                               `RMSE Train (True Theta)` = rmse.true.train,
                               `RMSE Test (True Theta)` = rmse.true.test,
                               `RMSE Train (Est. Theta)` = rmse.est.train,
@@ -253,7 +253,7 @@ for (row in 1:nrow(simulations)){
                               `Mean Total Items (Train)` = mean(df.train.all$num.items.total),
                               `Median Total Items (Test)` = median(df.test.all$num.items.total),
                               `Mean Total Items (Test)` = mean(df.test.all$num.items.total))
-    
+
     rmses <- dplyr::bind_rows(rmses, bm.rmse)
   }
 }
