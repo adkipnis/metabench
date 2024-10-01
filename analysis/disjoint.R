@@ -374,6 +374,15 @@ p.arch <- plot.error(pred.sub.test.l)
 outpath <- gpath("figures/f.architecture-v2.pdf")
 ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 
+# =============================================================================
+# FA
+thetas.train <- pred.sub.train |> dplyr::select(arc, gsm8k, hellaswag, mmlu, truthfulqa, winogrande)
+thetas.test <- pred.sub.test |> dplyr::select(arc, gsm8k, hellaswag, mmlu, truthfulqa, winogrande)
+fa.score <- do.fa(thetas.train, 1)
+sort(fa.score$uniquenesses, decreasing = T)
+scores.partial.test$MR1 <- psych::factor.scores(thetas.test, fa.score)$scores
+r.score <- cor(scores.partial.test$MR1, scores.partial.test$grand, method = "spearman")
+gprint("r(Factor1, Score) = {round(r.score,3)}")
 
 # =============================================================================
 # Predict specific scores using all latent abilities
