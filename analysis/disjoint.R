@@ -220,6 +220,9 @@ prepare.lm.data <- function(bm, type){
 train.lm <- function(bm){
   data.train <- prepare.lm.data(bm, "train")
   data.test <- prepare.lm.data(bm, "test")
+  nc <- ncol(data.train)
+  sub.train <- rowSums(data.train[,-1]) / nc * 100
+  sub.test <- rowSums(data.test[,-1]) / nc * 100
   mod.lin <- lm(grand ~ ., data = data.train)
   data.train$p <- predict(mod.lin, data.train)
   data.test$p <- predict(mod.lin, data.test)
@@ -230,7 +233,9 @@ train.lm <- function(bm){
   list(rmse.train = rmse.train,
        rmse.test = rmse.test,
        pred.train = data.train$p,
-       pred.test = data.test$p)
+       pred.test = data.test$p,
+       sub.train = sub.train,
+       sub.test = sub.test)
 }
 
 benchmarks <- list(
@@ -291,25 +296,40 @@ lm.tfqa <- train.lm("truthfulqa")
 lm.wg <- train.lm("winogrande")
 
 pred.sub.train$arc.l <- lm.arc$pred.train
+pred.sub.train$arc.s <- lm.arc$sub.train
 pred.sub.train$gsm8k.l <- lm.gsm8k$pred.train
+pred.sub.train$gsm8k.s <- lm.gsm8k$sub.train
 pred.sub.train$hs.l <- lm.hs$pred.train
+pred.sub.train$hs.s <- lm.hs$sub.train
 pred.sub.train$mmlu.l <- lm.mmlu$pred.train
+pred.sub.train$mmlu.s <- lm.mmlu$sub.train
 pred.sub.train$tfqa.l <- lm.tfqa$pred.train
+pred.sub.train$tfqa.s <- lm.tfqa$sub.train
 pred.sub.train$wg.l <- lm.wg$pred.train
+pred.sub.train$wg.s <- lm.wg$sub.train
 pred.sub.train <- pred.sub.train |>
-  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l))
+  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l),
+                grand.s = 1/6 * (arc.s + gsm8k.s + hs.s + mmlu.s + tfqa.s + wg.s))
 
 pred.sub.test$arc.l <- lm.arc$pred.test
+pred.sub.test$arc.s <- lm.arc$sub.test
 pred.sub.test$gsm8k.l <- lm.gsm8k$pred.test
+pred.sub.test$gsm8k.s <- lm.gsm8k$sub.test
 pred.sub.test$hs.l <- lm.hs$pred.test
+pred.sub.test$hs.s <- lm.hs$sub.test
 pred.sub.test$mmlu.l <- lm.mmlu$pred.test
+pred.sub.test$mmlu.s <- lm.mmlu$sub.test
 pred.sub.test$tfqa.l <- lm.tfqa$pred.test
+pred.sub.test$tfqa.s <- lm.tfqa$sub.test
 pred.sub.test$wg.l <- lm.wg$pred.test
+pred.sub.test$wg.s <- lm.wg$sub.test
 pred.sub.test <- pred.sub.test |>
-  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l))
+  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l),
+                grand.s = 1/6 * (arc.s + gsm8k.s + hs.s + mmlu.s + tfqa.s + wg.s))
 
 mod.sub <- mgcv::gam(grand ~
                        s(grand.l, bs="ad") +
+                       s(grand.s, bs="ad") +
                        s(arc, bs="ad") +
                        s(gsm8k, bs="ad") +
                        s(hellaswag, bs="ad") +
