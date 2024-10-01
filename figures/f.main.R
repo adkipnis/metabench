@@ -265,14 +265,14 @@ refit.wrapper <- function(bm, bm.data){
 # prepare data
 if (!skip.reduced){
   arc.sub <- readRDS(gpath("analysis/reduced/arc-2PL-MAP-0.005.rds"))
-  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.001.rds"))
+  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005-v2.rds"))
   hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.01.rds"))
   mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.01.rds"))
   tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.01.rds"))
   wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
 } else {
   arc.sub <- readRDS(gpath("analysis/reduced/arc-4PL-MAP-0.005-v2.rds"))
-  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005-v2.rds"))
+  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.001.rds"))
   hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.005-v2.rds"))
   mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.001-v2.rds"))
   tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-3PL-MAP-0.001-v2.rds"))
