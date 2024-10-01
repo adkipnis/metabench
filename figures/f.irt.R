@@ -52,7 +52,7 @@ mmlu.irt <- readRDS(gpath("plots/mmlu-EAPsum-1-cv.rds"))[[3]] |>
   niceify(benchmark = "MMLU")
 tfqa.irt <- readRDS(gpath("plots/truthfulqa-EAPsum-1-cv.rds"))[[1]] |>
   niceify(benchmark = "TruthfulQA") + ggplot2::labs(y = "")
-wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv.rds"))[[2]] |>
+wg.irt <- readRDS(gpath("plots/winogrande-EAPsum-1-cv-v2.rds"))[[3]] |>
   niceify(benchmark = "WinoGrande") + ggplot2::labs(y = "")
 mb <- readRDS(gpath("plots/metabench-full.rds")) +
   ggplot2::labs(y ="", title = "metabench (d = 2100)") +
@@ -71,7 +71,7 @@ rand.list = list(
    WinoGrande = readRDS(gpath("data/winogrande-sub-350.rds"))$rmses.test,
    metabench = readRDS(gpath("plots/metabench-full-rmses.rds"))$rmses.test
 )
-p.rand <- plot.violin(rand.list, distance = 10.0) +
+p.rand <- plot.violin(rand.list, distance = 10.0, cbp = cbp) +
   add.asterisk(rmse.from.plot(arc.irt), 0) +
   add.asterisk(rmse.from.plot(gsm8k.irt), 10) +
   add.asterisk(rmse.from.plot(hs.irt), 20) +
@@ -87,3 +87,11 @@ p <- cowplot::plot_grid(p.irt, p.col, labels = c("A", NA), rel_widths = c(3, 1),
 outpath <- gpath("figures/f.irt.pdf")
 ggplot2::ggsave(outpath, p, width = 16, height = 8)
 gprint("Saved plot to {outpath}.")
+
+
+mean(c(rmse.from.plot(arc.irt),
+       rmse.from.plot(gsm8k.irt),
+       rmse.from.plot(hs.irt),
+       rmse.from.plot(mmlu.irt),
+       rmse.from.plot(tfqa.irt),
+       rmse.from.plot(wg.irt)))
