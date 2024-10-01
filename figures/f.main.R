@@ -227,7 +227,39 @@ compare.versions.mb <- function(){
   cowplot::plot_grid(p.latent, p.pred, p.bias, nrow = 1, scale = 0.95)
 }
 
-  
+# -----------------------------------------------------------------------------
+# refit GAMs
+get.subscores <- function(bm, suffix, indices){
+  suffix <- ifelse(skip.reduced, "-2024-v2", "")
+  datapath <- gpath("data/{bm}-sub-350{suffix}.rds")
+  data <- readRDS(datapath)
+  data.train <- data$data.train[, as.character(indices)]
+  data.test <- data$data.test[, as.character(indices)]
+  nc <- length(indices)
+  scores.train <- data.frame(sub = rowSums(data.train)/nc*100)
+  scores.test <- data.frame(sub = rowSums(data.test)/nc*100)
+  rbind(scores.train, scores.test)
+}
+
+refit.gams <- function(df.score, subscores){
+  df.score <- rowmerge(df.score, subscores)
+  train <- df.score |> dplyr::filter(set == "train")
+  test <- df.score |> dplyr::filter(set == "test")
+  mod.gam <- mgcv::gam(score ~ s(theta, bs='ad') + s(sub, bs='ad'), data = train)
+  train$p <- predict(mod.gam, train)
+  test$p <- predict(mod.gam, test)
+  rbind(train, test) |>
+    dplyr::mutate(error = score - p)
+}  
+
+refit.wrapper <- function(bm, bm.data){
+  gprint("Without subscore")
+  print(bm.data$sfs.sub)
+  subscores <- get.subscores(bm, suffix, bm.data$items$item)
+  fits <- refit.gams(bm.data$df.score.sub, subscores)
+  gprint("With subscore...")
+  score.stats(fits)
+}
 
 # =============================================================================
 # prepare data
