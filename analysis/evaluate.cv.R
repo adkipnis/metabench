@@ -105,7 +105,8 @@ evaluate.fit <- function(df.score) {
       dplyr::summarize(
             rmse = sqrt(mean(error^2)),
             mae = mean(abs(error)),
-            r = cor(F1, score, method = "spearman"),
+            r = cor(p, score, method = "spearman"),
+            r1 = cor(F1, score, method = "spearman"),
             r2 = ifelse("F2" %in% colnames(df.score),
                         cor(F2, score, method = "spearman"), NA),
             .groups = 'drop')
