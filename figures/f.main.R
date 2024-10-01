@@ -139,6 +139,7 @@ compare.versions <- function(bm){
   
   # bias
   bias <- mean(data.A$p - data.B$p)
+  print(quantile(abs(data.A$p - data.B$p), probs = c(0.5, 0.68, 0.95)))
   text.bias <- glue::glue("b = {round(bias, 3)}%")
   p.bias <- data.frame(grand = data.A$grand, diff = data.A$p - data.B$p) |>
     ggplot(aes(x = grand, y = diff)) +
@@ -146,6 +147,7 @@ compare.versions <- function(bm){
                 linetype = "dashed") +
     geom_point(alpha = 0.5, color = color) +
     coord_cartesian(xlim = c(0, 100)) +
+    scale_y_continuous(limits = c(-6,6), breaks = seq(-6, 6, 2)) +
     labs(x = "Score", y = "A - B") +
     mytheme()
   coords <- get.coords(p.bias)
@@ -197,7 +199,7 @@ compare.versions.mb <- function(){
                               label = text.pred, size = 5) 
   
   # rank of lm-predicted score
-  r.lin <- cor(data.1$grand.l, data.2$grand.l, method = "spearman")
+  r.lin <- cor(data.A$grand.l, data.B$grand.l, method = "spearman")
   rmse.lin.1 <- sqrt(mean((data.A$grand.l - data.A$grand)^2))
   rmse.lin.2 <- sqrt(mean((data.B$grand.l - data.B$grand)^2))
   gprint("The linear model RMSEs are {round(rmse.lin.1, 3)} for version A and {round(rmse.lin.2, 3)} for version B.
@@ -206,12 +208,14 @@ compare.versions.mb <- function(){
   # bias
   bias <- mean(data.A$p - data.B$p)
   text.bias <- glue::glue("b = {round(bias, 3)}%")
+  print(quantile(abs(data.A$p - data.B$p), probs = c(0.5, 0.68, 0.95)))
   p.bias <- data.frame(grand = data.A$grand, diff = data.A$p - data.B$p, color = data.A$color) |>
     ggplot(aes(x = grand, y = diff, color = color)) +
     geom_abline(intercept = 0, slope = 0,
                 linetype = "dashed") +
     geom_point(alpha = 0.5) +
     coord_cartesian(xlim = c(0, 100)) +
+    scale_y_continuous(limits = c(-6,6), breaks = seq(-6,6,2)) +
     labs(x = "Score", y = "A - B") +
     scale_colour_gradientn(colours = cbp) +
     mytheme() +
