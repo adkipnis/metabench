@@ -141,9 +141,7 @@ box::use(doParallel[...], foreach[...])
 n.cores <- parallel::detectCores() - 1
 mu.cluster <- parallel::makeCluster(n.cores, type = "PSOCK")
 doParallel::registerDoParallel(mu.cluster)
-end.seed <- 1e4 * seed
-start.seed <- end.seed - 1e4 + 1
-df.index <- expand.grid(seed = start.seed:end.seed, fold = 1:5) |>
+df.index <- expand.grid(seed = 1:1e4, fold = 1:5) |>
    dplyr::arrange(seed, fold)
 niter <- nrow(df.index)
 
@@ -156,9 +154,9 @@ opts <- list(progress = progress)
 # =============================================================================
 # run subsampling
 res.full <- foreach(i = 1:niter, .options.snow = opts) %dopar% {
-  seed <- df.index$seed[i]
+  seed.local <- df.index$seed[i] + 1e4 * (seed - 1)
   fold <- df.index$fold[i]
-  subsample.wrapper(seed, fold)
+  subsample.wrapper(seed.local, fold)
 }
 close(pb)
 parallel::stopCluster(mu.cluster)
