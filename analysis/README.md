@@ -51,7 +51,7 @@ Rscript evaluate.cv.R {bm} {th} {seed}
 For each `bm` and some `lambda` in the interval [0.01, 0.001] apply information filtering by running
 
 ```console
-Rscript reduce.R {bm} {lambda} 250
+Rscript reduce.R {bm} {lambda} 250 {seed}
 ```
 
 We recommend to set `lambda` to 0.005.
