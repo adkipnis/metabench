@@ -2,7 +2,7 @@
 First install the R packages as shown in the [setup folder](../setup).\
 The scripts in this directory presume that the final datasets are stored as .csv files in `metabench/data`.\
 If you prefer using `Rstudio` to run the code, you should first open the [project file](analysis.Rproj).\
-If you have access to a compute cluster, checkout the [bash folder](../bash) for slurm scripts.
+If you have access to a compute cluster, checkout the [bash folder](../bash) for slurm scripts.\
 The default random `seed` is 1, you can explicitly specify a different one. 
 
 ### Check health
