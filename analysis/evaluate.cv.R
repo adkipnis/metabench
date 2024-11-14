@@ -9,7 +9,7 @@
 box::use(./utils[parse.args, gprint, gpath, rowmerge, mytheme, get.theta])
 parse.args(
    names = c("BM", "METH", "DIM", "seed"),
-   defaults = c("arc", "EAPsum", 1, 2024),
+   defaults = c("arc", "EAPsum", 1, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      METH = c("MAP", "EAPsum"),
@@ -17,8 +17,10 @@ parse.args(
    )
 )
 here::i_am("analysis/evaluate.cv.R")
-set.seed(as.numeric(seed))
-skip.reduced <- T # load v2
+seed <- as.numeric(seed)
+set.seed(seed)
+skip.reduced <- F # load v2
+suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
 # helper functions  
@@ -78,11 +80,7 @@ refit <- function(result, data.train, data.test){
 
 refit.wrapper <- function(cvs){
   gprint("Refitting theta using {METH}...")
-  if (skip.reduced){
-    datapath <- gpath("data/{BM}-sub-350-{seed}-v2.rds")
-  } else {
-    datapath <- gpath("data/{BM}-sub-350.rds")
-  }
+  datapath <- gpath("data/{BM}-sub-350-seed={seed}{suffix}.rds")
   all <- readRDS(datapath)
   data.train <- all$data.train
   data.test <- all$data.test
@@ -218,16 +216,15 @@ leaderboard <- leaderboard |> dplyr::select(size) |> dplyr::filter(size > 0)
 
 # =============================================================================
 # load cv results
-suffix <- ifelse(skip.reduced, "-v2", "")
 if (DIM == 1){
   cvs <- list(
-   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv{suffix}.rds")),
-   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-{DIM}-cv{suffix}.rds")),
-   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-{DIM}-cv{suffix}.rds"))
+   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv-seed={seed}{suffix}.rds")),
+   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-{DIM}-cv-seed={seed}{suffix}.rds")),
+   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-{DIM}-cv-seed={seed}{suffix}.rds"))
    )
 } else {
   cvs <- list(
-    "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv{suffix}.rds"))
+    "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv-seed={seed}{suffix}.rds"))
   )
 }
 if (METH == "EAPsum"){
@@ -243,7 +240,7 @@ print(sfs)
 p.2 <- plot.score(df.score, "2PL")
 p.3 <- plot.score(df.score, "3PL")
 p.4 <- plot.score(df.score, "4PL")
-saveRDS(list(p.2, p.3, p.4), gpath("plots/{BM}-{METH}-{DIM}-cv{suffix}.rds"))
+saveRDS(list(p.2, p.3, p.4), gpath("plots/{BM}-{METH}-{DIM}-cv-seed={seed}{suffix}.rds"))
 
 # overview plots
 p.ps <- cowplot::plot_grid(
@@ -275,12 +272,12 @@ p <- cowplot::plot_grid(
 # scatter plot for 2dim models
 if (DIM == 2){
   p2d <- plot.theta2d(df.score, "2PL")
-  outpath <- gpath("plots/{BM}-{METH}-2d-theta{suffix}.png")
+  outpath <- gpath("plots/{BM}-{METH}-2d-theta-seed={seed}{suffix}.png")
   ggplot2::ggsave(outpath, p2d, width = 8, height = 8)
 }
 
 # save
-outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv{suffix}.png")
+outpath <- gpath("plots/{BM}-{METH}-{DIM}-cv-seed={seed}{suffix}.png")
 ggplot2::ggsave(outpath, p, width = 16, height = 16)
 gprint("💾 Saved plot to {outpath}")
 
