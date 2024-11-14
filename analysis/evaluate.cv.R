@@ -216,15 +216,17 @@ leaderboard <- leaderboard |> dplyr::select(size) |> dplyr::filter(size > 0)
 
 # =============================================================================
 # load cv results
+str.1 <- glue::glue("analysis/models/{BM}")
+str.2 <- glue::glue("{DIM}-cv-seed={seed}{suffix}.rds")
 if (DIM == 1){
   cvs <- list(
-   "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv-seed={seed}{suffix}.rds")),
-   "3PL" = readRDS(gpath("analysis/models/{BM}-3PL-{DIM}-cv-seed={seed}{suffix}.rds")),
-   "4PL" = readRDS(gpath("analysis/models/{BM}-4PL-{DIM}-cv-seed={seed}{suffix}.rds"))
+   "2PL" = readRDS(gpath("{str.1}-2PL-{str.2}")),
+   "3PL" = readRDS(gpath("{str.1}-3PL-{str.2}")),
+   "4PL" = readRDS(gpath("{str.1}-4PL-{str.2}"))
    )
 } else {
   cvs <- list(
-    "2PL" = readRDS(gpath("analysis/models/{BM}-2PL-{DIM}-cv-seed={seed}{suffix}.rds"))
+    "2PL" = readRDS(gpath("{str.1}-2PL-{str.2}")),
   )
 }
 if (METH == "EAPsum"){
