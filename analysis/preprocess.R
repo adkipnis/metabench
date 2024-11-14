@@ -16,7 +16,6 @@ parse.args(names = c("BM"),
 )
 here::i_am("analysis/preprocess.R")
 mkdir("plots")
-set.seed(1)
 
 # =============================================================================
 # helper functions
