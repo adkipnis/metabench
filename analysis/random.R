@@ -6,15 +6,16 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N", "seed"),
-   defaults = c("arc", 350, 2024),
+   defaults = c("arc", 350, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 817, 1)
    )
 )
 N <- as.numeric(N)
-set.seed(as.numeric(seed))
-skip.reduced <- T # remove items used in original run
+seed <- as.numeric(seed)
+set.seed(seed)
+skip.reduced <- F # remove items used in original run
 
 # =============================================================================
 # helper functions
