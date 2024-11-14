@@ -44,7 +44,7 @@ This will fit a 1-dimensional IRT model of type `mo`. You can raise 1 for multid
 For each `bm` and `th` in (MAP, EAPsum) check the results by running:
 
 ```console
-Rscript evaluate.cv.R {bm} {th}
+Rscript evaluate.cv.R {bm} {th} {seed}
 ```
 
 ### Item Selection with Information Filtering
