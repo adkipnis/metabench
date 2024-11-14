@@ -28,7 +28,7 @@ Rscript split.R {seed}
 For each `bm`, apply cross-validated subsampling by running
 
 ```console
-Rscript random.R {bm} 350
+Rscript random.R {bm} 350 {seed}
 ```
 
 If you wish to get reference distributions of test RMSEs for `k ≠ 350` just replace it by the desired size.
