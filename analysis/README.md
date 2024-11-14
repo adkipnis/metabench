@@ -37,8 +37,9 @@ If you wish to get reference distributions of test RMSEs for `k ≠ 350` just re
 For each `bm` and each `mo` in (2PL, 3PL, 4PL) apply cross-validated IRT model fitting by running
 
 ```console
-Rscript crossvalidate.R {bm} {mo}
+Rscript crossvalidate.R {bm} {mo} 1 {seed}
 ```
+This will fit a 1-dimensional IRT model of type `mo`. You can raise 1 for multidimensional latent abilities.
 
 For each `bm` and `th` in (MAP, EAPsum) check the results by running:
 
