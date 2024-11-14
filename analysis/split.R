@@ -2,9 +2,11 @@
 # usage: Rscript split.R
 
 # =============================================================================
-box::use(./utils[gprint, gpath, rowmerge])
+box::use(./utils[gprint, gpath, rowmerge, parse.args])
 here::i_am("analysis/split.R")
-set.seed(1)
+parse.args(names = c("seed"),
+           defaults = c(1))
+set.seed(as.numeric(seed))
 SHOW <- F
 
 # =============================================================================
@@ -29,7 +31,7 @@ subset.data <- function(benchmark){
                items = all$items)
    na.count <- sapply(out, function(x) sum(is.na(x)))
    if (any(na.count > 0)) gprint("⚠️ Incomplete data produced: {na.count}")
-   saveRDS(out, gpath("data/{benchmark}-preproc-split.rds"))
+   saveRDS(out, gpath("data/{benchmark}-preproc-split-seed={seed}.rds"))
    gprint("💾 Split off test set from {b}: {nrow(out$data.train)} remain.")
 }
 
@@ -62,3 +64,4 @@ llms.rest <- rownames(scores.partial)[-indices]
 
 # subset data
 for (b in benchmarks) subset.data(b)
+
