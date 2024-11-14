@@ -8,7 +8,7 @@ box::use(./utils[parse.args, gprint, gpath, mkdir, get.theta, run.mirt])
 
 parse.args(
    names = c("BM", "MOD", "D", "seed"),
-   defaults = c("arc", "4PL", 1, 1),
+   defaults = c("arc", "2PL", 1, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "4PL"),
