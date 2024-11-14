@@ -34,7 +34,7 @@ suffix <- ifelse(skip.reduced, "-v2", "")
 
 # for Bayesian Optimization
 N_INIT <- 15 # initial pass
-N_ITER <- 60 # number of search iterations after initial pass
+N_ITER <- 40 # number of search iterations after initial pass
 N_QUANT <- as.numeric(N_QUANT)
 LAMBDA <- as.numeric(LAMBDA)
 model.types <- c("2PL", "3PL", "4PL")
