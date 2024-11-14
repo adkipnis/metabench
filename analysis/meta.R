@@ -7,7 +7,10 @@
 box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, cbPalette, get.theta, do.fa, do.fa.cov])
 Saveplots <- T
 here::i_am("analysis/meta.R")
-set.seed(1)
+parse.args(names = c("seed"),
+           defaults = c(1))
+seed <- as.numeric(seed)
+set.seed(seed)
 mkdir("analysis/gams")
 benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande")
 
@@ -30,7 +33,7 @@ rowmerge <- function(df1, df2){
 }
 
 collect.data <- function(benchmark, train=T){
-  datapath <- gpath("data/{benchmark}-preproc-split.rds")
+  datapath <- gpath("data/{benchmark}-preproc-split-seed={seed}.rds")
   all <- readRDS(datapath)
   if (train) {
     data <- all$data.train
@@ -104,7 +107,7 @@ collect.theta <- function(benchmark, train=T){
   model.type <- benchmarks[[benchmark]]$mod
   theta.type <- benchmarks[[benchmark]]$est
   suffix <- benchmarks[[benchmark]]$suffix
-  fitpath <- gpath("analysis/models/{benchmark}-{model.type}-{suffix}-cv.rds")
+  fitpath <- gpath("analysis/models/{benchmark}-{model.type}-{suffix}-cv-seed={seed}.rds")
   results <- readRDS(fitpath)
   model <- results$model
   if (train) {
@@ -116,7 +119,7 @@ collect.theta <- function(benchmark, train=T){
   }
   
   if (theta.type != "MAP") {
-    datapath <- gpath("data/{benchmark}-sub-350.rds")
+    datapath <- gpath("data/{benchmark}-sub-350-seed={seed}.rds")
     all <- readRDS(datapath)
     if (train) {
       data <- all$data.train
@@ -139,7 +142,7 @@ collect.theta.reduced <- function(benchmark, train = T){
   model.type <- benchmarks[[benchmark]]$mod
   theta.type <- benchmarks[[benchmark]]$est
   lam <- benchmarks[[benchmark]]$lam
-  fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}.rds")
+  fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-seed={seed}.rds")
   results <- readRDS(fitpath)
   model <- results$model
   if (train){
@@ -162,7 +165,7 @@ merge.skill <- function(skill.full){
 }
 
 collect.scores <- function(benchmark, train = T){
-   datapath <- gpath("data/{benchmark}-sub-350.rds")
+   datapath <- gpath("data/{benchmark}-sub-350-seed={seed}.rds")
    all <- readRDS(datapath)
    if (train){
      scores <- all$scores.train
@@ -180,18 +183,18 @@ collect.scores <- function(benchmark, train = T){
 
 collect.numitems <- function(benchmark, type) {
    if (type == "original"){
-      datapath <- gpath("data/{benchmark}-preproc-split.rds")
+      datapath <- gpath("data/{benchmark}-preproc-split-seed={seed}.rds")
       all <- readRDS(datapath)
       numitems <- all$max.points.orig
    } else if (type == "preprocessed"){
-     datapath <- gpath("data/{benchmark}-sub-350.rds")
+     datapath <- gpath("data/{benchmark}-sub-350-seed={seed}.rds")
      all <- readRDS(datapath)
      numitems <- ncol(all$data.train)
    } else if (type == "reduced") {
       model.type <- benchmarks[[benchmark]]$mod
       theta.type <- benchmarks[[benchmark]]$est
       lam <- benchmarks[[benchmark]]$lam
-      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}.rds")
+      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-seed={seed}.rds")
       results <- readRDS(fitpath)
       numitems <- nrow(results$items)
    }
@@ -250,7 +253,7 @@ load.reduced <- function(bm){
    mod <- benchmarks[[bm]]$mod
    est <- benchmarks[[bm]]$est
    lam <- benchmarks[[bm]]$lam
-   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}.rds")
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-seed={seed}.rds")
    readRDS(path)$items$item
 }
 
@@ -322,7 +325,7 @@ scores.partial.test <- merge.skill(scores.full.test)
 numitems.orig <- get.numitems(benchmarks, "original")
 
 # plot correlation matrix
-pdf(file = gpath("plots/corrmat.scores.pdf"))
+pdf(file = gpath("plots/corrmat.scores-seed={seed}.pdf"))
 plot.corrmat(scores.partial.train)
 dev.off()
 
@@ -370,7 +373,7 @@ cor(cormat2vec(scores.partial.train), cormat2vec(thetas.partial.train))
 
 
 # plot correlation matrix
-pdf(file = gpath("plots/corrmat.thetas-f.pdf"))
+pdf(file = gpath("plots/corrmat.thetas-f-seed={seed}.pdf"))
 plot.corrmat(thetas.partial.train)
 dev.off()
 
@@ -406,7 +409,7 @@ p.full <- evaluate.score.pred(pred.theta.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette()) +
   ggplot2::ggtitle(glue::glue("metabench (n = {numitems.theta$sum})"))
 p.full
-saveRDS(p.full, gpath("plots/metabench-full.rds"))
+saveRDS(p.full, gpath("plots/metabench-full-seed={seed}.rds"))
 
 # correlation between first factor and grand score
 r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand, method = "spearman")
@@ -442,7 +445,7 @@ numitems.sub
 cor(cormat2vec(scores.partial.train), cormat2vec(thetas.sub.partial.train))
 
 # plot correlation matrix
-pdf(file = gpath("plots/corrmat.thetas-s.pdf"))
+pdf(file = gpath("plots/corrmat.thetas-s-seed={seed}.pdf"))
 plot.corrmat(thetas.sub.partial.train)
 dev.off()
 
@@ -519,7 +522,7 @@ pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
 
 # save model
-saveRDS(mod.sub, gpath("analysis/gams/gam-grand.rds"))
+saveRDS(mod.sub, gpath("analysis/gams/gam-grand-seed={seed}.rds"))
 
 # plot
 pred.sub.test$color <- runif(nrow(pred.sub.test))
@@ -527,7 +530,7 @@ p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette()) +
   ggplot2::ggtitle(glue::glue("metabench-B (d = {numitems.sub$sum})"))
 p.sub
-saveRDS(p.sub, gpath("plots/metabench-sub.rds"))
+saveRDS(p.sub, gpath("plots/metabench-sub-seed={seed}.rds"))
 r.sub <- cor(pred.sub.test$p, pred.sub.test$grand, method = "spearman")
 gprint("r(Predicted, Score) = {round(r.sub,3)}")
 
@@ -560,7 +563,7 @@ plot.error <- function(pred.sub){
 pred.sub.test.l <- rowmerge(pred.sub.test, leaderboard)
 table(pred.sub.test.l$arch)
 p.arch <- plot.error(pred.sub.test.l)
-outpath <- gpath("figures/f.architecture.pdf")
+outpath <- gpath("figures/f.architecture-seed={seed}.pdf")
 ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 
 # =============================================================================
@@ -600,14 +603,14 @@ plot.specific <- function(bm){
   pred.sub.test$p <- predict(mod.sub, pred.sub.test)
   
   # save model
-  saveRDS(mod.sub, gpath("analysis/gams/gam-{bm}.rds"))
+  saveRDS(mod.sub, gpath("analysis/gams/gam-{bm}-seed={seed}.rds"))
   
   # plot
   pred.sub.test$color <- runif(nrow(pred.sub.test))
   p.sub <- evaluate.score.pred(pred.sub.test) +
     ggplot2::scale_colour_gradientn(colours = cbPalette()) +
     ggplot2::ggtitle(glue::glue("{bm}"))
-  saveRDS(p.sub, gpath("plots/mb-{bm}.rds"))
+  saveRDS(p.sub, gpath("plots/mb-{bm}-seed={seed}.rds"))
   p.sub
 }
 
@@ -619,7 +622,7 @@ plot.specific <- function(bm){
 (p.tfqa <- plot.specific("truthfulqa"))
 (p.wg <- plot.specific("winogrande"))
 saveRDS(list(arc=p.arc, gsm8k=p.gsm8k, hs=p.hs, mmlu=p.mmlu, tfqa=p.tfqa, wg=p.wg),
-        gpath("plots/mb-specific.rds"))
+        gpath("plots/mb-specific-seed={seed}.rds"))
 
 # =============================================================================
 # specific abilities plots
@@ -636,7 +639,7 @@ plot.ability <- function(bm){
     mytheme()+
     theme(legend.position = "None")
   
-  saveRDS(p.ab, gpath("plots/mb-{bm}-ability.rds"))
+  saveRDS(p.ab, gpath("plots/mb-{bm}-ability-seed={seed}.rds"))
   p.ab
 }
 p.arc.ab <- plot.ability("arc")
@@ -646,7 +649,7 @@ p.mmlu.ab <- plot.ability("mmlu")
 p.tfqa.ab <- plot.ability("truthfulqa")
 p.wg.ab <- plot.ability("winogrande")
 saveRDS(list(arc=p.arc.ab, gsm8k=p.gsm8k.ab, hs=p.hs.ab, mmlu=p.mmlu.ab, tfqa=p.tfqa.ab, wg=p.wg.ab),
-        gpath("plots/mb-ability.rds"))
+        gpath("plots/mb-ability-seed={seed}.rds"))
 
 
 # =============================================================================
@@ -664,14 +667,14 @@ rmses.full <- foreach(i = 1:10000, .combine=c) %dopar% {
   numitems.100 <- partition.counts()
   subsample.wrapper(i, "full")
 }
-saveRDS(list(rmses.test = rmses.full), gpath("plots/metabench-full-rmses.rds"))
+saveRDS(list(rmses.test = rmses.full), gpath("plots/metabench-full-rmses-seed={seed}.rds"))
 
 # run subsampling for reduced item set
 gprint("🔁 Running 10000 subsampling iterations with for reduced metabench...")
 rmses.sub <- foreach(i = 1:10000, .combine=c) %dopar% {
   subsample.wrapper(i, "sub")
 }
-saveRDS(list(rmses.test = rmses.sub), gpath("plots/metabench-sub-rmses.rds"))
+saveRDS(list(rmses.test = rmses.sub), gpath("plots/metabench-sub-rmses-seed={seed}.rds"))
 
 # run subsampling for 100 item set
 gprint("🔁 Running 10000 subsampling iterations with for 100 item metabench...")
@@ -679,13 +682,13 @@ rmses.100 <- foreach(i = 1:10000, .combine=c) %dopar% {
   numitems.100 <- partition.counts(n = 100)
   subsample.wrapper(i, "100")
 }
-saveRDS(list(rmses.test = rmses.100), gpath("plots/metabench-100-rmses.rds"))
+saveRDS(list(rmses.test = rmses.100), gpath("plots/metabench-100-rmses-seed={seed}.rds"))
 
 # =============================================================================
 # export items to csv
 load.items <- function(b){
   bm <- benchmarks[[b]]
-  fitpath <- gpath("analysis/reduced/{b}-{bm$mod}-{bm$est}-{bm$lam}.rds")
+  fitpath <- gpath("analysis/reduced/{b}-{bm$mod}-{bm$est}-{bm$lam}-seed={seed}.rds")
   fit <- readRDS(fitpath)
   items <- fit$items
   items$item <- paste0(b, ".", items$item)
@@ -694,7 +697,7 @@ load.items <- function(b){
 
 export.items <- function(b){
   items <- load.items(b) |> dplyr::select(item, prompt)
-  outpath <- gpath("items/items-{b}-B.csv")
+  outpath <- gpath("items/items-{b}-B-seed={seed}.csv")
   write.csv(items, outpath, row.names=F)
   gprint("Exported {b} to {outpath}")
   items
@@ -725,4 +728,5 @@ load.items.info <- function(b){
 }
 example.items <- lapply(names(benchmarks), load.items.info)
 example.items <- do.call(rbind, example.items)
-write.csv(example.items, gpath("analysis/reduced/example.items.csv"), row.names=F)
+write.csv(example.items, gpath("analysis/reduced/example-items-seed={seed}.csv"), row.names=F)
+
