@@ -8,7 +8,7 @@ box::use(./utils[parse.args, gprint, gpath, mkdir, get.theta, run.mirt])
 
 parse.args(
    names = c("BM", "MOD", "D", "seed"),
-   defaults = c("arc", "4PL", 1, 2024),
+   defaults = c("arc", "4PL", 1, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      MOD = c("2PL", "3PL", "4PL"),
@@ -17,9 +17,10 @@ parse.args(
 )
 here::i_am("analysis/crossvalidate.R")
 mkdir("analysis/models")
-set.seed(as.numeric(seed))
+seed <- as.numeric(seed)
+set.seed(seed)
 
-skip.reduced <- T # load v2
+skip.reduced <- F # load v2
 
 # =============================================================================
 # helper functions  
@@ -70,8 +71,8 @@ cross.validate <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading preprocessed {BM} data...")
-suffix <- ifelse(skip.reduced, glue::glue("-{seed}-v2"), "")
-datapath <- gpath("data/{BM}-sub-350{suffix}.rds")
+suffix <- ifelse(skip.reduced, glue::glue("-v2"), "")
+datapath <- gpath("data/{BM}-sub-350-seed={seed}{suffix}.rds")
 preproc <- readRDS(datapath)
 data.train <- preproc$data.train
 data.test <- preproc$data.test
@@ -85,6 +86,6 @@ scores.test <- preproc$scores.test / nc * 100
 # cv models
 cv <- cross.validate()
 suffix <- ifelse(skip.reduced, "-v2", "")
-outpath <- gpath("analysis/models/{BM}-{MOD}-{D}-cv{suffix}.rds")
+outpath <- gpath("analysis/models/{BM}-{MOD}-{D}-cv-seed={seed}{suffix}.rds")
 saveRDS(cv, outpath)
 gprint("💾 Saved to '{outpath}'.")
