@@ -1,20 +1,21 @@
 # alternative test: item selection via clustering
 box::use(./utils[parse.args, mkdir, gprint, gpath, napply, run.mirt, get.theta])
-box::use(./reduce.utils[...])
 
 # parse.args: benchmark, k-means
 here::i_am("analysis/clustering.R")
 parse.args(
-   names = c("BM", "seed"),
-   defaults = c("arc", 1),
+   names = c("BM", "d", "seed"),
+   defaults = c("arc", 100, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
    )
 )
 seed <- as.integer(seed)
 set.seed(seed)
+d <- as.integer(d)
 model.types <- c("2PL", "3PL", "4PL")
 n.clust <- c(10, 15, 20, 25, 30)
+mkdir("analysis/clustering")
 
 # =============================================================================
 # helper functions
@@ -90,9 +91,19 @@ get.score.table <- function(theta.train, theta.test, scores.train, scores.test){
    df.train$p <- predict(mod.score, df.train)
    df.test$p <- predict(mod.score, df.test)
    df.train$set <- "train"
-   df.test$set <- "test"
+   df.test$set <- "val"
    rbind(df.train, df.test) |>
       dplyr::mutate(error = score - p)
+}
+
+score.stats <- function(df.score){
+  df.score |>
+    dplyr::filter(set == "val") |>
+    dplyr::summarise(
+      mae = mean(abs(error)),
+      rmse = sqrt(mean(error^2)),
+      r = stats::cor(theta, score, method = "spearman")
+    )
 }
 
 run.cluster.based <- function(k, model.type, theta.type){
@@ -100,13 +111,13 @@ run.cluster.based <- function(k, model.type, theta.type){
    cluster <- get.clusters(item.params, model.type, k)
 
    # sample items and prepare data
-   indices <- sample.wrapper(100, cluster)
+   indices <- sample.wrapper(d, cluster)
    data.train.sub <- data.train[,indices]
    data.val.sub <- data.val[,indices]
 
    # refit model
    model.sub <- run.mirt(data.train.sub, 1, model.type,
-                         tol=1e-4, ncycles=1000)
+                         tol=1e-4, ncycles=500)
    theta.train.sub <- get.theta(model.sub, theta.type, data.train.sub)
    theta.val.sub <- get.theta(model.sub, theta.type, data.val.sub)
    rownames(theta.train.sub) <- rownames(data.train.sub)
@@ -116,7 +127,9 @@ run.cluster.based <- function(k, model.type, theta.type){
    score.table <- get.score.table(theta.train.sub, theta.val.sub,
                                   scores.train, scores.val)
    sfs.sub <- score.stats(score.table)
-   list(k=k, model.type=model.type, theta.type=theta.type, fits=sfs.sub)
+   list(k=k, model.type=model.type, theta.type=theta.type,
+        mae=sfs.sub$mae, rmse=sfs.sub$rmse, r=sfs.sub$r, indices=indices)
+
 }
 # =============================================================================
 # prepare data
@@ -140,3 +153,47 @@ rm(full)
 gprint("🚰 Loading {BM} fits...")
 item.params <- napply(model.types, collect.all)
 
+# grid search
+results <- list()
+i <- 1
+for (k in n.clust){
+   for (model.type in model.types){
+      for (theta.type in c("EAP", "MAP")){
+         gprint("🚰 Running {BM} with {model.type} and {k} clusters...")
+         result <- run.cluster.based(k, model.type, theta.type)
+         results[[i]] <- result
+         i <- i + 1
+      }
+   }
+}
+
+# remove indices from results
+results.tmp <- lapply(results, function(x) x[c("k", "model.type", "theta.type", "mae", "rmse", "r")])
+df.results <- data.frame(do.call(rbind, results.tmp))
+
+# find model with best validation RMSE
+min.idx <- which.min(df.results$rmse)
+best <- results[[min.idx]]
+data.train.sub <- data.train[, best$indices]
+data.test.sub <- data.test[, best$indices]
+
+# evaluate on test set
+model.test <- run.mirt(data.train.sub, 1, best$model.type,
+                       tol=1e-4, ncycles=1000)
+theta.train <- get.theta(model.test, best$theta.type, data.train.sub)
+theta.test <- get.theta(model.test, best$theta.type, data.test.sub)
+rownames(theta.train) <- rownames(data.train)
+rownames(theta.test) <- rownames(data.test)
+score.table <- get.score.table(theta.train, theta.test,
+                               scores.train, scores.test)
+sfs <- score.stats(score.table)
+
+# save results
+gprint("🚰 Saving results...")
+out <- list(
+   df.results=df.results,
+   best=best,
+   sfs=sfs
+)
+outpath <- gpath("analysis/clustering/{BM}-clustering-seed={seed}.rds")
+saveRDS(out, outpath)
