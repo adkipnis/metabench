@@ -195,5 +195,5 @@ out <- list(
    best=best,
    sfs=sfs
 )
-outpath <- gpath("analysis/clustering/{BM}-clustering-seed={seed}.rds")
+outpath <- gpath("analysis/clustering/{BM}-{d}-seed={seed}.rds")
 saveRDS(out, outpath)
