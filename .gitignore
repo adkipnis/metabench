@@ -13,3 +13,4 @@ data*
 plots*
 *_old
 *.DS_Store
+analysis/clustering
