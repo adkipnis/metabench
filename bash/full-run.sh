@@ -13,7 +13,7 @@ then
 fi
 
 #--------------------------------------------------------------
-benchmarks=("arc" "gsm8k" "hellaswag" "mmlu" "truthfulqa" "winogrande")
+benchmarks=("mmlu")
 for benchmark in "${benchmarks[@]}"; do
    echo "Initiating full run for $benchmark with seed $seed"
    echo "Randomly sampling 350 items..."
@@ -32,10 +32,9 @@ for benchmark in "${benchmarks[@]}"; do
    done
 
    echo "Information filtering..."
-   lambdas=("0.01" "0.005" "0.001")
-   for l in "${lambdas[@]}"; do
-   Rscript ../analysis/reduce.R $benchmark $l 250 $seed
-   done
+   Rscript ../analysis/reduce.R $benchmark 0.001 200 $seed
+   Rscript ../analysis/reduce.R $benchmark 0.005 250 $seed
+   Rscript ../analysis/reduce.R $benchmark 0.01 250 $seed
 done
 
 
