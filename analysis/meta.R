@@ -5,14 +5,16 @@
 # =============================================================================
 # custom utils, args, path, seed
 box::use(./utils[mkdir, parse.args, gprint, gpath, mytheme, cbPalette, get.theta, do.fa, do.fa.cov])
+box::use(./reduced/best[all.benchmarks])
 Saveplots <- T
 here::i_am("analysis/meta.R")
 parse.args(names = c("seed"),
-           defaults = c(1))
+           defaults = c(5))
 seed <- as.numeric(seed)
 set.seed(seed)
 mkdir("analysis/gams")
 benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande")
+
 
 # =============================================================================
 # helper functions
@@ -344,21 +346,21 @@ pred.score.train <- cbind(scores.partial.train, fs.score.train$scores)
 pred.score.test <- cbind(scores.partial.test, fs.score.test$scores)
 pred.score.train$grand <- rowMeans(scores.partial.train)
 pred.score.test$grand <- rowMeans(scores.partial.test)
-mod.score <- mgcv::gam(grand ~ s(gsm8k, bs = "ad") + s(hellaswag, bs = "ad"),
-                       data = pred.score.train)
-pred.score.train$p <- predict(mod.score, pred.score.train)
-pred.score.test$p <- predict(mod.score, pred.score.test)
-n = numitems.orig$gsm8k + numitems.orig$hellaswag
-pred.score.test$color = 1
-p.base <- evaluate.score.pred(pred.score.test) +
-  ggplot2::ggtitle(glue::glue(
-    "(GSM8K + HellaSwag, n = {n})"))
-p.base
-
-# correlation between first factor and grand score
-r.score <- cor(pred.score.test$MR1, pred.score.test$grand, method = "spearman")
-gprint("r(Factor1, Score) = {round(r.score,3)}")
-
+# mod.score <- mgcv::gam(grand ~ s(gsm8k, bs = "ad") + s(hellaswag, bs = "ad"),
+# data = pred.score.train)
+# pred.score.train$p <- predict(mod.score, pred.score.train)
+# pred.score.test$p <- predict(mod.score, pred.score.test)
+# n = numitems.orig$gsm8k + numitems.orig$hellaswag
+# pred.score.test$color = 1
+# p.base <- evaluate.score.pred(pred.score.test) +
+#   ggplot2::ggtitle(glue::glue(
+#     "(GSM8K + HellaSwag, n = {n})"))
+# p.base
+#
+# # correlation between first factor and grand score
+# r.score <- cor(pred.score.test$MR1, pred.score.test$grand, method = "spearman")
+# gprint("r(Factor1, Score) = {round(r.score,3)}")
+#
 
 # =============================================================================
 # 2. Latent Abilities (350 items)
@@ -392,47 +394,32 @@ pred.theta.train <- cbind(thetas.partial.train, fs.theta.train$scores)
 pred.theta.test <- cbind(thetas.partial.test, fs.theta.test$scores)
 pred.theta.train$grand <- pred.score.train$grand
 pred.theta.test$grand <- pred.score.test$grand
-mod.theta <- mgcv::gam(grand ~
-                         s(arc, bs="ad") +
-                         s(gsm8k, bs="ad") +
-                         s(hellaswag, bs="ad") +
-                         s(mmlu, bs="ad") +
-                         s(truthfulqa, bs="ad") +
-                         s(winogrande, bs="ad"),
-                       data = pred.theta.train)
-pred.theta.train$p <- predict(mod.theta)
-pred.theta.test$p <- predict(mod.theta, pred.theta.test)
-
-# evaluate grand sum prediction from factor scores
-pred.theta.test$color <- runif(nrow(pred.theta.test))
-p.full <- evaluate.score.pred(pred.theta.test) +
-  ggplot2::scale_colour_gradientn(colours = cbPalette()) +
-  ggplot2::ggtitle(glue::glue("metabench (n = {numitems.theta$sum})"))
-p.full
-saveRDS(p.full, gpath("plots/metabench-full-seed={seed}.rds"))
-
-# correlation between first factor and grand score
-r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand, method = "spearman")
-gprint("r(Factor1, Score) = {round(r.theta,3)}")
-
+# mod.theta <- mgcv::gam(grand ~
+#                          s(arc, bs="ad") +
+#                          s(gsm8k, bs="ad") +
+#                          s(hellaswag, bs="ad") +
+#                          s(mmlu, bs="ad") +
+#                          s(truthfulqa, bs="ad") +
+#                          s(winogrande, bs="ad"),
+#                        data = pred.theta.train)
+# pred.theta.train$p <- predict(mod.theta)
+# pred.theta.test$p <- predict(mod.theta, pred.theta.test)
+#
+# # evaluate grand sum prediction from factor scores
+# pred.theta.test$color <- runif(nrow(pred.theta.test))
+# p.full <- evaluate.score.pred(pred.theta.test) +
+#   ggplot2::scale_colour_gradientn(colours = cbPalette()) +
+#   ggplot2::ggtitle(glue::glue("metabench (n = {numitems.theta$sum})"))
+# p.full
+# saveRDS(p.full, gpath("plots/metabench-full-seed={seed}.rds"))
+#
+# # correlation between first factor and grand score
+# r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand, method = "spearman")
+# gprint("r(Factor1, Score) = {round(r.theta,3)}")
+#
 # =============================================================================
 # 3. Latent Abilities (subsets)
-# benchmarks <- list(
-#   arc = list(mod = "2PL", est = "MAP", lam = 0.001),
-#   gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
-#   hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
-#   mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
-#   truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
-#   winogrande = list(mod = "4PL", est = "MAP", lam = 0.001)
-# )
-benchmarks <- list(
-  arc = list(mod = "2PL", est = "MAP", lam = 0.005),
-  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.001),
-  hellaswag = list(mod = "3PL", est = "MAP", lam = 0.01),
-  mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
-  truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
-  winogrande = list(mod = "4PL", est = "MAP", lam = 0.005)
-)
+benchmarks <- all.benchmarks[["5"]]
 
 # collect theta estimates from reduced benchmarks
 thetas.sub.full.train <- lapply(names(benchmarks), collect.theta.reduced)
@@ -455,7 +442,6 @@ fa.sub.2 <- do.fa(thetas.sub.partial.train, 2)
 fa.sub.3 <- do.fa(thetas.sub.partial.train, 3, verbose = F)
 fa.sub <- fa.sub.1
 fa.sub$loadings
-
 psych::fa.diagram(fa.sub.2)
 
 # check relation to grand sum or other benchmarks
@@ -528,7 +514,7 @@ saveRDS(mod.sub, gpath("analysis/gams/gam-grand-seed={seed}.rds"))
 pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::scale_colour_gradientn(colours = cbPalette()) +
-  ggplot2::ggtitle(glue::glue("metabench-B (d = {numitems.sub$sum})"))
+  ggplot2::ggtitle(glue::glue("metabench-{seed} (d = {numitems.sub$sum})"))
 p.sub
 saveRDS(p.sub, gpath("plots/metabench-sub-seed={seed}.rds"))
 r.sub <- cor(pred.sub.test$p, pred.sub.test$grand, method = "spearman")
