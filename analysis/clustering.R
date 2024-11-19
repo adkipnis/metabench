@@ -178,10 +178,10 @@ data.train.sub <- data.train[, best$indices]
 data.test.sub <- data.test[, best$indices]
 
 # evaluate on test set
-model.test <- run.mirt(data.train.sub, 1, best$model.type,
+model <- run.mirt(data.train.sub, 1, best$model.type,
                        tol=1e-4, ncycles=1000)
-theta.train <- get.theta(model.test, best$theta.type, data.train.sub)
-theta.test <- get.theta(model.test, best$theta.type, data.test.sub)
+theta.train <- get.theta(model, best$theta.type, data.train.sub)
+theta.test <- get.theta(model, best$theta.type, data.test.sub)
 rownames(theta.train) <- rownames(data.train)
 rownames(theta.test) <- rownames(data.test)
 score.table <- get.score.table(theta.train, theta.test,
@@ -193,7 +193,11 @@ gprint("🚰 Saving results...")
 out <- list(
    df.results=df.results,
    best=best,
+   model=model,
+   theta.train=theta.train,
+   theta.test=theta.test,
    sfs=sfs
 )
 outpath <- gpath("analysis/clustering/{BM}-{d}-seed={seed}.rds")
 saveRDS(out, outpath)
+
