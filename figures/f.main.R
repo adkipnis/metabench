@@ -3,7 +3,7 @@ box::use(.. / analysis / utils[mkdir, gprint, gpath, rowmerge, mytheme, cbPalett
 box::use(.. / analysis / reduce.utils[score.stats])
 box::use(./violin.utils[plot.violin])
 here::i_am("figures/f.random.R")
-skip.reduced <- T # load v2
+skip.reduced <- F # load v2
 suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
