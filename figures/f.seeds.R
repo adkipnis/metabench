@@ -9,3 +9,14 @@ point.size <- 5
 mean.size <- 5
 mean.shape <- 4
 
+# =============================================================================
+# helper functions
+get.stats <- function(data){
+   data <- data |>
+      dplyr::mutate(error = p - grand)
+   rmse <- sqrt(mean(data$error^2))
+   mae <- mean(abs(data$error))
+   r <- cor(data$p, data$grand, method="spearman")
+   list(rmse=rmse, mae=mae, r=r)
+}
+
