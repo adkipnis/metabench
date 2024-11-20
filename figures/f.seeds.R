@@ -114,3 +114,24 @@ plot.r <- function(stats){
       scale_fill_manual(values=cbPalette())
 }
 
+plot.d <- function(stats){
+   box::use(ggplot2[...])
+   box::use(ggbreak[scale_y_break])
+   a <- 50L
+   b <- 950L
+   ggplot(stats, aes(x=bm, y=d, fill=bm)) +
+      geom_point(position=position_jitterdodge(), size=point.size, shape=21, alpha=0.5) +
+      geom_point(stat="summary", fun=mean, color="black", size=mean.size, shape=mean.shape) +
+      # scale_y_break(c(250, 825)) + # incompatible with cowplot
+      scale_y_continuous(breaks=seq(a-50, b-50, by=100)) +
+      mytheme() +
+      theme(legend.position="none",
+            axis.text.x = element_text(angle = 45, hjust = 1),
+            axis.ticks.y.right = element_blank(),  
+            axis.text.y.right = element_blank(),
+            axis.line.y.right = element_blank()) +
+      labs(x="", y="", title="Benchmark Size (d)") +
+      scale_fill_manual(values=cbPalette())
+
+}
+
