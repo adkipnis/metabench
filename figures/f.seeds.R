@@ -33,3 +33,16 @@ load.stats <- function(bm, seed){
    data.frame(bm=bm, seed=seed, d=d, rmse=stats$rmse, mae=stats$mae, r=stats$r)
 }
 
+load.total <- function(seed){
+   d.path <- gpath("analysis/reduced/numitems-sub-seed={seed}.rds")
+   d <- readRDS(d.path)$sum
+   if (seed == 1){
+      plot.path <- gpath("plots/metabench-sub-v2.rds")
+   } else {
+      plot.path <- gpath("plots/metabench-sub-seed={seed}.rds")
+   }
+   data <- readRDS(plot.path)$data
+   stats <- get.stats(data)
+   data.frame(bm="metabench", seed=seed, d=d, rmse=stats$rmse, mae=stats$mae, r=stats$r)
+}
+
