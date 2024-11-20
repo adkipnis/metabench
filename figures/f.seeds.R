@@ -20,3 +20,16 @@ get.stats <- function(data){
    list(rmse=rmse, mae=mae, r=r)
 }
 
+load.stats <- function(bm, seed){
+   d.path <- gpath("analysis/reduced/numitems-sub-seed={seed}.rds")
+   d <- readRDS(d.path)[[bm]]
+   if (seed == 1){
+      plot.path <- gpath("plots/mb-{bm}-v2.rds")
+   } else {
+      plot.path <- gpath("plots/mb-{bm}-seed={seed}.rds")
+   }
+   data <- readRDS(plot.path)$data
+   stats <- get.stats(data)
+   data.frame(bm=bm, seed=seed, d=d, rmse=stats$rmse, mae=stats$mae, r=stats$r)
+}
+
