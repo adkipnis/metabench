@@ -420,6 +420,7 @@ thetas.sub.partial.train <- Reduce(rowmerge, thetas.sub.full.train)
 thetas.sub.partial.test <- Reduce(rowmerge, thetas.sub.full.test)
 numitems.sub <- get.numitems(benchmarks, "reduced")
 numitems.sub
+saveRDS(numitems.sub, gpath("analysis/reduced/numitems-sub-seed={seed}.rds"))
 
 cor(cormat2vec(scores.partial.train), cormat2vec(thetas.sub.partial.train))
 
