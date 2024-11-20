@@ -14,6 +14,7 @@ seed <- as.numeric(seed)
 set.seed(seed)
 mkdir("analysis/gams")
 benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande")
+benchmarks <- all.benchmarks[[seed]]
 
 
 # =============================================================================
@@ -108,8 +109,7 @@ subsample.wrapper <- function(seed, source){
 collect.theta <- function(benchmark, train=T){
   model.type <- benchmarks[[benchmark]]$mod
   theta.type <- benchmarks[[benchmark]]$est
-  suffix <- benchmarks[[benchmark]]$suffix
-  fitpath <- gpath("analysis/models/{benchmark}-{model.type}-{suffix}-cv-seed={seed}.rds")
+  fitpath <- gpath("analysis/models/{benchmark}-{model.type}-1-cv-seed={seed}.rds")
   results <- readRDS(fitpath)
   model <- results$model
   if (train) {
@@ -309,12 +309,6 @@ leaderboard <- leaderboard |> dplyr::select(nparams, arch)
 # 1. Point scores
 
 # load scores
-benchmarks <- list(arc=list(mod="3PL", est="EAPsum", suffix = "1"),
-                   gsm8k=list(mod="2PL", est="EAPsum", suffix = "1"),
-                   hellaswag=list(mod="3PL", est="MAP", suffix = "1"),
-                   mmlu=list(mod="4PL", est="EAPsum", suffix = "1"),
-                   truthfulqa=list(mod="2PL", est="EAPsum", suffix = "1"),
-                   winogrande=list(mod="3PL", est="EAPsum", suffix = "1"))
 
 data.full.train <- lapply(names(benchmarks), collect.data)
 data.full.test <- lapply(names(benchmarks), function(n) collect.data(n, train = F))
@@ -416,11 +410,9 @@ pred.theta.test$grand <- pred.score.test$grand
 # # correlation between first factor and grand score
 # r.theta <- cor(pred.theta.test$MR1, pred.theta.test$grand, method = "spearman")
 # gprint("r(Factor1, Score) = {round(r.theta,3)}")
-#
+
 # =============================================================================
 # 3. Latent Abilities (subsets)
-benchmarks <- all.benchmarks[["5"]]
-
 # collect theta estimates from reduced benchmarks
 thetas.sub.full.train <- lapply(names(benchmarks), collect.theta.reduced)
 thetas.sub.full.test <- lapply(names(benchmarks), function(n) collect.theta.reduced(n, train=F))
@@ -603,7 +595,7 @@ plot.specific <- function(bm){
 # specific reconstruction plots
 (p.arc <- plot.specific("arc"))
 (p.gsm8k <- plot.specific("gsm8k"))
-(p.hs <- plot.specific("hellaswag")) # only use latent abilities for this one
+(p.hs <- plot.specific("hellaswag"))
 (p.mmlu <- plot.specific("mmlu"))
 (p.tfqa <- plot.specific("truthfulqa"))
 (p.wg <- plot.specific("winogrande"))
