@@ -46,3 +46,22 @@ load.total <- function(seed){
    data.frame(bm="metabench", seed=seed, d=d, rmse=stats$rmse, mae=stats$mae, r=stats$r)
 }
 
+
+load.bm <- function(bm){
+   seeds <- c(1, 2, 3, 4, 5)
+   if (bm == "metabench"){
+      aggregates <- napply(seeds, load.total)
+   } else {
+      aggregates <- napply(seeds, function(s) load.stats(bm, s))
+   }
+   do.call(rbind, aggregates)
+}
+
+load.df <- function(){
+   stats <- napply(benchmarks, load.bm)
+   stats <- do.call(rbind, stats)
+   rownames(stats) <- NULL
+   stats |>
+      dplyr::mutate(bm=factor(bm, levels=benchmarks, labels=names))
+}
+
