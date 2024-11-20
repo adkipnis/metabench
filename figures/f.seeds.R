@@ -97,3 +97,20 @@ plot.mae <- function(stats){
       scale_fill_manual(values=cbPalette())
 }
 
+plot.r <- function(stats){
+   box::use(ggplot2[...])
+   a <- 0.8
+   b <- 1.0
+   ggplot(stats, aes(x=bm, y=r, fill=bm)) +
+      geom_point(position=position_jitterdodge(), size=point.size, shape=21, alpha=0.5) +
+      geom_point(stat="summary", fun=mean, color="black", size=mean.size, shape=mean.shape) +
+      geom_hline(yintercept=1, linetype="dashed", color="black") +
+      coord_cartesian(ylim=c(a, b)) +
+      scale_y_continuous(breaks=seq(a, b, by=0.05)) +
+      mytheme() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1),
+            legend.position="none") +
+      labs(x="", y="", title="Spearman's r") +
+      scale_fill_manual(values=cbPalette())
+}
+
