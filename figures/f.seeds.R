@@ -81,3 +81,19 @@ plot.rmse <- function(stats){
       scale_fill_manual(values=cbPalette())
 }
 
+plot.mae <- function(stats){
+   box::use(ggplot2[...])
+   a <- 0.4
+   b <- 2.0
+   ggplot(stats, aes(x=bm, y=mae, fill=bm)) +
+      geom_point(position=position_jitterdodge(), size=point.size, shape=21, alpha=0.5) +
+      geom_point(stat="summary", fun=mean, color="black", size=mean.size, shape=mean.shape) +
+      coord_cartesian(ylim=c(a, b)) +
+      scale_y_continuous(breaks=seq(a, b, by=0.2)) +
+      mytheme() +
+      theme(axis.text.x = element_blank(),
+            legend.position="none") +
+      labs(x="", y="", title="MAE") +
+      scale_fill_manual(values=cbPalette())
+}
+
