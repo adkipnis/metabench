@@ -135,3 +135,15 @@ plot.d <- function(stats){
 
 }
 
+# =============================================================================
+# main
+stats <- load.df()
+p.rmse <- plot.rmse(stats)
+p.mae <- plot.mae(stats)
+p.r <- plot.r(stats)
+p.d <- plot.d(stats)
+p.upper <- cowplot::plot_grid(p.rmse, p.mae, nrow=1, ncol=2, labels=c("A", "B"), align="hv")
+p.lower <- cowplot::plot_grid(p.r, p.d, nrow=1, ncol=2, labels=c("C", "D"), align="hv")
+(p.seeds <- cowplot::plot_grid(p.upper, p.lower, nrow=2, ncol=1, labels=c("", ""), rel_heights=c(1, 1.2)))
+outpath <- gpath("figures/f.seeds.pdf")
+ggplot2::ggsave(outpath, p.seeds, width = 12, height = 8)
