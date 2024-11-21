@@ -66,3 +66,38 @@ evaluate <- function(data.train, data.test, model){
    list(train=rmse.train, test=rmse.test)
 }
 
+run <- function(rho, alpha, seed, show.plots=F){
+   set.seed(seed)
+   # ---------------------------------------------------------------------------
+   # latent ability
+   thetas <- simulate.theta(n, l, rho)
+   if (show.plots){
+      par(mfrow=c(1,1))
+      plot(thetas)
+   }
+
+   # tests
+   items.1 <- simulate.items(d, l)
+   items.2 <- simulate.items(d, l)
+   items.1 <- reweigh.loadings(items.1, c(1, alpha))
+   items.2 <- reweigh.loadings(items.2, c(0, 1))
+   
+   # responses
+   responses.1 <- simulate.responses(items.1, thetas)
+   responses.2 <- simulate.responses(items.2, thetas)
+
+   # scores
+   scores <- matrix(NA, n, 2)
+   scores[,1] <- rowMeans(responses.1) * 100
+   scores[,2] <- rowMeans(responses.2) * 100
+   cor(scores)
+
+   # relationship between scores and thetas
+   if (show.plots){
+      par(mfrow=c(2,2))
+      plot(scores[,1], thetas[,1])
+      plot(scores[,1], thetas[,2])
+      plot(scores[,2], thetas[,1])
+      plot(scores[,2], thetas[,2])
+   }
+
