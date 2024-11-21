@@ -29,3 +29,11 @@ simulate.items <- function(d, l){
   list(A=loadings, D=difficulties)
 }
 
+reweigh.loadings <- function(items, p){
+   A <- items$A
+   D <- items$D
+   W <- diag(p)
+   A.new <- A %*% W
+   list(A=A.new, D=D)
+}
+
