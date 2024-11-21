@@ -161,9 +161,9 @@ plot.mat <- function(results){
   box::use(ggplot2[...])
   results |> ggplot(aes(rho, alpha, fill=Boost)) +
     geom_tile() +
-    scale_fill_gradient2(low = "tan3",
+    scale_fill_gradient2(low = "darkred",
                          mid = "white",
-                         high = "cornflowerblue",
+                         high = "darkgreen",
                          midpoint = 0,
                          limits = c(-1, 1))+
     scale_x_continuous(breaks = unique(results$rho), expand = c(0,0)) +
@@ -218,3 +218,4 @@ ggplot2::ggsave(outpath, p.mat, width = 7, height = 6)
 outpath <- gpath("simulation/synergy.rds")
 out <- list(p.mat = p.mat, res.list = res.list)
 saveRDS(out, outpath)
+
