@@ -37,3 +37,18 @@ reweigh.loadings <- function(items, p){
    list(A=A.new, D=D)
 }
 
+simulate.responses <- function(test, thetas){
+  A <- test$A
+  D <- test$D
+  n <- nrow(thetas)
+  d <- nrow(A)
+  inner <- cbind(rep(1,n), thetas) %*% t(cbind(D, A))
+  # sanity check:
+  # i = 4
+  # j = 20
+  # thetas[j,] %*% A[i,] + D[i,1] == inner[j,i]
+  prob <- 1/(1+exp(-inner))
+  responses <- rbinom(n*d, 1, prob = prob)
+  data.frame(matrix(responses, n, d))
+}
+
