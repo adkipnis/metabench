@@ -178,3 +178,43 @@ plot.mat <- function(results){
 }
 
 
+# =============================================================================
+# main
+rhos <- seq(0, 1, length.out = 11) # correlation between latent abilities
+alphas <- seq(0, 1, length.out = 11) # uniqueness per test
+df.index <- expand.grid(rho = rhos, alpha = alphas, seeds = 1:5) |>
+            dplyr::arrange(rho, alpha)
+niter <- nrow(df.index)
+
+# setup parallel processing and progress bar
+n.cores <- parallel::detectCores() - 1
+mu.cluster <- parallel::makeCluster(n.cores, type = "PSOCK")
+doParallel::registerDoParallel(mu.cluster)
+doSNOW::registerDoSNOW(mu.cluster)
+pb <- utils::txtProgressBar(max = niter, style = 3)
+progress <- function(n) utils::setTxtProgressBar(pb, n)
+opts <- list(progress = progress)
+
+# run grid
+res.list <- foreach(i = 1:niter, .options.snow = opts) %dopar% {
+  rho <- df.index$rho[i]
+  alpha <- df.index$alpha[i]
+  seed <- df.index$seeds[i]
+  run(rho, alpha, seed)
+}
+close(pb)
+parallel::stopCluster(mu.cluster)
+
+# tidy up and plot results
+results <- do.call(rbind, res.list) |> 
+   dplyr::mutate(boost = single.test - joint.test) |>
+   dplyr::group_by(alpha, rho) |>
+   dplyr::summarize(Boost = mean(boost))
+(p.mat <- plot.mat(results))
+outpath <- gpath("figures/f.synergy.pdf")
+ggplot2::ggsave(outpath, p.mat, width = 7, height = 6)
+
+# save rest
+outpath <- gpath("simulation/synergy.rds")
+out <- list(p.mat = p.mat, res.list = res.list)
+saveRDS(out, outpath)
