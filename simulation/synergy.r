@@ -52,3 +52,17 @@ simulate.responses <- function(test, thetas){
   data.frame(matrix(responses, n, d))
 }
 
+rmse <- function(df){
+   df$error <- df$p - df$score
+   sqrt(mean(df$error^2))
+}
+
+evaluate <- function(data.train, data.test, model){
+   data.train$p <- predict(model, data.train)
+   data.test$p <- predict(model, data.test)
+   rmse.train <- rmse(data.train)
+   rmse.test <- rmse(data.test)
+   # gprint("train: {round(rmse.train, 3)} - test: {round(rmse.test, 3)}")
+   list(train=rmse.train, test=rmse.test)
+}
+
