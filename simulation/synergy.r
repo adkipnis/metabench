@@ -155,3 +155,26 @@ run <- function(rho, alpha, seed, show.plots=F){
               joint.test=res.2$test)
 }
 
+plot.mat <- function(results){
+  # results.mat <- xtabs(gain ~ rho + alpha, data = results)
+  # heatmap(results.mat)
+  box::use(ggplot2[...])
+  results |> ggplot(aes(rho, alpha, fill=Boost)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "tan3",
+                         mid = "white",
+                         high = "cornflowerblue",
+                         midpoint = 0,
+                         limits = c(-1, 1))+
+    scale_x_continuous(breaks = unique(results$rho), expand = c(0,0)) +
+    scale_y_continuous(breaks = unique(results$alpha), expand = c(0,0)) +
+    mytheme() +
+    theme(
+      panel.grid = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks = element_line(color = "black"),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    labs(x = "Cor(Abilities)", y = "Dep(2nd Ability)")
+}
+
+
