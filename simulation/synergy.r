@@ -22,3 +22,10 @@ simulate.theta <- function(n, l, rho){
   matrix(thetas, n, l)
 }
 
+simulate.items <- function(d, l){
+  box::use(stats[runif, rnorm, rbinom])
+  loadings <- matrix(runif(d*l, min=0, max=3), d, l)
+  difficulties <- matrix(rnorm(d), d, 1)
+  list(A=loadings, D=difficulties)
+}
+
