@@ -101,3 +101,28 @@ run <- function(rho, alpha, seed, show.plots=F){
       plot(scores[,2], thetas[,2])
    }
 
+   # ---------------------------------------------------------------------------
+   # IRT
+   fit.1 <- mirt::mirt(responses.1, 1, itemtype = '2PL', method = 'EM')
+   fit.2 <- mirt::mirt(responses.2, 1, itemtype = '2PL', method = 'EM')
+   coefs.1 <- as.data.frame(mirt::coef(fit.1, simplify=T)$items)
+   coefs.2 <- as.data.frame(mirt::coef(fit.2, simplify=T)$items)
+
+   # plot parameter recovery
+   if (show.plots){
+      par(mfrow=c(3,1))
+      plot(coefs.1$a1, items.1$A[,1])
+      plot(coefs.1$a1, items.1$A[,2])
+      plot(coefs.1$d, items.1$D)
+   }
+
+   # estimate thetas
+   thetas.est <- matrix(NA, n, 2)
+   thetas.est[,1] <- mirt::fscores(fit.1, method = 'MAP')
+   thetas.est[,2] <- mirt::fscores(fit.2, method = 'MAP')
+   if (show.plots){
+      par(mfrow=c(2,1))
+      plot(thetas[,1], thetas.est[,1])
+      plot(thetas[,2], thetas.est[,2])
+   }
+
