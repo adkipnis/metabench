@@ -12,3 +12,13 @@ n <- 500 # number of subjects
 d <- 100 # number of items per test
 l <- 2 # number of latent abilities
 
+# =============================================================================
+# helper functions
+simulate.theta <- function(n, l, rho){
+  box::use(MASS[mvrnorm])
+  R <- matrix(rho, l, l)
+  diag(R) <- 1
+  thetas <- mvrnorm(n, mu=rep(0,l), Sigma=R)
+  matrix(thetas, n, l)
+}
+
