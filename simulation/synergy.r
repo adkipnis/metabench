@@ -126,3 +126,32 @@ run <- function(rho, alpha, seed, show.plots=F){
       plot(thetas[,2], thetas.est[,2])
    }
 
+   # ---------------------------------------------------------------------------
+   # perpare data
+   data <- data.frame(score = scores[,1],
+                     theta.1 = thetas.est[,1],
+                     theta.2 = thetas.est[,2],
+                     test = 1,
+                     subject = 1:nrow(scores))
+   idx <- caret::createDataPartition(scores[,1], p = 0.1, list = F)
+   data.train <- data[-idx, ]
+   data.test <- data[idx, ]
+
+   # fit specific gam
+   gam.1 <- mgcv::gam(score ~ s(theta.1, bs="ad"),
+                     data = data.train)
+   res.1 <- evaluate(data.train, data.test, gam.1)
+
+   # fit joint gam
+   gam.2 <- mgcv::gam(score ~ s(theta.1, bs="ad") + s(theta.2, bs="ad"), 
+                     data = data.train)
+   res.2 <- evaluate(data.train, data.test, gam.2)
+
+   # output
+   data.frame(rho=rho, alpha=alpha,
+              single.train=res.1$train,
+              single.test=res.1$test,
+              joint.train=res.2$train,
+              joint.test=res.2$test)
+}
+
