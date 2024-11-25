@@ -9,7 +9,7 @@ box::use(./reduced/best[all.benchmarks])
 Saveplots <- T
 here::i_am("analysis/meta.R")
 parse.args(names = c("seed"),
-           defaults = c(5))
+           defaults = c(1))
 seed <- as.numeric(seed)
 set.seed(seed)
 mkdir("analysis/gams")
@@ -295,6 +295,37 @@ train.lm <- function(bm){
        sub.test = sub.test)
 }
 
+prepare.lm.data.g <- function(bm, type){
+   df <- prepare.lm.data(bm, type) |> dplyr::select(-grand)
+   colnames(df) <- paste0(bm, ".", colnames(df))
+   df
+}
+
+train.lm.g <- function(){
+   data.train.list <- lapply(names(benchmarks), function(bm) prepare.lm.data.g(bm, "train"))
+   data.test.list <- lapply(names(benchmarks), function(bm) prepare.lm.data.g(bm, "test"))
+   data.train <- Reduce(rowmerge, data.train.list)
+   data.test <- Reduce(rowmerge, data.test.list)
+   nc <- ncol(data.train)
+   sub.train <- rowSums(data.train) / nc * 100
+   sub.test <- rowSums(data.test) / nc * 100
+   data.train <- rowmerge(pred.score.train |> dplyr::select(grand), data.train)
+   data.test <- rowmerge(pred.score.test |> dplyr::select(grand), data.test)
+   mod.lin <- lm(grand ~ ., data = data.train)
+   data.train$p <- predict(mod.lin, data.train)
+   data.test$p <- predict(mod.lin, data.test)
+   rmse.train <- data.train |> dplyr::mutate(error = grand - p) |>
+      dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+   rmse.test <- data.test |> dplyr::mutate(error = grand - p) |>
+      dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
+   list(rmse.train = rmse.train,
+         rmse.test = rmse.test,
+         pred.train = data.train$p,
+         pred.test = data.test$p,
+         sub.train = sub.train,
+         sub.test = sub.test)
+}
+
 # =============================================================================
 # 0. Leaderboard
 leaderboard <- read.csv(gpath("scraping/open-llm-leaderboard.csv"))
@@ -485,6 +516,14 @@ pred.sub.test <- pred.sub.test |>
   dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l),
                 grand.s = 1/6 * (arc.s + gsm8k.s + hs.s + mmlu.s + tfqa.s + wg.s))
 
+# alternatively directly use linear predictor for grand average
+# lm.g <- train.lm.g()
+# pred.sub.train$grand.l <- lm.g$pred.train
+# pred.sub.train$grand.s <- lm.g$sub.train
+# pred.sub.test$grand.l <- lm.g$pred.test
+# pred.sub.test$grand.s <- lm.g$sub.test
+
+# run gam
 mod.sub <- mgcv::gam(grand ~
                        s(grand.l, bs="ad") +
                        s(grand.s, bs="ad") +
