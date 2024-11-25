@@ -3,10 +3,12 @@
 */tempCodeRunnerFile.r
 */.DS_Store
 .Rproj.user
-analysis/models*
 analysis/archive
 analysis/itemfits
-analysis/reduced*
+analysis/models*
+analysis/reduced/*png
+analysis/reduced/*rds
+*.tgz
 analysis/cat/*
 !analysis/cat/.gitkeep
 data*
