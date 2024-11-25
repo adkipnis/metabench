@@ -226,7 +226,7 @@ if (DIM == 1){
    )
 } else {
   cvs <- list(
-    "2PL" = readRDS(gpath("{str.1}-2PL-{str.2}")),
+    "2PL" = readRDS(gpath("{str.1}-2PL-{str.2}"))
   )
 }
 if (METH == "EAPsum"){
