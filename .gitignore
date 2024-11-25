@@ -14,3 +14,8 @@ plots*
 *_old
 *.DS_Store
 analysis/clustering
+scraping/check_prompts.py
+scraping/open-llm-leaderboard-original.csv
+scraping/open-llm-leaderboard copy.csv
+scraping/open-llm-leaderboard_log.txt
+scraping/open-llm-leaderboard_log.txt.bak
