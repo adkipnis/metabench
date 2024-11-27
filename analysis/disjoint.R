@@ -335,16 +335,18 @@ pred.sub.test <- pred.sub.test |>
   dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l),
                 grand.s = 1/6 * (arc.s + gsm8k.s + hs.s + mmlu.s + tfqa.s + wg.s))
 
+bs <- "ad"
 mod.sub <- mgcv::gam(grand ~
-                       s(grand.l, bs="ad") +
-                       s(grand.s, bs="ad") +
-                       s(arc, bs="ad") +
-                       s(gsm8k, bs="ad") +
-                       s(hellaswag, bs="ad") +
-                       s(mmlu, bs="ad") +
-                       s(truthfulqa, bs="ad") +
-                       s(winogrande, bs="ad"),
+                       s(grand.l, bs=bs) +
+                       s(grand.s, bs=bs) +
+                       s(arc, bs=bs) +
+                       s(gsm8k, bs=bs) +
+                       s(hellaswag, bs=bs) +
+                       s(mmlu, bs=bs) +
+                       s(truthfulqa, bs=bs) +
+                       s(winogrande, bs=bs),
                        data = pred.sub.train)
+
 
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
