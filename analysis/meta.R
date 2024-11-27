@@ -13,6 +13,7 @@ parse.args(names = c("seed"),
 seed <- as.numeric(seed)
 set.seed(seed)
 mkdir("analysis/gams")
+mkdir("analysis/lms")
 benchmark.names <- c("ARC", "GSM8K", "HellaSwag", "MMLU", "TruthfulQA", "WinoGrande")
 benchmarks <- all.benchmarks[[seed]]
 
@@ -287,12 +288,16 @@ train.lm <- function(bm){
     dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
   rmse.test <- data.test |> dplyr::mutate(error = grand - p) |>
     dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
-  list(rmse.train = rmse.train,
-       rmse.test = rmse.test,
-       pred.train = data.train$p,
-       pred.test = data.test$p,
-       sub.train = sub.train,
-       sub.test = sub.test)
+  out <- list(rmse.train = rmse.train,
+         rmse.test = rmse.test,
+         pred.train = data.train$p,
+         pred.test = data.test$p,
+         sub.train = sub.train,
+         sub.test = sub.test,
+         model = mod.lin)
+  outpath <- gpath("analysis/lms/lm-{bm}-seed={seed}.rds")
+  saveRDS(out, outpath)
+  out
 }
 
 prepare.lm.data.g <- function(bm, type){
