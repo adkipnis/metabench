@@ -9,3 +9,23 @@ parse.args(names = c("ID", "VERSION", "PERMUTED"),
            defaults = c("EleutherAI__pythia-160m", "A", "F"))
 here::i_am("testing/reconstruct.R")
 
+# specs for reduced benchmarks
+irt.specs.tmp <- list(
+  "A" = list(
+    arc = list(mod = "4PL", est = "MAP", lam = 0.005),
+    gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
+    hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
+    mmlu = list(mod = "3PL", est = "MAP", lam = 0.001),
+    truthfulqa = list(mod = "3PL", est = "MAP", lam = 0.001),
+    winogrande = list(mod = "3PL", est = "MAP", lam = 0.001)
+  ),
+  "B" = list(
+    arc = list(mod = "2PL", est = "MAP", lam = 0.005),
+    gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.001),
+    hellaswag = list(mod = "3PL", est = "MAP", lam = 0.01),
+    mmlu = list(mod = "3PL", est = "MAP", lam = 0.01),
+    truthfulqa = list(mod = "2PL", est = "EAPsum", lam = 0.01),
+    winogrande = list(mod = "4PL", est = "MAP", lam = 0.005)
+  )
+)
+
