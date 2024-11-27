@@ -69,3 +69,14 @@ json2long <- function(fpath, bm){
    data.frame(idx = idx, acc = acc)
 }
 
+load.data <- function(bm){
+  fpath <- load.json(bm)
+  testit::assert(file.exists(fpath))
+  resp.long <- json2long(fpath, bm)
+  items <- irt.list[[bm]]$items$item
+  idx.sort <- match(items, resp.long$idx)
+  resp.long <- resp.long[idx.sort,]
+  rownames(resp.long) <- NULL
+  resp.long |> tidyr::pivot_wider(names_from = idx, values_from = acc)
+}
+
