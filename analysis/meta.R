@@ -592,7 +592,7 @@ ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 
 # =============================================================================
 # Predict specific scores using all latent abilities
-plot.specific <- function(bm){
+plot.specific <- function(bm, bs="ts"){
   pred.sub.train$grand <- pred.score.train[[bm]]
   pred.sub.test$grand <- pred.score.test[[bm]]
   if (bm == "hellaswag"){
@@ -612,22 +612,23 @@ plot.specific <- function(bm){
   pred.sub.test$this.s <- pred.sub.test[[this.s.str]]
   
   mod.sub <- mgcv::gam(grand ~
-                         s(grand.l, bs="ad") +
-                         s(grand.s, bs="ad") +
-                         s(this.l, bs="ad") +
-                         s(this.s, bs="ad") +
-                         s(arc, bs="ad") +
-                         s(gsm8k, bs="ad") +
-                         s(hellaswag, bs="ad") +
-                         s(mmlu, bs="ad") +
-                         s(truthfulqa, bs="ad") +
-                         s(winogrande, bs="ad"),
+                         s(grand.l, bs=bs) +
+                         s(grand.s, bs=bs) +
+                         s(this.l, bs=bs) +
+                         s(this.s, bs=bs) +
+                         s(arc, bs=bs) +
+                         s(gsm8k, bs=bs) +
+                         s(hellaswag, bs=bs) +
+                         s(mmlu, bs=bs) +
+                         s(truthfulqa, bs=bs) +
+                         s(winogrande, bs=bs),
                        data = pred.sub.train)
   pred.sub.train$p <- predict(mod.sub, pred.sub.train)
   pred.sub.test$p <- predict(mod.sub, pred.sub.test)
   
   # save model
-  saveRDS(mod.sub, gpath("analysis/gams/gam-{bm}-seed={seed}.rds"))
+  out <- list(model=mod.sub, train=pred.sub.train, test=pred.sub.test)
+  saveRDS(out, gpath("analysis/gams/gam-{bm}-seed={seed}.rds"))
   
   # plot
   pred.sub.test$color <- runif(nrow(pred.sub.test))
