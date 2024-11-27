@@ -53,3 +53,19 @@ load.json <- function(bm){
    out
 }
 
+json2long <- function(fpath, bm){
+   data <- jsonlite::stream_in(file(fpath), verbose=F)
+   # get item indices
+   idx <- data$doc$metabench_idx
+   if (bm == "mmlu"){
+     idx <- paste0(data$doc$subject, ".", idx)
+   }
+   # get response accuracies
+   if (bm == "gsm8k"){
+     acc <- data$exact_match
+   } else {
+     acc <- data$acc
+   }
+   data.frame(idx = idx, acc = acc)
+}
+
