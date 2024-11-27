@@ -186,3 +186,33 @@ estimate.gam <- function(bm, theta.fac=0){
   predict(gam, df.gam)[[1]]
 }
 
+estimate <- function(bm, df.gam, rmse.rad=2, theta.fac=0){
+  # wrapper for automatic assignment
+  colname <- paste0(bm, ".p")
+  est <- estimate.gam(bm, 0)
+  est <- min(max(est, 0), 100)
+  
+  # RMSE CI
+  if (rmse.rad > 0){
+    local.rmse <- get.local.rmse(bm, est, rmse.rad)
+    emp.lb <- max(est - local.rmse, 0)
+    emp.ub <- min(est + local.rmse, 100)
+    gprint("{bm}: {round(est,3)}, [{round(emp.lb,3)}, {round(emp.ub,3)}]")
+  } else {
+    gprint("{bm}: {round(est,3)}")
+  }
+  
+  # theta CI
+  if (theta.fac != 0){
+    est.lb <- estimate.gam(bm, -theta.fac)
+    est.ub <- estimate.gam(bm, theta.fac)
+    est.lb <- max(est.lb, 0)
+    est.ub <- min(est.ub, 100)
+    gprint("theta-based CI (±{theta.fac} SE): [{round(est.lb,3)}, {round(est.ub,3)}]")
+  }
+  
+  df.gam[[colname]] <- est
+  df.gam
+}
+
+
