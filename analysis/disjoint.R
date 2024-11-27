@@ -241,12 +241,16 @@ train.lm <- function(bm){
     dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
   rmse.test <- data.test |> dplyr::mutate(error = grand - p) |>
     dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
-  list(rmse.train = rmse.train,
-       rmse.test = rmse.test,
-       pred.train = data.train$p,
-       pred.test = data.test$p,
-       sub.train = sub.train,
-       sub.test = sub.test)
+  out <- list(rmse.train = rmse.train,
+         rmse.test = rmse.test,
+         pred.train = data.train$p,
+         pred.test = data.test$p,
+         sub.train = sub.train,
+         sub.test = sub.test,
+         model = mod.lin)
+  outpath <- gpath("analysis/lms/lm-{bm}-seed=1-v2.rds")
+  saveRDS(out, outpath)
+  out
 }
 
 
