@@ -23,7 +23,7 @@ load.reduced <- function(bm){
    mod <- benchmarks.v1[[bm]]$mod
    est <- benchmarks.v1[[bm]]$est
    lam <- benchmarks.v1[[bm]]$lam
-   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}.rds")
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-seed=1.rds")
    readRDS(path)$items$item
 }
 
@@ -31,10 +31,21 @@ load.reduced.2 <- function(bm){
    mod <- benchmarks[[bm]]$mod
    est <- benchmarks[[bm]]$est
    lam <- benchmarks[[bm]]$lam
-   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-v2.rds")
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-seed=1-v2.rds")
    readRDS(path)$items$item
 }
 
+# Version A
+benchmarks <- list(
+  arc = list(mod = "4PL", est = "MAP", lam = 0.005),
+  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
+  hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
+  mmlu = list(mod = "3PL", est = "MAP", lam = 0.001),
+  truthfulqa = list(mod = "3PL", est = "MAP", lam = 0.001),
+  winogrande = list(mod = "3PL", est = "MAP", lam = 0.001)
+)
+
+# Version B
 benchmarks.v1 <- list(
   arc = list(mod = "2PL", est = "MAP", lam = 0.005),
   gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.001),
@@ -46,7 +57,7 @@ benchmarks.v1 <- list(
 
 collect.data <- function(benchmark, train=T){
   # load full data and remove items from v1 of metabench
-  datapath <- gpath("data/{benchmark}-preproc-split.rds")
+  datapath <- gpath("data/{benchmark}-preproc-split-seed=1.rds")
   all <- readRDS(datapath)
   reduced <- load.reduced(benchmark)
   if (train) {
@@ -109,7 +120,7 @@ collect.theta.reduced <- function(benchmark, train = T){
   model.type <- benchmarks[[benchmark]]$mod
   theta.type <- benchmarks[[benchmark]]$est
   lam <- benchmarks[[benchmark]]$lam
-  fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-v2.rds")
+  fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-seed=1-v2.rds")
   results <- readRDS(fitpath)
   model <- results$model
   if (train){
@@ -132,7 +143,7 @@ merge.skill <- function(skill.full){
 }
 
 collect.scores <- function(benchmark, train = T){
-   datapath <- gpath("data/{benchmark}-sub-350.rds")
+   datapath <- gpath("data/{benchmark}-sub-350-seed=1.rds")
    all <- readRDS(datapath)
    if (train){
      scores <- all$scores.train
@@ -150,14 +161,14 @@ collect.scores <- function(benchmark, train = T){
 
 collect.numitems <- function(benchmark, type) {
    if (type == "original"){
-      datapath <- gpath("data/{benchmark}-preproc-split.rds")
+      datapath <- gpath("data/{benchmark}-preproc-split-seed=1.rds")
       all <- readRDS(datapath)
       numitems <- all$max.points.orig
    } else if (type == "reduced") {
       model.type <- benchmarks[[benchmark]]$mod
       theta.type <- benchmarks[[benchmark]]$est
       lam <- benchmarks[[benchmark]]$lam
-      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-v2.rds")
+      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-seed=1-v2.rds")
       results <- readRDS(fitpath)
       numitems <- nrow(results$items)
    }
@@ -238,14 +249,7 @@ train.lm <- function(bm){
        sub.test = sub.test)
 }
 
-benchmarks <- list(
-  arc = list(mod = "4PL", est = "MAP", lam = 0.005),
-  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
-  hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
-  mmlu = list(mod = "3PL", est = "MAP", lam = 0.001),
-  truthfulqa = list(mod = "3PL", est = "MAP", lam = 0.001),
-  winogrande = list(mod = "3PL", est = "MAP", lam = 0.001)
-)
+
 
 # =============================================================================
 # Leaderboard
