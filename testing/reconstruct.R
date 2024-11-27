@@ -147,3 +147,13 @@ gather.results <- function(){
     dplyr::mutate(grand.s = mean(sub), grand.l = mean(lin))
 }
 
+add.se <- function(bm, df.gam, theta.fac){
+   if (theta.fac == 0) return(df.gam)
+   se.str <- paste0(bm, ".se")
+   theta <- df.gam[[bm]]
+   se <- df.gam[[se.str]]
+   theta.new <- theta + theta.fac * se
+   df.gam[[bm]] <- theta.new
+   df.gam
+}
+
