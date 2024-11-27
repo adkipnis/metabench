@@ -167,3 +167,22 @@ get.local.rmse <- function(bm, prediction, radius){
   sqrt(mean(df.error.tmp$error^2))
 }
 
+estimate.gam <- function(bm, theta.fac=0){
+  # subroutine
+  gam <- gam.list[[bm]]
+  
+  # optionally add error bound to theta
+  for (b in benchmarks){
+     df.gam <- add.se(b, df.gam, theta.fac)
+  }
+
+  # prepare predictors for specific score
+  if (bm != "grand"){
+    this.l <- paste0(bm, ".l")
+    this.s <- paste0(bm, ".s")
+    df.gam$this.l <- df.gam[[this.l]]
+    df.gam$this.s <- df.gam[[this.s]]
+  }
+  predict(gam, df.gam)[[1]]
+}
+
