@@ -29,3 +29,11 @@ irt.specs.tmp <- list(
   )
 )
 
+# setup globals
+PERMUTED <- as.logical(PERMUTED)
+irt.specs <- irt.specs.tmp[[VERSION]]
+benchmarks <- names(irt.specs)
+sfx.ver <- ifelse(VERSION=="A", "", "_secondary") # for .jsonl
+sfx.per <- ifelse(PERMUTED, "_permute", "")
+sfx.red <- ifelse(VERSION=="A", "-v2", "") # for .rds
+
