@@ -37,3 +37,19 @@ sfx.ver <- ifelse(VERSION=="A", "", "_secondary") # for .jsonl
 sfx.per <- ifelse(PERMUTED, "_permute", "")
 sfx.red <- ifelse(VERSION=="A", "-v2", "") # for .rds
 
+# =============================================================================
+# helper variables and functions
+load.json <- function(bm){
+   if (bm == "gsm8k") sfx.per <- ""
+   pattern <- glue::glue("^samples_metabench_{bm}{sfx.ver}{sfx.per}.*\\.jsonl$")
+   files <- list.files(path=data.path, pattern=pattern, full.names=T, recursive=T)
+   out <- files[1]
+   if (length(files) > 1){
+     gprint("Warning - Found multiple matching files, taking the first:\n{out}")
+   }
+   if (length(files) == 0){
+     gprint("Warning - No files found for {bm}{sfx.ver}{sfx.per}")
+   }
+   out
+}
+
