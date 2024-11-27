@@ -452,10 +452,11 @@ plot.specific <- function(bm, dummy=rep(T,length(predictors)), bs="ts"){
 # specific reconstruction plots
 (p.arc <- plot.specific("arc"))
 (p.gsm8k <- plot.specific("gsm8k"))
-(p.hs <- plot.specific("hellaswag")) # don't use subscores for this one
+(p.hs <- plot.specific("hellaswag"))
 (p.mmlu <- plot.specific("mmlu"))
 (p.tfqa <- plot.specific("truthfulqa"))
 (p.wg <- plot.specific("winogrande"))
+
 saveRDS(list(arc=p.arc, gsm8k=p.gsm8k, hs=p.hs, mmlu=p.mmlu, tfqa=p.tfqa, wg=p.wg),
         gpath("plots/mb-specific-v2.rds"))
 
