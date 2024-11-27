@@ -80,3 +80,11 @@ load.data <- function(bm){
   resp.long |> tidyr::pivot_wider(names_from = idx, values_from = acc)
 }
 
+load.irt <- function(bm){
+   mod <- irt.specs[[bm]]$mod
+   est <- irt.specs[[bm]]$est
+   lam <- irt.specs[[bm]]$lam
+   mod.path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-seed=1{sfx.red}.rds")
+   readRDS(mod.path)
+}
+
