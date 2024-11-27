@@ -108,3 +108,9 @@ load.errors <- function(bm){
   df.test
 }
 
+get.subscore <- function(bm){
+  resp <- data.list[[bm]]
+  d <- ncol(resp)
+  rowSums(resp) / d * 100
+}
+
