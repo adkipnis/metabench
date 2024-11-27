@@ -88,3 +88,23 @@ load.irt <- function(bm){
    readRDS(mod.path)
 }
 
+load.lm <- function(bm){
+  lm.path <- gpath("analysis/lms/lm-{bm}-seed=1{sfx.red}.rds")
+  readRDS(lm.path)
+}
+
+load.gam <- function(bm){
+  gam.path <- gpath("analysis/gams/gam-{bm}-seed=1{sfx.red}.rds")
+  readRDS(gam.path)$model
+}
+
+load.errors <- function(bm){
+  gam.path <- gpath("analysis/gams/gam-{bm}-seed=1{sfx.red}.rds")
+  df.test <- readRDS(gam.path)$test |>
+    dplyr::mutate(error = p - grand) |>
+    dplyr::select(p, error) |>
+    dplyr::arrange(p)
+  rownames(df.test) <- NULL
+  df.test
+}
+
