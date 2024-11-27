@@ -157,3 +157,13 @@ add.se <- function(bm, df.gam, theta.fac){
    df.gam
 }
 
+get.local.rmse <- function(bm, prediction, radius){
+  df.error <- err.list[[bm]]
+  lower <- prediction - radius
+  upper <- prediction + radius
+  i <- which.min(abs(df.error$p - lower))
+  j <- which.min(abs(df.error$p - upper))
+  df.error.tmp <- df.error[i:j,]
+  sqrt(mean(df.error.tmp$error^2))
+}
+
