@@ -545,7 +545,8 @@ pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
 
 # save model
-saveRDS(mod.sub, gpath("analysis/gams/gam-grand-seed={seed}.rds"))
+out <- list(model=mod.sub, train=pred.sub.train, test=pred.sub.test)
+saveRDS(out, gpath("analysis/gams/gam-grand-seed={seed}.rds"))
 
 # plot
 pred.sub.test$color <- runif(nrow(pred.sub.test))
