@@ -114,3 +114,9 @@ get.subscore <- function(bm){
   rowSums(resp) / d * 100
 }
 
+estimate.linpred <- function(bm){
+  model <- lm.list[[bm]]$model
+  resp <- data.list[[bm]]
+  predict(model, resp)[[1]]
+}
+
