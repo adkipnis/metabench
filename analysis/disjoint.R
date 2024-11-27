@@ -35,7 +35,7 @@ load.reduced.2 <- function(bm){
    readRDS(path)$items$item
 }
 
-# Version A
+# Version A (v2 suffix)
 benchmarks <- list(
   arc = list(mod = "4PL", est = "MAP", lam = 0.005),
   gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
@@ -382,7 +382,7 @@ plot.error <- function(pred.sub){
 pred.sub.test.l <- rowmerge(pred.sub.test, leaderboard)
 table(pred.sub.test.l$arch)
 p.arch <- plot.error(pred.sub.test.l)
-outpath <- gpath("figures/f.architecture-v2.pdf")
+outpath <- gpath("figures/f.architecture-seed=1-v2.pdf")
 ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 
 # =============================================================================
