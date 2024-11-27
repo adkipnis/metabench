@@ -400,6 +400,8 @@ gprint("r(Factor1, Score) = {round(r.score,3)}")
 predictors <- c("grand.l", "grand.s", "this.l", "this.s",
                 "arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
 
+
+
 create.formula <- function(dummy, bs){
   out <- "grand ~ 1"
   for (i in 1:length(dummy)){
@@ -412,7 +414,7 @@ create.formula <- function(dummy, bs){
   as.formula(out)
 }
 
-plot.specific <- function(bm, dummy=rep(T,length(predictors)), bs="ts"){
+plot.specific <- function(bm, dummy=rep(T,length(predictors)), bs="ad"){
   pred.sub.train$grand <- scores.partial.train[[bm]]
   pred.sub.test$grand <- scores.partial.test[[bm]] 
   if (bm == "hellaswag"){
@@ -452,7 +454,7 @@ plot.specific <- function(bm, dummy=rep(T,length(predictors)), bs="ts"){
 # specific reconstruction plots
 (p.arc <- plot.specific("arc"))
 (p.gsm8k <- plot.specific("gsm8k"))
-(p.hs <- plot.specific("hellaswag"))
+(p.hs <- plot.specific("hellaswag", c(T, F, T, F, T, T, T, T, T, T)))
 (p.mmlu <- plot.specific("mmlu"))
 (p.tfqa <- plot.specific("truthfulqa"))
 (p.wg <- plot.specific("winogrande"))
