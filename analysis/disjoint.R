@@ -351,9 +351,6 @@ mod.sub <- mgcv::gam(grand ~
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
 
-# save model
-saveRDS(mod.sub, gpath("analysis/gams/gam-grand-v2.rds"))
-
 # plot
 pred.sub.test$color <- runif(nrow(pred.sub.test))
 p.sub <- evaluate.score.pred(pred.sub.test) +
@@ -361,6 +358,10 @@ p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::ggtitle(glue::glue("metabench-A (d = {numitems.sub$sum})"))
 p.sub
 saveRDS(p.sub, gpath("plots/metabench-sub-v2.rds"))
+
+# save model
+out <- list(model=mod.sub, train=pred.sub.train, test=pred.sub.test)
+saveRDS(out, gpath("analysis/gams/gam-grand-seed=1-v2.rds"))
 
 # =============================================================================
 # Check relationship to model architecture
