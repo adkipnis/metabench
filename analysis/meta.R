@@ -592,7 +592,7 @@ ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 
 # =============================================================================
 # Predict specific scores using all latent abilities
-plot.specific <- function(bm, bs="ts"){
+plot.specific <- function(bm, bs="ad"){
   pred.sub.train$grand <- pred.score.train[[bm]]
   pred.sub.test$grand <- pred.score.test[[bm]]
   if (bm == "hellaswag"){
