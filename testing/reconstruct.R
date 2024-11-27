@@ -120,3 +120,14 @@ estimate.linpred <- function(bm){
   predict(model, resp)[[1]]
 }
 
+estimate.theta.i <- function(bm, i){
+  model <- irt.list[[bm]]$model
+  method <- irt.specs[[bm]]$est
+  resp <- data.list[[bm]]
+  get.theta(model, method, resp)[[i]]
+}
+
+estimate.theta <- function(bm) estimate.theta.i(bm, 1)
+
+estimate.theta.se <- function(bm) estimate.theta.i(bm, 2)
+
