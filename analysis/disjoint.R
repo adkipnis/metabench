@@ -397,7 +397,22 @@ gprint("r(Factor1, Score) = {round(r.score,3)}")
 
 # =============================================================================
 # Predict specific scores using all latent abilities
-plot.specific <- function(bm){
+predictors <- c("grand.l", "grand.s", "this.l", "this.s",
+                "arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
+
+create.formula <- function(dummy, bs){
+  out <- "grand ~ 1"
+  for (i in 1:length(dummy)){
+    include.this <- dummy[i][[1]]
+    if (include.this){
+      term <- glue::glue(" + s({predictors[i]}, bs='{bs}')")
+      out <- glue::glue("{out}{term}")
+    }
+  }
+  as.formula(out)
+}
+
+plot.specific <- function(bm, dummy=rep(T,length(predictors)), bs="ts"){
   pred.sub.train$grand <- scores.partial.train[[bm]]
   pred.sub.test$grand <- scores.partial.test[[bm]] 
   if (bm == "hellaswag"){
@@ -415,28 +430,16 @@ plot.specific <- function(bm){
   pred.sub.train$this.s <- pred.sub.train[[this.s.str]]
   pred.sub.test$this.l <- pred.sub.test[[this.l.str]]
   pred.sub.test$this.s <- pred.sub.test[[this.s.str]]
-  
-  # rmse.lin <- sqrt(mean((pred.sub.test$grand - pred.sub.test$this.l)^2))
-  # gprint("Test RMSE of the linear model: {round(rmse.lin, 3)}")
-  
-  mod.sub <- mgcv::gam(grand ~
-                         s(grand.l, bs="ad") +
-                         # s(grand.s, bs="ad") +
-                         s(this.l, bs="ad") +
-                         # s(this.s, bs="ad") +
-                         s(arc, bs="ad") +
-                         s(gsm8k, bs="ad") +
-                         s(hellaswag, bs="ad") +
-                         s(mmlu, bs="ad") +
-                         s(truthfulqa, bs="ad") +
-                         s(winogrande, bs="ad"),
-                       data = pred.sub.train)
+  formula <- create.formula(dummy, bs)
+  mod.sub <- mgcv::gam(formula, data = pred.sub.train)
   pred.sub.train$p <- predict(mod.sub, pred.sub.train)
   pred.sub.test$p <- predict(mod.sub, pred.sub.test)
-
+  pred.sub.test$error <- pred.sub.test$p - pred.sub.test$grand
+  
   # save model
-  saveRDS(mod.sub, gpath("analysis/gams/gam-{bm}-v2.rds"))
-
+  out <- list(model=mod.sub, train=pred.sub.train, test=pred.sub.test)
+  saveRDS(out, gpath("analysis/gams/gam-{bm}-seed=1-v2.rds"))
+   
   # plot
   pred.sub.test$color <- runif(nrow(pred.sub.test))
   p.sub <- evaluate.score.pred(pred.sub.test) +
