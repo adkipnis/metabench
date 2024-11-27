@@ -216,3 +216,23 @@ estimate <- function(bm, df.gam, rmse.rad=2, theta.fac=0){
 }
 
 
+# =============================================================================
+# load data for your model
+data.path <- gpath("testing/harness-results/{ID}")
+testit::assert(file.exists(data.path))
+
+# load irt, linear, and gam fits
+irt.list <- napply(benchmarks, load.irt)
+lm.list <- napply(benchmarks, load.lm)
+gam.list <- napply(c(benchmarks, "grand"), load.gam)
+err.list <- napply(c(benchmarks, "grand"), load.errors)
+
+# load your data
+data.list <- napply(benchmarks, load.data)
+
+# estimate subscores, linear predictors, latent ability
+gprint("🏁 Reconstruction results of {ID} on metabench{sfx.ver}{sfx.per}...")
+df.gam <- gather.results()
+for (bm in c("grand", benchmarks)){
+  df.gam <- estimate(bm, df.gam)
+}
