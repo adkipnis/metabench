@@ -131,3 +131,19 @@ estimate.theta <- function(bm) estimate.theta.i(bm, 1)
 
 estimate.theta.se <- function(bm) estimate.theta.i(bm, 2)
 
+gather.results <- function(){
+  theta <- sapply(benchmarks, estimate.theta)
+  theta.se <- sapply(benchmarks, estimate.theta.se)
+  sub <- sapply(benchmarks, get.subscore)
+  lin <- sapply(benchmarks, estimate.linpred)
+  df.theta <- data.frame(as.list(theta))
+  df.theta.se <- data.frame(as.list(theta.se))
+  df.sub <- data.frame(as.list(sub))
+  df.lin <- data.frame(as.list(lin))
+  colnames(df.theta.se) <- paste0(colnames(df.theta.se),  ".se")
+  colnames(df.sub) <- paste0(colnames(df.sub),  ".s")
+  colnames(df.lin) <- paste0(colnames(df.lin),  ".l")
+  cbind(df.theta, df.theta.se, df.sub, df.lin) |>
+    dplyr::mutate(grand.s = mean(sub), grand.l = mean(lin))
+}
+
