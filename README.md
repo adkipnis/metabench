@@ -55,8 +55,6 @@ Simply download and extract `data.tar.gz` to `data` inside your `.../metabench/`
 - [bash](bash): Templates for running scripts on a compute cluster with slurm
 - [figures](figures): Scripts for generating the figures shown in the paper
 - [scraping](scraping): Scripts for downloading and processing publically available item-wise responses by LLMs
-- [setup](setup): Basic installation scripts for the required python and R packages
-- [simulation](simulation): Parameter recovery tests for different IRT frameworks in R
 
 ## Citing the Project
 To cite metabench in publications:
