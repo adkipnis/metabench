@@ -23,21 +23,16 @@ lm-eval --model hf \
     --output_path path/to/metabench/harness-results \
     --log_samples # this saves the instance level results as a jsonl
 ```
-where {version} is "" for the main version or "_secondary" for the repeated evaluation version\
-and {permute} is "" for the unpermuted responses and "_permute" for the permuted responses.
+where `{model_id}` is your [Hugging Face](https://huggingface.co/) model ID,\
+`{version}` is "" for the main version or "_secondary" for the repeated evaluation version\
+and `{permute}` is "" for the unpermuted responses and "_permute" for the permuted responses.
 
-
-Step 2 - move your results to `metabench/harness-results/model_id`
-```console
-mv path/to/your/results/model_id path/to/metabench/harness-results
-```
-
-Step 3 - reconstruct the full points
+Step 2 - reconstruct the full points
 ```console
 Rscript reconstruct.R {model_id} {ver} {per}
 ```
-where {ver} is "A" for the main version and "B" for the repeated evaluation version\
-and {per} is "False" for the unpermuted responses and "True" for the permuted responses.
+where `{ver}` is "A" for the main version and "B" for the repeated evaluation version\
+and `{per}` is "False" for the unpermuted responses and "True" for the permuted responses.
 
 
 
