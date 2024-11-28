@@ -37,7 +37,7 @@ Rscript reconstruct.R {model_id} {ver} {per}
 
 
 
-## In a Nutshell...
+## How metabench is constructed
 <img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="750" />
 
 1. Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
