@@ -14,9 +14,32 @@ The [R programming language](https://www.r-project.org/) is required for running
 Rscript setup.R
 ```
 
-## Testing your LLM
-You can soon run your own LLM on metabench.\
-We're currently working on providing the necessary interface for this.
+## Testing your LLM with metabench
+Step 1 - evaluate your LLM using the [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness)
+```console
+lm-eval --model hf \
+    --model_args pretrained=EleutherAI/pythia-14m \ #this is a small model that can be run locally
+    --tasks metabench{version}{permute} \            
+    --output_path path/to/metabench/harness-results \
+    --log_samples # this saves the instance level results as a jsonl
+```
+where {version} is "" for the main version or "_secondary" for the repeated evaluation version\
+and {permute} is "" for the unpermuted responses and "_permute" for the permuted responses.
+
+
+Step 2 - move your results to `metabench/harness-results/model_id`
+```console
+mv path/to/your/results/model_id path/to/metabench/harness-results
+```
+
+Step 3 - reconstruct the full points
+```console
+Rscript reconstruct.R {model_id} {ver} {per}
+```
+where {ver} is "A" for the main version and "B" for the repeated evaluation version\
+and {per} is "False" for the unpermuted responses and "True" for the permuted responses.
+
+
 
 ## In a Nutshell...
 <img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="750" />
