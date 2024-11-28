@@ -1,3 +1,9 @@
+### Setup
+To setup a conda environment for dataset scraping, run this line in the current directory:
+```console
+conda env create -f env.yml
+```
+
 ### Note
 You can either download the datasets of LLM responses from [zenodo](https://zenodo.org/records/12819251) or scrape the newest data yourself.\
 For shell code, please replace text in curly brackets, e.g. `{some-number}` can become `2`.
