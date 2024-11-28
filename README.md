@@ -18,7 +18,7 @@ Rscript setup.R
 Step 1 - evaluate your LLM using the [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness)
 ```console
 lm-eval --model hf \
-    --model_args pretrained=EleutherAI/pythia-14m \ #this is a small model that can be run locally
+    --model_args {model_id} \
     --tasks metabench{version}{permute} \            
     --output_path path/to/metabench/harness-results \
     --log_samples # this saves the instance level results as a jsonl
