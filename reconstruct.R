@@ -4,10 +4,10 @@
 
 # =============================================================================
 # custom utils, path
-box::use(../analysis/utils[parse.args, gprint, gpath, napply, get.theta])
+box::use(analysis/utils[parse.args, gprint, gpath, napply, get.theta])
 parse.args(names = c("ID", "VERSION", "PERMUTED"),
            defaults = c("EleutherAI__pythia-160m", "A", "F"))
-here::i_am("testing/reconstruct.R")
+here::i_am("reconstruct.R")
 
 # specs for reduced benchmarks
 irt.specs.tmp <- list(
@@ -218,7 +218,7 @@ estimate <- function(bm, df.gam, rmse.rad=2, theta.fac=0){
 
 # =============================================================================
 # load data for your model
-data.path <- gpath("testing/harness-results/{ID}")
+data.path <- gpath("harness-results/{ID}")
 testit::assert(file.exists(data.path))
 
 # load irt, linear, and gam fits
