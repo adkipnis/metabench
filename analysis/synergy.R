@@ -3,14 +3,9 @@
 # show that if the latent abilities are highly correlated,
 # there is more synergy in reconstructing the score of one test for the other
 #================================================================================
-box::use(../analysis/utils[gprint, gpath, mytheme])
+box::use(./utils[gprint, gpath, mytheme])
 box::use(doParallel[...], foreach[...])
-here::i_am("simulation/synergy.R")
-
-# globals
-n <- 500 # number of subjects
-d <- 100 # number of items per test
-l <- 2 # number of latent abilities
+here::i_am("analysis/synergy.R")
 
 # =============================================================================
 # helper functions
@@ -62,7 +57,6 @@ evaluate <- function(data.train, data.test, model){
    data.test$p <- predict(model, data.test)
    rmse.train <- rmse(data.train)
    rmse.test <- rmse(data.test)
-   # gprint("train: {round(rmse.train, 3)} - test: {round(rmse.test, 3)}")
    list(train=rmse.train, test=rmse.test)
 }
 
@@ -156,8 +150,6 @@ run <- function(rho, alpha, seed, show.plots=F){
 }
 
 plot.mat <- function(results){
-  # results.mat <- xtabs(gain ~ rho + alpha, data = results)
-  # heatmap(results.mat)
   box::use(ggplot2[...])
   results |> ggplot(aes(rho, alpha, fill=Boost)) +
     geom_tile() +
@@ -180,6 +172,9 @@ plot.mat <- function(results){
 
 # =============================================================================
 # main
+n <- 500 # number of subjects
+d <- 100 # number of items per test
+l <- 2 # number of latent abilities
 rhos <- seq(0, 1, length.out = 11) # correlation between latent abilities
 alphas <- seq(0, 1, length.out = 11) # uniqueness per test
 df.index <- expand.grid(rho = rhos, alpha = alphas, seeds = 1:5) |>
@@ -215,7 +210,7 @@ outpath <- gpath("figures/f.synergy.pdf")
 ggplot2::ggsave(outpath, p.mat, width = 7, height = 6)
 
 # save rest
-outpath <- gpath("simulation/synergy.rds")
+outpath <- gpath("analysis/synergy.rds")
 out <- list(p.mat = p.mat, res.list = res.list)
 saveRDS(out, outpath)
 
