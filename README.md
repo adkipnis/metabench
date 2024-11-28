@@ -8,6 +8,12 @@
 This repo contains the source code for [dataset scraping](scraping) in Python and [statistical analysis](analysis) in R.\
 For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
+## Setup
+The [R programming language](https://www.r-project.org/) is required for running metabench. Once installed, you can setup all R dependencies by running this line in the current directory:
+```console
+Rscript setup.R
+```
+
 ## Testing your LLM
 You can soon run your own LLM on metabench.\
 We're currently working on providing the necessary interface for this.
