@@ -2,17 +2,42 @@
 ## A Sparse Benchmark to Measure General Ability in LLMs
 🤗 metabench distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size\
 🧑‍🏫 item selection is based on item response theory analyses of over 5000 LLMs\
-🔥 scores for the six benchmarks[^1] can be reconstructed with ~1% mean absolute error\
-☄️ the original score can be reconstructed with 0.6% mean absolute error
+🔥 scores for the six benchmarks[^1] can be reconstructed with on average <0.9% mean absolute error\
+☄️ the Open LLM Leaderboard score can be reconstructed with <0.5% mean absolute error
 
 This repo contains the source code for [dataset scraping](scraping) in Python and [statistical analysis](analysis) in R.\
 For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
 
-## Testing your LLM
-You can soon run your own LLM on metabench.\
-We're currently working on providing the necessary interface for this.
+## Setup
+The [R programming language](https://www.r-project.org/) is required for running metabench. Once installed, you can setup all R dependencies by running this line in the current directory:
+```console
+Rscript setup.R
+```
 
-## In a Nutshell...
+## Testing your LLM with metabench
+Step 1 - evaluate your LLM using the [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness)
+```console
+lm-eval --model hf \
+    --model_args {model_id} \
+    --tasks metabench{version}{permute} \            
+    --output_path path/to/metabench/harness-results \
+    --log_samples # this saves the instance level results as a jsonl
+```
+- `{model_id}` is your [Hugging Face](https://huggingface.co/) model ID,\
+- `{version}` is "" for the main version or "_secondary" for the repeated evaluation version\
+- `{permute}` is "" for the unpermuted responses and "_permute" for the permuted responses.
+
+
+Step 2 - reconstruct the full points
+```console
+Rscript reconstruct.R {model_id} {ver} {per}
+```
+- `{ver}` is "A" for the main version and "B" for the repeated evaluation version\
+- `{per}` is "False" for the unpermuted responses and "True" for the permuted responses.
+
+
+
+## How metabench was constructed
 <img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="750" />
 
 1. Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
@@ -30,8 +55,6 @@ Simply download and extract `data.tar.gz` to `data` inside your `.../metabench/`
 - [bash](bash): Templates for running scripts on a compute cluster with slurm
 - [figures](figures): Scripts for generating the figures shown in the paper
 - [scraping](scraping): Scripts for downloading and processing publically available item-wise responses by LLMs
-- [setup](setup): Basic installation scripts for the required python and R packages
-- [simulation](simulation): Parameter recovery tests for different IRT frameworks in R
 
 ## Citing the Project
 To cite metabench in publications:

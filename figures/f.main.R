@@ -1,8 +1,9 @@
 # =============================================================================
-box::use(.. / analysis / utils[mkdir, gprint, gpath, mytheme, cbPalette, cbPalette2])
+box::use(.. / analysis / utils[mkdir, gprint, gpath, rowmerge, mytheme, cbPalette, cbPalette2])
+box::use(.. / analysis / reduce.utils[score.stats])
 box::use(./violin.utils[plot.violin])
 here::i_am("figures/f.random.R")
-skip.reduced <- T # load v2
+skip.reduced <- F # load v2
 suffix <- ifelse(skip.reduced, "-v2", "")
 
 # =============================================================================
@@ -137,6 +138,7 @@ compare.versions <- function(bm){
   
   # bias
   bias <- mean(data.A$p - data.B$p)
+  print(quantile(abs(data.A$p - data.B$p), probs = c(0.5, 0.68, 0.95)))
   text.bias <- glue::glue("b = {round(bias, 3)}%")
   p.bias <- data.frame(grand = data.A$grand, diff = data.A$p - data.B$p) |>
     ggplot(aes(x = grand, y = diff)) +
@@ -144,6 +146,7 @@ compare.versions <- function(bm){
                 linetype = "dashed") +
     geom_point(alpha = 0.5, color = color) +
     coord_cartesian(xlim = c(0, 100)) +
+    scale_y_continuous(limits = c(-6,6), breaks = seq(-6, 6, 2)) +
     labs(x = "Score", y = "A - B") +
     mytheme()
   coords <- get.coords(p.bias)
@@ -195,7 +198,7 @@ compare.versions.mb <- function(){
                               label = text.pred, size = 5) 
   
   # rank of lm-predicted score
-  r.lin <- cor(data.1$grand.l, data.2$grand.l, method = "spearman")
+  r.lin <- cor(data.A$grand.l, data.B$grand.l, method = "spearman")
   rmse.lin.1 <- sqrt(mean((data.A$grand.l - data.A$grand)^2))
   rmse.lin.2 <- sqrt(mean((data.B$grand.l - data.B$grand)^2))
   gprint("The linear model RMSEs are {round(rmse.lin.1, 3)} for version A and {round(rmse.lin.2, 3)} for version B.
@@ -204,12 +207,14 @@ compare.versions.mb <- function(){
   # bias
   bias <- mean(data.A$p - data.B$p)
   text.bias <- glue::glue("b = {round(bias, 3)}%")
+  print(quantile(abs(data.A$p - data.B$p), probs = c(0.5, 0.68, 0.95)))
   p.bias <- data.frame(grand = data.A$grand, diff = data.A$p - data.B$p, color = data.A$color) |>
     ggplot(aes(x = grand, y = diff, color = color)) +
     geom_abline(intercept = 0, slope = 0,
                 linetype = "dashed") +
     geom_point(alpha = 0.5) +
     coord_cartesian(xlim = c(0, 100)) +
+    scale_y_continuous(limits = c(-6,6), breaks = seq(-6,6,2)) +
     labs(x = "Score", y = "A - B") +
     scale_colour_gradientn(colours = cbp) +
     mytheme() +
@@ -221,31 +226,68 @@ compare.versions.mb <- function(){
   cowplot::plot_grid(p.latent, p.pred, p.bias, nrow = 1, scale = 0.95)
 }
 
-  
+# -----------------------------------------------------------------------------
+# refit GAMs
+get.subscores <- function(bm, suffix, indices){
+  suffix <- ifelse(skip.reduced, "-2024-v2", "")
+  datapath <- gpath("data/{bm}-sub-350{suffix}.rds")
+  data <- readRDS(datapath)
+  data.train <- data$data.train[, as.character(indices)]
+  data.test <- data$data.test[, as.character(indices)]
+  nc <- length(indices)
+  scores.train <- data.frame(sub = rowSums(data.train)/nc*100)
+  scores.test <- data.frame(sub = rowSums(data.test)/nc*100)
+  rbind(scores.train, scores.test)
+}
+
+refit.gams <- function(df.score, subscores){
+  df.score <- rowmerge(df.score, subscores)
+  train <- df.score |> dplyr::filter(set == "train")
+  test <- df.score |> dplyr::filter(set == "test")
+  mod.gam <- mgcv::gam(score ~ s(theta, bs='ad') + s(sub, bs='ad'), data = train)
+  train$p <- predict(mod.gam, train)
+  test$p <- predict(mod.gam, test)
+  rbind(train, test) |>
+    dplyr::mutate(error = score - p)
+}  
+
+refit.wrapper <- function(bm, bm.data){
+  gprint("Without subscore")
+  print(bm.data$sfs.sub)
+  subscores <- get.subscores(bm, suffix, bm.data$items$item)
+  fits <- refit.gams(bm.data$df.score.sub, subscores)
+  gprint("With subscore...")
+  score.stats(fits)
+}
 
 # =============================================================================
 # prepare data
 if (!skip.reduced){
   arc.sub <- readRDS(gpath("analysis/reduced/arc-2PL-MAP-0.005.rds"))
-  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.001.rds"))
+  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005-v2.rds"))
   hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.01.rds"))
   mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.01.rds"))
   tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-2PL-EAPsum-0.01.rds"))
   wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-4PL-MAP-0.005.rds"))
 } else {
   arc.sub <- readRDS(gpath("analysis/reduced/arc-4PL-MAP-0.005-v2.rds"))
-  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.005-v2.rds"))
+  gsm8k.sub <- readRDS(gpath("analysis/reduced/gsm8k-2PL-EAPsum-0.001.rds"))
   hs.sub <- readRDS(gpath("analysis/reduced/hellaswag-3PL-MAP-0.005-v2.rds"))
   mmlu.sub <- readRDS(gpath("analysis/reduced/mmlu-3PL-MAP-0.001-v2.rds"))
   tfqa.sub <- readRDS(gpath("analysis/reduced/truthfulqa-3PL-MAP-0.001-v2.rds"))
   wg.sub <- readRDS(gpath("analysis/reduced/WinoGrande-3PL-MAP-0.001-v2.rds"))
-  
-
 }
 p.mb <- readRDS(gpath("plots/metabench-sub{suffix}.rds")) +
     ggplot2::labs(y ="") +
     ggplot2::theme(plot.margin = ggplot2::margin(0.1, 0.1, 0.1, 0.1, "cm"))
 stats.from.plot(p.mb)
+
+(fit.arc <- refit.wrapper("arc", arc.sub))
+(fit.gsm8k <- refit.wrapper("gsm8k", gsm8k.sub))
+(fit.hs <- refit.wrapper("hellaswag", hs.sub))
+(fit.mmlu <- refit.wrapper("mmlu", mmlu.sub))
+(fit.tfqa <- refit.wrapper("truthfulqa", tfqa.sub))
+(fit.wg <- refit.wrapper("winogrande", wg.sub))
 
 # =============================================================================
 # violin plots for RMSE
@@ -270,6 +312,13 @@ if (skip.reduced){
     metabench = readRDS(gpath("plots/metabench-sub-rmses.rds"))$rmses.test
   )
 }
+
+sum(rand.list[["ARC"]] > fit.arc$rmse) / 100
+sum(rand.list[["GSM8K"]] > fit.gsm8k$rmse) / 100
+sum(rand.list[["HellaSwag"]] > fit.hs$rmse) / 100
+sum(rand.list[["MMLU"]] > fit.mmlu$rmse) / 100
+sum(rand.list[["TruthfulQA"]] > fit.tfqa$rmse) / 100
+sum(rand.list[["WinoGrande"]] > fit.wg$rmse) / 100
 
 # =============================================================================
 # 6-predictor plots
@@ -326,6 +375,7 @@ p.col.6 <- cowplot::plot_grid(p.rand.6, p.mb, ncol = 1, align= "hv", labels = c(
 p.meta <- cowplot::plot_grid(p.reduced.6, p.col.6, labels = c("A", NA), rel_widths = c(3, 1), label_x=0)
 outpath <- gpath("figures/f.meta{suffix}.pdf")
 ggplot2::ggsave(outpath, p.meta, width = 16, height = 8)
+
 
 # # =============================================================================
 # # reviewer-requested violin plot of 100 item subsamples from open llm leaderboard

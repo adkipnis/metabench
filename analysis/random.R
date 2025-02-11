@@ -6,15 +6,16 @@ box::use(./utils[mkdir, gprint, gpath, parse.args])
 here::i_am("analysis/random.R")
 parse.args(
    names = c("BM", "N", "seed"),
-   defaults = c("arc", 350, 2024),
+   defaults = c("arc", 350, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      N = seq(0, 817, 1)
    )
 )
 N <- as.numeric(N)
-set.seed(as.numeric(seed))
-skip.reduced <- T # remove items used in original run
+seed <- as.numeric(seed)
+set.seed(seed)
+skip.reduced <- F # remove items used in original run
 
 # =============================================================================
 # helper functions
@@ -36,9 +37,9 @@ subsample <- function(data, k){
   sort(sample(1:n, k, replace = F))
 }
 
-subsample.wrapper <- function(seed, fold){
+subsample.wrapper <- function(seed.local, fold){
   # reproducible index sampling
-  set.seed(seed)
+  set.seed(seed.local)
   indices.rand <- subsample(data, N)
   
   # 5-fold data split
@@ -71,7 +72,7 @@ subsample.wrapper <- function(seed, fold){
   
   # output
   list(indices.rand = indices.rand,
-       seed = seed,
+       seed = seed.local,
        fold = fold,
        rmse.val = sqrt(mean((df.val$error)^2)),
        rmse.test = sqrt(mean((df.test$error)^2))
@@ -96,18 +97,18 @@ benchmarks <- list(
   winogrande = list(mod = "4PL", est = "MAP", lam = 0.005)
 )
 
-load.reduced <- function(bm){
+load.reduced <- function(bm, seed.old = 1){
    mod <- benchmarks[[bm]]$mod
    est <- benchmarks[[bm]]$est
    lam <- benchmarks[[bm]]$lam
-   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}.rds")
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-seed={seed.old}.rds")
    readRDS(path)$items$item
 }
 
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM}...")
-full <- readRDS(gpath("data/{BM}-preproc-split.rds"))
+full <- readRDS(gpath("data/{BM}-preproc-split-seed={seed}.rds"))
 data <- full$data.train
 nc <- full$max.points.orig
 scores <- full$scores.train / nc * 100
@@ -118,8 +119,8 @@ scores.test <- full$scores.test / nc * 100
 
 # optionally remove items used in previous runs
 if (skip.reduced){
-  gprint("Removing items used in previous runs...")
-  reduced <- load.reduced(BM)
+  gprint("Removing items used in previous runs with seed 1...")
+  reduced <- load.reduced(BM, 1)
   data <- data[,!colnames(data) %in% reduced]
   data.test <- data.test[,!colnames(data.test) %in% reduced]
 }
@@ -131,7 +132,7 @@ if (N > ncol(data)){
 }
 
 # 5-fold cross-validation split
-indices <- caret::createFolds(scores, k = 5, list = T)
+indices <- caret::createFolds(scores, k = 5, list = T) # row indices per fold
 gprint("🔁 Running 10000 subsampling iterations with {N} items and 5 folds...")
 
 # =============================================================================
@@ -140,7 +141,7 @@ box::use(doParallel[...], foreach[...])
 n.cores <- parallel::detectCores() - 1
 mu.cluster <- parallel::makeCluster(n.cores, type = "PSOCK")
 doParallel::registerDoParallel(mu.cluster)
-df.index <- expand.grid(seed = 1:10000, fold = 1:5) |>
+df.index <- expand.grid(seed = 1:1e4, fold = 1:5) |>
    dplyr::arrange(seed, fold)
 niter <- nrow(df.index)
 
@@ -153,9 +154,9 @@ opts <- list(progress = progress)
 # =============================================================================
 # run subsampling
 res.full <- foreach(i = 1:niter, .options.snow = opts) %dopar% {
-  seed <- df.index$seed[i]
+  seed.local <- df.index$seed[i] + 1e4 * (seed - 1)
   fold <- df.index$fold[i]
-  subsample.wrapper(seed, fold)
+  subsample.wrapper(seed.local, fold)
 }
 close(pb)
 parallel::stopCluster(mu.cluster)
@@ -211,8 +212,8 @@ out <- list(
 )
 
 # save data
-suffix <- ifelse(skip.reduced, glue::glue("-{seed}-v2"), "")
-outpath <- gpath("data/{BM}-sub-{N}{suffix}.rds")
+suffix <- ifelse(skip.reduced, glue::glue("-v2"), "")
+outpath <- gpath("data/{BM}-sub-{N}-seed={seed}{suffix}.rds")
 saveRDS(out, outpath)
 gprint("🏁 Saved subset data to {outpath}")
 

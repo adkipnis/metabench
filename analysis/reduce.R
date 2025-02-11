@@ -17,7 +17,7 @@ box::use(./utils[parse.args, mkdir, gprint, gpath, run.mirt, get.theta])
 box::use(./reduce.utils[...])
 parse.args(
    names = c("BM", "LAMBDA", "N_QUANT", "seed"),
-   defaults = c("arc", 0.005, 200, 2024),
+   defaults = c("arc", 0.005, 250, 1),
    legal = list(
      BM = c("arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande"),
      LAMBDA = seq(0, 1, 0.001), # penalty for subtest size (0 = no penalty)
@@ -27,12 +27,14 @@ parse.args(
 Saveplots <- T
 here::i_am("analysis/reduce.R")
 mkdir("analysis/reduced")
-set.seed(as.numeric(seed))
-skip.reduced <- T # load v2
+seed <- as.numeric(seed)
+set.seed(seed)
+skip.reduced <- F # load v2
+suffix <- ifelse(skip.reduced, "-v2", "")
 
 # for Bayesian Optimization
 N_INIT <- 15 # initial pass
-N_ITER <- 60 # number of search iterations after initial pass
+N_ITER <- 40 # number of search iterations after initial pass
 N_QUANT <- as.numeric(N_QUANT)
 LAMBDA <- as.numeric(LAMBDA)
 model.types <- c("2PL", "3PL", "4PL")
@@ -73,8 +75,7 @@ collect.theta.eapsum <- function(model, indices, data.train, data.test){
 }
 
 collect.all <- function(model.type){
-   suffix <- ifelse(skip.reduced, "-v2", "")
-   fitpath <- gpath("analysis/models/{BM}-{model.type}-1-cv{suffix}.rds")
+   fitpath <- gpath("analysis/models/{BM}-{model.type}-1-cv-seed={seed}{suffix}.rds")
    results <- readRDS(fitpath)
    model <- results$model
    thetas.map <- collect.theta.map(results, indices)
@@ -302,8 +303,7 @@ optimize.hyperparameters <- function(){
 # =============================================================================
 # prepare data
 gprint("🚰 Loading {BM} data...")
-suffix <- ifelse(skip.reduced, glue::glue("-{seed}-v2"), "")
-datapath <- gpath("data/{BM}-sub-350{suffix}.rds")
+datapath <- gpath("data/{BM}-sub-350-seed={seed}{suffix}.rds")
 full <- readRDS(datapath)
 items <- full$items
 items$item <- as.character(items$item)
@@ -377,8 +377,7 @@ out <- list(
 
 gprint("🎉 Reduced test to {nrow(final$items)} items (using a penalty coefficient of {LAMBDA}).
        RMSE = {round(sfs.test$rmse, 3)}")
-version <- ifelse(skip.reduced, "-v2", "")
-outpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}{version}.rds")
+outpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-seed={seed}{suffix}.rds")
 saveRDS(out, outpath)
 gprint("💾 Saved results to {outpath}")
 
@@ -410,7 +409,7 @@ p.misc <- cowplot::plot_grid(
   ncol = 1
 )
 p.misc <- cowplot::plot_grid(title, p.misc, ncol = 1, rel_heights = c(0.05, 1))
-plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-info{version}.png")
+plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-info-seed={seed}{suffix}.png")
 ggplot2::ggsave(plotpath, p.misc, width = 16, height = 16)
 
 
@@ -444,5 +443,6 @@ p.pred <- cowplot::plot_grid(
   p.ts, p.perc, p.score, p.error, ncol = 1
 )
 p.pred <- cowplot::plot_grid(title, p.pred, ncol = 1, rel_heights = c(0.05, 1))
-plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-pred{version}.png")
+plotpath <- gpath("analysis/reduced/{BM}-{model.type}-{theta.type}-{LAMBDA}-pred-seed={seed}{suffix}.png")
 ggplot2::ggsave(plotpath, p.pred, width = 16, height = 19)
+

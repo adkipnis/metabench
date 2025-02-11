@@ -23,7 +23,7 @@ load.reduced <- function(bm){
    mod <- benchmarks.v1[[bm]]$mod
    est <- benchmarks.v1[[bm]]$est
    lam <- benchmarks.v1[[bm]]$lam
-   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}.rds")
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-seed=1.rds")
    readRDS(path)$items$item
 }
 
@@ -31,10 +31,21 @@ load.reduced.2 <- function(bm){
    mod <- benchmarks[[bm]]$mod
    est <- benchmarks[[bm]]$est
    lam <- benchmarks[[bm]]$lam
-   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-v2.rds")
+   path <- gpath("analysis/reduced/{bm}-{mod}-{est}-{lam}-seed=1-v2.rds")
    readRDS(path)$items$item
 }
 
+# Version A (v2 suffix)
+benchmarks <- list(
+  arc = list(mod = "4PL", est = "MAP", lam = 0.005),
+  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
+  hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
+  mmlu = list(mod = "3PL", est = "MAP", lam = 0.001),
+  truthfulqa = list(mod = "3PL", est = "MAP", lam = 0.001),
+  winogrande = list(mod = "3PL", est = "MAP", lam = 0.001)
+)
+
+# Version B
 benchmarks.v1 <- list(
   arc = list(mod = "2PL", est = "MAP", lam = 0.005),
   gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.001),
@@ -46,7 +57,7 @@ benchmarks.v1 <- list(
 
 collect.data <- function(benchmark, train=T){
   # load full data and remove items from v1 of metabench
-  datapath <- gpath("data/{benchmark}-preproc-split.rds")
+  datapath <- gpath("data/{benchmark}-preproc-split-seed=1.rds")
   all <- readRDS(datapath)
   reduced <- load.reduced(benchmark)
   if (train) {
@@ -109,7 +120,7 @@ collect.theta.reduced <- function(benchmark, train = T){
   model.type <- benchmarks[[benchmark]]$mod
   theta.type <- benchmarks[[benchmark]]$est
   lam <- benchmarks[[benchmark]]$lam
-  fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-v2.rds")
+  fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-seed=1-v2.rds")
   results <- readRDS(fitpath)
   model <- results$model
   if (train){
@@ -132,7 +143,7 @@ merge.skill <- function(skill.full){
 }
 
 collect.scores <- function(benchmark, train = T){
-   datapath <- gpath("data/{benchmark}-sub-350.rds")
+   datapath <- gpath("data/{benchmark}-sub-350-seed=1.rds")
    all <- readRDS(datapath)
    if (train){
      scores <- all$scores.train
@@ -150,14 +161,14 @@ collect.scores <- function(benchmark, train = T){
 
 collect.numitems <- function(benchmark, type) {
    if (type == "original"){
-      datapath <- gpath("data/{benchmark}-preproc-split.rds")
+      datapath <- gpath("data/{benchmark}-preproc-split-seed=1.rds")
       all <- readRDS(datapath)
       numitems <- all$max.points.orig
    } else if (type == "reduced") {
       model.type <- benchmarks[[benchmark]]$mod
       theta.type <- benchmarks[[benchmark]]$est
       lam <- benchmarks[[benchmark]]$lam
-      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-v2.rds")
+      fitpath <- gpath("analysis/reduced/{benchmark}-{model.type}-{theta.type}-{lam}-seed=1-v2.rds")
       results <- readRDS(fitpath)
       numitems <- nrow(results$items)
    }
@@ -220,6 +231,9 @@ prepare.lm.data <- function(bm, type){
 train.lm <- function(bm){
   data.train <- prepare.lm.data(bm, "train")
   data.test <- prepare.lm.data(bm, "test")
+  nc <- ncol(data.train)
+  sub.train <- rowSums(data.train[,-1]) / nc * 100
+  sub.test <- rowSums(data.test[,-1]) / nc * 100
   mod.lin <- lm(grand ~ ., data = data.train)
   data.train$p <- predict(mod.lin, data.train)
   data.test$p <- predict(mod.lin, data.test)
@@ -227,20 +241,19 @@ train.lm <- function(bm){
     dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
   rmse.test <- data.test |> dplyr::mutate(error = grand - p) |>
     dplyr::summarise(rmse = sqrt(mean(error^2))) |> as.numeric()
-  list(rmse.train = rmse.train,
-       rmse.test = rmse.test,
-       pred.train = data.train$p,
-       pred.test = data.test$p)
+  out <- list(rmse.train = rmse.train,
+         rmse.test = rmse.test,
+         pred.train = data.train$p,
+         pred.test = data.test$p,
+         sub.train = sub.train,
+         sub.test = sub.test,
+         model = mod.lin)
+  outpath <- gpath("analysis/lms/lm-{bm}-seed=1-v2.rds")
+  saveRDS(out, outpath)
+  out
 }
 
-benchmarks <- list(
-  arc = list(mod = "4PL", est = "MAP", lam = 0.005),
-  gsm8k = list(mod = "2PL", est = "EAPsum", lam = 0.005),
-  hellaswag = list(mod = "3PL", est = "MAP", lam = 0.005),
-  mmlu = list(mod = "3PL", est = "MAP", lam = 0.001),
-  truthfulqa = list(mod = "3PL", est = "MAP", lam = 0.001),
-  winogrande = list(mod = "3PL", est = "MAP", lam = 0.001)
-)
+
 
 # =============================================================================
 # Leaderboard
@@ -291,38 +304,52 @@ lm.tfqa <- train.lm("truthfulqa")
 lm.wg <- train.lm("winogrande")
 
 pred.sub.train$arc.l <- lm.arc$pred.train
+pred.sub.train$arc.s <- lm.arc$sub.train
 pred.sub.train$gsm8k.l <- lm.gsm8k$pred.train
+pred.sub.train$gsm8k.s <- lm.gsm8k$sub.train
 pred.sub.train$hs.l <- lm.hs$pred.train
+pred.sub.train$hs.s <- lm.hs$sub.train
 pred.sub.train$mmlu.l <- lm.mmlu$pred.train
+pred.sub.train$mmlu.s <- lm.mmlu$sub.train
 pred.sub.train$tfqa.l <- lm.tfqa$pred.train
+pred.sub.train$tfqa.s <- lm.tfqa$sub.train
 pred.sub.train$wg.l <- lm.wg$pred.train
+pred.sub.train$wg.s <- lm.wg$sub.train
 pred.sub.train <- pred.sub.train |>
-  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l))
+  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l),
+                grand.s = 1/6 * (arc.s + gsm8k.s + hs.s + mmlu.s + tfqa.s + wg.s))
 
 pred.sub.test$arc.l <- lm.arc$pred.test
+pred.sub.test$arc.s <- lm.arc$sub.test
 pred.sub.test$gsm8k.l <- lm.gsm8k$pred.test
+pred.sub.test$gsm8k.s <- lm.gsm8k$sub.test
 pred.sub.test$hs.l <- lm.hs$pred.test
+pred.sub.test$hs.s <- lm.hs$sub.test
 pred.sub.test$mmlu.l <- lm.mmlu$pred.test
+pred.sub.test$mmlu.s <- lm.mmlu$sub.test
 pred.sub.test$tfqa.l <- lm.tfqa$pred.test
+pred.sub.test$tfqa.s <- lm.tfqa$sub.test
 pred.sub.test$wg.l <- lm.wg$pred.test
+pred.sub.test$wg.s <- lm.wg$sub.test
 pred.sub.test <- pred.sub.test |>
-  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l))
+  dplyr::mutate(grand.l = 1/6 * (arc.l + gsm8k.l + hs.l + mmlu.l + tfqa.l + wg.l),
+                grand.s = 1/6 * (arc.s + gsm8k.s + hs.s + mmlu.s + tfqa.s + wg.s))
 
+bs <- "ad"
 mod.sub <- mgcv::gam(grand ~
-                       s(grand.l, bs="ad") +
-                       s(arc, bs="ad") +
-                       s(gsm8k, bs="ad") +
-                       s(hellaswag, bs="ad") +
-                       s(mmlu, bs="ad") +
-                       s(truthfulqa, bs="ad") +
-                       s(winogrande, bs="ad"),
+                       s(grand.l, bs=bs) +
+                       s(grand.s, bs=bs) +
+                       s(arc, bs=bs) +
+                       s(gsm8k, bs=bs) +
+                       s(hellaswag, bs=bs) +
+                       s(mmlu, bs=bs) +
+                       s(truthfulqa, bs=bs) +
+                       s(winogrande, bs=bs),
                        data = pred.sub.train)
+
 
 pred.sub.train$p <- predict(mod.sub, pred.sub.train)
 pred.sub.test$p <- predict(mod.sub, pred.sub.test)
-
-# save model
-saveRDS(mod.sub, gpath("analysis/gams/gam-grand-v2.rds"))
 
 # plot
 pred.sub.test$color <- runif(nrow(pred.sub.test))
@@ -331,6 +358,10 @@ p.sub <- evaluate.score.pred(pred.sub.test) +
   ggplot2::ggtitle(glue::glue("metabench-A (d = {numitems.sub$sum})"))
 p.sub
 saveRDS(p.sub, gpath("plots/metabench-sub-v2.rds"))
+
+# save model
+out <- list(model=mod.sub, train=pred.sub.train, test=pred.sub.test)
+saveRDS(out, gpath("analysis/gams/gam-grand-seed=1-v2.rds"))
 
 # =============================================================================
 # Check relationship to model architecture
@@ -351,46 +382,66 @@ plot.error <- function(pred.sub){
 pred.sub.test.l <- rowmerge(pred.sub.test, leaderboard)
 table(pred.sub.test.l$arch)
 p.arch <- plot.error(pred.sub.test.l)
-outpath <- gpath("figures/f.architecture-v2.pdf")
+outpath <- gpath("figures/f.architecture-seed=1-v2.pdf")
 ggplot2::ggsave(outpath, p.arch, width = 8, height = 6)
 
+# =============================================================================
+# FA
+thetas.train <- pred.sub.train |> dplyr::select(arc, gsm8k, hellaswag, mmlu, truthfulqa, winogrande)
+thetas.test <- pred.sub.test |> dplyr::select(arc, gsm8k, hellaswag, mmlu, truthfulqa, winogrande)
+fa.score <- do.fa(thetas.train, 1)
+sort(fa.score$uniquenesses, decreasing = T)
+scores.partial.test$MR1 <- psych::factor.scores(thetas.test, fa.score)$scores
+r.score <- cor(scores.partial.test$MR1, scores.partial.test$grand, method = "spearman")
+gprint("r(Factor1, Score) = {round(r.score,3)}")
 
 # =============================================================================
 # Predict specific scores using all latent abilities
-plot.specific <- function(bm){
-  lm.res <- train.lm(bm)
+predictors <- c("grand.l", "grand.s", "this.l", "this.s",
+                "arc", "gsm8k", "hellaswag", "mmlu", "truthfulqa", "winogrande")
+
+
+
+create.formula <- function(dummy, bs){
+  out <- "grand ~ 1"
+  for (i in 1:length(dummy)){
+    include.this <- dummy[i][[1]]
+    if (include.this){
+      term <- glue::glue(" + s({predictors[i]}, bs='{bs}')")
+      out <- glue::glue("{out}{term}")
+    }
+  }
+  as.formula(out)
+}
+
+plot.specific <- function(bm, dummy=rep(T,length(predictors)), bs="ad"){
   pred.sub.train$grand <- scores.partial.train[[bm]]
   pred.sub.test$grand <- scores.partial.test[[bm]] 
   if (bm == "hellaswag"){
-    this.l.str <- "hs.l"
+    this.str <- "hs"
   } else if (bm == "truthfulqa") {
-    this.l.str <- "tfqa.l"
+    this.str <- "tfqa"
   } else if (bm == "winogrande") {
-    this.l.str <- "wg.l"
+    this.str <- "wg"
   } else {
-    this.l.str <- paste0(bm, ".l")
+    this.str <- bm
   }
+  this.l.str <- paste0(this.str, ".l")
+  this.s.str <- paste0(this.str, ".s")
   pred.sub.train$this.l <- pred.sub.train[[this.l.str]]
+  pred.sub.train$this.s <- pred.sub.train[[this.s.str]]
   pred.sub.test$this.l <- pred.sub.test[[this.l.str]]
-  rmse.lin <- sqrt(mean((pred.sub.test$grand - pred.sub.test$this.l)^2))
-  gprint("Test RMSE of the linear model: {round(rmse.lin, 3)}")
-  
-  mod.sub <- mgcv::gam(grand ~
-                         s(grand.l, bs="ad") +
-                         s(this.l, bs="ad") +
-                         s(arc, bs="ad") +
-                         s(gsm8k, bs="ad") +
-                         s(hellaswag, bs="ad") +
-                         s(mmlu, bs="ad") +
-                         s(truthfulqa, bs="ad") +
-                         s(winogrande, bs="ad"),
-                       data = pred.sub.train)
+  pred.sub.test$this.s <- pred.sub.test[[this.s.str]]
+  formula <- create.formula(dummy, bs)
+  mod.sub <- mgcv::gam(formula, data = pred.sub.train)
   pred.sub.train$p <- predict(mod.sub, pred.sub.train)
   pred.sub.test$p <- predict(mod.sub, pred.sub.test)
-
+  pred.sub.test$error <- pred.sub.test$p - pred.sub.test$grand
+  
   # save model
-  saveRDS(mod.sub, gpath("analysis/gams/gam-{bm}-v2.rds"))
-
+  out <- list(model=mod.sub, train=pred.sub.train, test=pred.sub.test)
+  saveRDS(out, gpath("analysis/gams/gam-{bm}-seed=1-v2.rds"))
+   
   # plot
   pred.sub.test$color <- runif(nrow(pred.sub.test))
   p.sub <- evaluate.score.pred(pred.sub.test) +
@@ -401,12 +452,13 @@ plot.specific <- function(bm){
 }
 
 # specific reconstruction plots
-p.arc <- plot.specific("arc")
-p.gsm8k <- plot.specific("gsm8k")
-p.hs <- plot.specific("hellaswag")
-p.mmlu <- plot.specific("mmlu")
-p.tfqa <- plot.specific("truthfulqa")
-p.wg <- plot.specific("winogrande")
+(p.arc <- plot.specific("arc"))
+(p.gsm8k <- plot.specific("gsm8k"))
+(p.hs <- plot.specific("hellaswag", c(T, F, T, F, T, T, T, T, T, T)))
+(p.mmlu <- plot.specific("mmlu"))
+(p.tfqa <- plot.specific("truthfulqa"))
+(p.wg <- plot.specific("winogrande"))
+
 saveRDS(list(arc=p.arc, gsm8k=p.gsm8k, hs=p.hs, mmlu=p.mmlu, tfqa=p.tfqa, wg=p.wg),
         gpath("plots/mb-specific-v2.rds"))
 

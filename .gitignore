@@ -1,16 +1,22 @@
 */.RData
 */.Rhistory
 */tempCodeRunnerFile.r
-*/.DS_Store
+*.DS_Store
 .Rproj.user
-analysis/models*
+*.tgz
+*_old
 analysis/archive
-analysis/itemfits
-analysis/reduced*
 analysis/cat/*
 !analysis/cat/.gitkeep
+analysis/clustering
+analysis/itemfits
+analysis/models*
 data*
 plots*
 *_old
 *.DS_Store
 finetuning/fine_tuned_llamas/*
+scraping/check_prompts.py
+scraping/open-llm-leaderboard-original.csv
+scraping/open-llm-leaderboard copy.csv
+scraping/open-llm-leaderboard_log*
