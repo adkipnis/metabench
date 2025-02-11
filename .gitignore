@@ -13,6 +13,9 @@ analysis/itemfits
 analysis/models*
 data*
 plots*
+*_old
+*.DS_Store
+finetuning/fine_tuned_llamas/*
 scraping/check_prompts.py
 scraping/open-llm-leaderboard-original.csv
 scraping/open-llm-leaderboard copy.csv
