@@ -11,7 +11,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=12
-#SBATCH --mem=100G
+#SBATCH --mem=300G
 #SBATCH --time=10:00:00
 #SBATCH --nice=10000
 
