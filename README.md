@@ -61,12 +61,12 @@ To cite metabench in publications:
 
 ```bibtex
 @inproceedings{
-kipnis.2025,
-title={metabench - A Sparse Benchmark of Reasoning and Knowledge in Large Language Models},
-author={Alex Kipnis and Konstantinos Voudouris and Luca M. Schulze Buschoff and Eric Schulz},
-booktitle={The Thirteenth International Conference on Learning Representations},
-year={2025},
-url={https://openreview.net/forum?id=4T33izzFpK}
+    kipnis.2025,
+    title={metabench - A Sparse Benchmark of Reasoning and Knowledge in Large Language Models},
+    author={Alex Kipnis and Konstantinos Voudouris and Luca M. Schulze Buschoff and Eric Schulz},
+    booktitle={The Thirteenth International Conference on Learning Representations},
+    year={2025},
+    url={https://openreview.net/forum?id=4T33izzFpK}
 }
 ```
 
