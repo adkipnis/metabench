@@ -60,11 +60,13 @@ Simply download and extract `data.tar.gz` to `data` inside your `.../metabench/`
 To cite metabench in publications:
 
 ```bibtex
-@article{metabench,
-  author  = {Alex Kipnis and Konstantinos Voudouris and Luca M. Schulze Buschoff and Eric Schulz},
-  title   = {metabench - A Sparse Benchmark to Measure General Ability in Large Language Models},
-  journal = {arXiv preprint arXiv:2407.12844},
-  year    = {2024},
+@inproceedings{
+kipnis.2025,
+title={metabench - A Sparse Benchmark of Reasoning and Knowledge in Large Language Models},
+author={Alex Kipnis and Konstantinos Voudouris and Luca M. Schulze Buschoff and Eric Schulz},
+booktitle={The Thirteenth International Conference on Learning Representations},
+year={2025},
+url={https://openreview.net/forum?id=4T33izzFpK}
 }
 ```
 
