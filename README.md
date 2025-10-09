@@ -1,12 +1,12 @@
 # metabench
-## A Sparse Benchmark to Measure General Ability in LLMs
+## A sparse benchmark of reasoning and knowledge in LLMs
 🤗 metabench distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size\
 🧑‍🏫 item selection is based on item response theory analyses of over 5000 LLMs\
 🔥 scores for the six benchmarks[^1] can be reconstructed with on average <0.9% mean absolute error\
 ☄️ the Open LLM Leaderboard score can be reconstructed with <0.5% mean absolute error
 
 This repo contains the source code for [dataset scraping](scraping) in Python and [statistical analysis](analysis) in R.\
-For details, please read our [preprint](https://arxiv.org/abs/2407.12844).
+For details, please read our [ICLR Paper](https://openreview.net/forum?id=4T33izzFpK).
 
 ## Setup
 The [R programming language](https://www.r-project.org/) is required for running metabench. Once installed, you can setup all R dependencies by running this line in the current directory:
