@@ -23,8 +23,8 @@ lm-eval --model hf \
     --output_path path/to/metabench/harness-results \
     --log_samples # this saves the instance level results as a jsonl
 ```
-- `{model_id}` is your [Hugging Face](https://huggingface.co/) model ID,\
-- `{version}` is "" for the main version or "_secondary" for the repeated evaluation version\
+- `{model_id}` is your [Hugging Face](https://huggingface.co/) model ID,
+- `{version}` is "" for the main version or "_secondary" for the repeated evaluation version
 - `{permute}` is "" for the unpermuted responses and "_permute" for the permuted responses.
 
 
