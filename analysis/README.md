@@ -58,3 +58,11 @@ We recommend to set `lambda` to 0.005.
 
 ### Posthoc Analyses
 To run the factor analyses, use all latent abilities for score prediction, and generate a subsampled reference distribution, checkout `meta.R`. This is best run in an IDE like RStudio.
+
+### Paired rank resolution (full vs. metabench items)
+How many adjacent ranks can the full item set resolve, and how many can the metabench items resolve, by an exact paired (McNemar) test on discordant items? Complements the Spearman numbers in Table 1. Requires the Zenodo datasets in `metabench/data`; Python with numpy + pandas.
+
+```console
+python paired_resolution.py            # all six benchmarks
+python paired_resolution.py --selftest # no data needed
+```
