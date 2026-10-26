@@ -1,4 +1,4 @@
-# metabench
+# MetaBench
 ## A sparse benchmark of reasoning and knowledge in LLMs
 🤗 metabench distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size\
 🧑‍🏫 item selection is based on item response theory analyses of over 5000 LLMs\
