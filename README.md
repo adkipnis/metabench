@@ -1,6 +1,6 @@
 # MetaBench
 ## A sparse benchmark of reasoning and knowledge in LLMs
-🤗 metabench distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size\
+🤗 MetaBench distills the [Open LLM Leaderboard 1](https://huggingface.co/spaces/open-llm-leaderboard-old/open_llm_leaderboard) to less than 3% of its original size\
 🧑‍🏫 item selection is based on item response theory analyses of over 5000 LLMs\
 🔥 scores for the six benchmarks[^1] can be reconstructed with on average <0.9% mean absolute error\
 ☄️ the Open LLM Leaderboard score can be reconstructed with <0.5% mean absolute error
@@ -37,13 +37,13 @@ Rscript reconstruct.R {model_id} {ver} {per}
 
 
 
-## How metabench was constructed
+## How MetaBench was constructed
 <img src="https://github.com/adkipnis/metabench/blob/main/figures/overview/overview.png" width="750" />
 
 1. Collect item-wise accuracies from all available LLMs for each benchmark on Open LLM Leaderboard.
 2. Remove items based on simple statistics like variance.
 3. Perform cross-validated subsampling to 350 items per benchmark.
-4. Fit variants of IRT models to the remaining items, infer item information from the item parameters and select the most informative items to construct metabench.
+4. Fit variants of IRT models to the remaining items, infer item information from the item parameters and select the most informative items to construct MetaBench.
 5. Use the model fits to estimate the benchmark-specific abilities and reconstruct the original (normalized) benchmark scores as well as their mean using a generalized additive model with cross-validation.
 
 ## Data
@@ -57,13 +57,13 @@ Simply download and extract `data.tar.gz` to `data` inside your `.../metabench/`
 - [scraping](scraping): Scripts for downloading and processing publically available item-wise responses by LLMs
 
 ## Citing the Project
-To cite metabench in publications:
+To cite MetaBench in publications:
 
 ```bibtex
 @inproceedings{
     kipnis.2025,
     author    = {Alex Kipnis and Konstantinos Voudouris and Luca M. Schulze Buschoff and Eric Schulz},
-    title     = {metabench - A Sparse Benchmark of Reasoning and Knowledge in Large Language Models},
+    title     = {A Sparse Benchmark of Reasoning and Knowledge in Large Language Models},
     booktitle = {The Thirteenth International Conference on Learning Representations},
     year      = {2025},
     url       = {https://openreview.net/forum?id=4T33izzFpK}
